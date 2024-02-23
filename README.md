@@ -1,5 +1,8 @@
 # CockroachDB: Store/Retrieve Based on Text Embeddings
 
+**DISCLAIMER**
+
+
 ## Set up
 
 ```
