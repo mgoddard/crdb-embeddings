@@ -1,0 +1,10 @@
+Simplify how businesses build and operate world-changing applications
+Data-intensive applications run the world. Which means they probably run your business, too.
+
+Every enterprise, in every corner of the market and every corner of the globe, relies on the apps they build and maintain to create competitive advantage and win customer loyalty.
+
+Mission-critical applications deserve a database that’s up to the task.
+
+Which is precisely what we’re building in CockroachDB: an enterprise-caliber, distributed SQL database architected to eliminate downtime, simplify operations, and enable seamless customer experiences anywhere on the planet. It’s a database that scales when others fail, to unlock opportunities others can’t.
+
+That’s our vision. If you want to help us fulfill it, join us (we’re hiring!)

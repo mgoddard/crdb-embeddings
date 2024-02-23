@@ -1,0 +1,23 @@
+Decware started it's business in 1996 selling a single product called The Zen Triode Amplifier. This incredible design showed the world what's really possible with only 2 watts and remains the backbone of our company some 20 years later.
+
+There are 3 models of our 2 watt series of Zen Triode amplifier. The basic model, an XLR balanced model, and this model, the SE84UFO3 which is unique because it consists of two individual amplifiers, one for each speaker.
+
+These 'mono' amplifiers are essentially our basic model split in half, so there are no substantial gains in power because it's not about that ~ it's about transparency.
+
+The term "transparency", which is a fancy adjective meaning "resolution", is practically owned by the Zen Triode design because it has only one capacitor and two resistors in the signal path. This is what gives music playback the vivid liquidity and 3D space that's actually locked away in most good recordings.
+
+Appreciated in over 56 countries the basic model Zen Triode over the past 20 year has set a pretty high benchmark. These new mono-blocks simply nudge that benchmark a bit higher.
+
+The way they do it is by actually fixing the incoming power that feeds the amplifier through the use of a vacuum tube regulator (shown below) not found in the other models.
+
+This regulation is quite different in that rather than shunting power to ground to maintain a constant voltage or current, which in turn creates noise that must be filtered out, the Zen Triodes launch electrons through a gas that are collected and stored on a plate feeding a high voltage input stage.
+
+The result of this series vacuum tube power supply is a complete blocking of power supply harmonics, noise, hash, grain, and spikes. Similar to pure DC from a battery but with more current.
+
+This clean power allows the transparency of a Zen Triode to go deeper. You can get a similar effect from our basic model if you were to plug it into a $6500 power re-generator/conditioner with fan noise, more power cords etc.
+
+In the Zen Triode, the clean power from the vacuum tube is only inches away from the input stage which uses it, and there are no connectors or plugs or circuit boards to complicate matters.
+
+This is really the only way to make a perfect amplifier like our basic model better, which is to say just give it cleaner power and a bit more headroom by doubling and then separating the power supplies for each channel. 
+
+These Mono's make it possible to place an amp near each speaker so that you can reduce the length of your speaker cable. Speaker cable is often a weak link in the chain, so the less of it you have, the deeper the listening experience will go with a Zen Triode Amplifier.

@@ -1,0 +1,27 @@
+CREATE TABLE text_embed
+(
+  uri STRING NOT NULL
+  , chunk_num INT NOT NULL
+  , token STRING NOT NULL
+  , chunk STRING NOT NULL
+  , PRIMARY KEY (uri, chunk_num)
+);
+
+\set q '''8k al b0 16 fl ck 08 07 6q bc'''
+
+SELECT uri, SIMILARITY(:q, token)::NUMERIC(4, 3) sim, token, chunk
+FROM text_embed
+WHERE :q % token
+ORDER BY sim DESC
+LIMIT 5;
+
+WITH q_embed AS
+(
+  SELECT uri, SIMILARITY(:q, token)::NUMERIC(4, 3) sim, token, chunk
+  FROM text_embed@text_embed_token_idx
+  WHERE :q % token
+  ORDER BY sim DESC
+  LIMIT 5
+)
+SELECT * from q_embed where chunk ~* '(chicken|recipe)';
+
