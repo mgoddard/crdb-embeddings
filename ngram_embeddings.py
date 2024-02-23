@@ -35,9 +35,11 @@ DELIM = ' '
 #DELIM = '~'
 
 # Tweak minimum similarity in the DB session.  Lower may be better given the LIMIT clause.
-# set pg_trgm.similarity_threshold = 0.25;
-# set pg_trgm.similarity_threshold = 0.1;
-MIN_SIM = 0.1 # Will get set in SQL session
+#   set pg_trgm.similarity_threshold = 0.25;
+#   set pg_trgm.similarity_threshold = 0.1;
+# The value passed in via the environment will be set in SQL session
+min_sim = float(os.environ.get("MIN_SIM", "0.20"))
+print("pg_trgm.similarity_threshold: {} (set via 'export MIN_SIM=0.1')".format(min_sim))
 
 log_level = os.environ.get("LOG_LEVEL", "WARN").upper()
 logging.basicConfig(
@@ -161,7 +163,7 @@ if "-q" == sys.argv[1][0:2]:
   print("terms_regex: {}\n".format(terms_regex))
   t0 = time.time()
   with conn.cursor() as cur:
-    cur.execute("SET pg_trgm.similarity_threshold = %s;", (MIN_SIM,)) # This does work
+    cur.execute("SET pg_trgm.similarity_threshold = %s;", (min_sim,)) # This does work
   conn.commit()
   with conn.cursor() as cur:
     cur.execute(q_sql, (tok, tok, terms_regex,))
