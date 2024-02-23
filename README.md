@@ -128,9 +128,8 @@ x_sorted = dict(sorted(x.items(), key=lambda item: abs(item[1]), reverse=True)[:
 
 ## References
 
-https://stackoverflow.blog/2023/11/09/an-intuitive-introduction-to-text-embeddings/
-https://huggingface.co/blog/bert-101
-https://huggingface.co/distilbert/distilbert-base-uncased
-https://mccormickml.com/2019/05/14/BERT-word-embeddings-tutorial/
-https://goddard.hashnode.dev/use-cases-for-trigram-indexes-when-its-okay-not-to-use-full-text-search
+* https://stackoverflow.blog/2023/11/09/an-intuitive-introduction-to-text-embeddings/
+* https://huggingface.co/blog/bert-101
+* https://huggingface.co/distilbert/distilbert-base-uncased
+* https://mccormickml.com/2019/05/14/BERT-word-embeddings-tutorial/
 
