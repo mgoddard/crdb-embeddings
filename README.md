@@ -1,6 +1,6 @@
 # CockroachDB: Store/Retrieve Based on Text Embeddings
 
-# Set up
+## Set up
 
 ```
 $ export DB_URL="postgres://dbuser:passwd@127.0.0.1:26257/defaultdb?sslmode=require&sslrootcert=/crdb-certs/ca.crt"
