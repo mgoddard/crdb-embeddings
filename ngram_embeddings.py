@@ -7,6 +7,14 @@ import base36
 import logging
 import psycopg2
 
+# For Flask app
+from flask import Flask, request, Response, g
+import urllib
+import json
+import base64
+
+CHARSET = "utf-8"
+
 # Max number of dimensions to store in DB and use for queries (out of 768)
 #TOP_N = 32
 #TOP_N = 10
@@ -149,21 +157,38 @@ WITH q_embed AS
 )
 SELECT * from q_embed where chunk ~* %s;
 """
-# SELECT * from q_embed where chunk ~* '(%s)';
 
-conn = psycopg2.connect(db_url)
+def db_connect():
+  return psycopg2.connect(db_url)
 
-# Query mode
-if "-q" == sys.argv[1][0:2]:
-  terms = sys.argv[2:]
+def get_db():
+  if "db" not in g:
+    g.db = db_connect()
+  # Handle the case of a closed connection
+  try:
+    cur = g.db.cursor()
+    cur.execute("SELECT 1")
+  except psycopg2.OperationalError:
+    g.db = db_connect()
+  return g.db
+
+app = Flask(__name__)
+with app.app_context():
+  get_db()
+
+# Arg: search terms
+# Returns: list of {"uri": uri, "sim": sim, "token": token, "chunk": chunk}
+def search(terms):
   q = ' '.join(terms)
+  rv = []
   tok = get_token_for_string(q)
-  print("Query string: '{}'\nToken: '{}'\n".format(q, tok))
+  logging.info("Query string: '{}'\nToken: '{}'\n".format(q, tok))
   terms_regex = '({})'.format('|'.join(list(set(terms)))) # Remove duplicate terms via the set
-  print("terms_regex: {}\n".format(terms_regex))
+  logging.info("terms_regex: {}\n".format(terms_regex))
   t0 = time.time()
+  conn = db_connect()
   with conn.cursor() as cur:
-    cur.execute("SET pg_trgm.similarity_threshold = %s;", (min_sim,)) # This does work
+    cur.execute("SET pg_trgm.similarity_threshold = %s;", (min_sim,)) # Verified: this works
   conn.commit()
   with conn.cursor() as cur:
     cur.execute(q_sql, (tok, tok, terms_regex,))
@@ -171,20 +196,25 @@ if "-q" == sys.argv[1][0:2]:
     if rs is not None:
       for row in rs:
         (uri, sim, token, chunk) = row
-        print("URI: {}\nSCORE: {}\nTOKEN: {}\nCHUNK: {}\n".format(uri, sim, token, chunk))
-    else:
-      print("Empty result set\n")
+        rv.append({"uri": uri, "sim": sim, "token": token, "chunk": chunk})
   et = time.time() - t0
-  print("SQL query time: {} ms\n".format(et * 1000))
+  logging.info("SQL query time: {} ms\n".format(et * 1000))
+  conn.close()
+  return rv
+
+# Query mode
+if "-q" == sys.argv[1][0:2]:
+  terms = sys.argv[2:]
+  for row in search(terms):
+    print("URI: {}\nSCORE: {}\nTOKEN: {}\nCHUNK: {}\n".format(row["uri"], row["sim"], row["token"], row["chunk"]))
 else:
   # Indexing mode
   t0 = time.time()
+  conn = db_connect()
   for in_file in sys.argv[1:]:
     print("Indexing file " + in_file + " now ...")
     index_file(in_file)
   et = time.time() - t0
   logging.info("Total time: {} s".format(et))
-
-# Close connection
-conn.close()
+  conn.close()
 
