@@ -172,6 +172,15 @@ def get_db():
     g.db = db_connect()
   return g.db
 
+# Clean any special chars out of text
+def clean_text(text):
+  return re.sub(r"['\",{}]", "", text)
+
+# Decode a base64 encoded value to a UTF-8 string
+def decode(b64):
+  b = base64.b64decode(b64)
+  return b.decode(CHARSET).strip()
+
 app = Flask(__name__)
 with app.app_context():
   get_db()
@@ -196,19 +205,38 @@ def search(terms):
     if rs is not None:
       for row in rs:
         (uri, sim, token, chunk) = row
-        rv.append({"uri": uri, "sim": sim, "token": token, "chunk": chunk})
+        rv.append({"uri": uri, "sim": str(sim), "token": token, "chunk": chunk})
   et = time.time() - t0
   logging.info("SQL query time: {} ms\n".format(et * 1000))
   conn.close()
   return rv
+
+#
+# The search/query
+# EXAMPLE (with a limit of 10 results):
+#   curl http://localhost:18080/search/$( echo -n "Using Lateral Joins" | base64 )
+#
+@app.route("/search/<q_base_64>")
+def do_search(q_base_64):
+  q = decode(q_base_64)
+  q = clean_text(q)
+  rv = search(q.split())
+  return Response(json.dumps(rv), status=200, mimetype="application/json")
 
 # Query mode
 if "-q" == sys.argv[1][0:2]:
   terms = sys.argv[2:]
   for row in search(terms):
     print("URI: {}\nSCORE: {}\nTOKEN: {}\nCHUNK: {}\n".format(row["uri"], row["sim"], row["token"], row["chunk"]))
+# Server mode
+elif "-s" == sys.argv[1][0:2]:
+  port = int(os.getenv("FLASK_PORT", 18080))
+  app.run(host='0.0.0.0', port=port, threaded=False, debug=True)
+  # Shut down the DB connection when app quits
+  with app.app_context():
+    get_db().close()
+# Indexing mode
 else:
-  # Indexing mode
   t0 = time.time()
   conn = db_connect()
   for in_file in sys.argv[1:]:
