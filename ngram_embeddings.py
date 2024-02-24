@@ -129,22 +129,27 @@ CREATE INDEX ON text_embed USING GIN (token gin_trgm_ops);
 """
 
 ins_sql = "INSERT INTO text_embed (uri, chunk_num, token, chunk) VALUES (%s, %s, %s, %s)"
-def index_file(in_file):
-  text = ""
-  with open(in_file, mode="rt") as f:
-    for line in f:
-      text += line
-  in_file = re.sub(r"\./", '', in_file) # Trim leading '/'
+def index_text(uri, text):
+  conn = db_connect()
   with conn.cursor() as cur:
     n_chunk = 0
     for s in re.split(r"\.\s+", text):
       s = s.strip()
       if (len(s) > 0):
         token = get_token_for_string(s)
-        logging.debug("URI: {}, CHUNK_NUM: {}\nCHUNK: '{}'\n".format(in_file, n_chunk, s))
-        cur.execute(ins_sql, (in_file, n_chunk, token, s))
+        logging.debug("URI: {}, CHUNK_NUM: {}\nCHUNK: '{}'\n".format(uri, n_chunk, s))
+        cur.execute(ins_sql, (uri, n_chunk, token, s))
         n_chunk += 1
     conn.commit()
+  conn.close()
+
+def index_file(in_file):
+  text = ""
+  with open(in_file, mode="rt") as f:
+    for line in f:
+      text += line
+  in_file = re.sub(r"\./", '', in_file) # Trim leading '/'
+  index_text(in_file, text)
 
 def db_connect():
   return psycopg2.connect(db_url)
@@ -234,8 +239,9 @@ def do_search(q_base_64, limit, use_regex=True):
 @app.route('/index', methods=['POST'])
 def do_index():
   data = request.get_json(force=True)
+  index_text(data["uri"], data["text"])
   # Note the extra arguments here which translate the \uxxxx escape codes
-  print("Data: " + json.dumps(data, ensure_ascii=False).encode("utf8").decode())
+  #print("Data: " + json.dumps(data, ensure_ascii=False).encode("utf8").decode())
   return Response("OK", status=200, mimetype="text/plain")
 
 # Query mode
