@@ -182,30 +182,36 @@ WITH q_embed AS
   ORDER BY sim DESC
   LIMIT %s
 )
-SELECT * from q_embed where chunk ~* %s;
+SELECT * from q_embed
 """
 
 # Arg: search terms
 # Returns: list of {"uri": uri, "sim": sim, "token": token, "chunk": chunk}
-def search(terms, limit=5):
+def search(terms, limit=5, use_regex=True):
+  logging.info("use_regex: {}".format(use_regex))
   q = ' '.join(terms)
   rv = []
   tok = get_token_for_string(q)
   logging.info("Query string: '{}'\nToken: '{}'\n".format(q, tok))
-  terms_regex = '({})'.format('|'.join(list(set(terms)))) # Remove duplicate terms via the set
-  logging.info("terms_regex: {}\n".format(terms_regex))
   t0 = time.time()
   conn = db_connect()
   with conn.cursor() as cur:
+    # FIXME: Better to do this once after connect since it'll add to the query runtime
     cur.execute("SET pg_trgm.similarity_threshold = %s;", (min_sim,)) # Verified: this works
   conn.commit()
   with conn.cursor() as cur:
-    cur.execute(q_sql, (tok, tok, limit, terms_regex,))
+    if use_regex:
+      # TODO: stem the terms before forming the regex
+      terms_regex = '({})'.format('|'.join(list(set(terms)))) # Remove duplicate terms via the set
+      logging.info("terms_regex: {}\n".format(terms_regex))
+      cur.execute(q_sql + "\nWHERE chunk ~* %s", (tok, tok, limit, terms_regex,))
+    else:
+      cur.execute(q_sql, (tok, tok, limit,))
     rs = cur.fetchall()
     if rs is not None:
       for row in rs:
         (uri, sim, token, chunk) = row
-        rv.append({"uri": uri, "sim": str(sim), "token": token, "chunk": chunk})
+        rv.append({"uri": uri, "sim": float(sim), "token": token, "chunk": chunk})
   et = time.time() - t0
   logging.info("SQL query time: {} ms\n".format(et * 1000))
   conn.close()
@@ -218,11 +224,18 @@ def search(terms, limit=5):
 #
 # TODO: parameterize limit as URL param
 @app.route("/search/<q_base_64>/<int:limit>")
-def do_search(q_base_64, limit):
+@app.route("/search/<q_base_64>/<int:limit>/<path:use_regex>")
+def do_search(q_base_64, limit, use_regex=True):
   q = decode(q_base_64)
   q = clean_text(q)
-  rv = search(q.split(), limit)
+  rv = search(q.split(), limit, use_regex.upper() == "TRUE")
   return Response(json.dumps(rv), status=200, mimetype="application/json")
+
+@app.route('/index', methods=['POST'])
+def do_index():
+  data = request.get_json(force=True)
+  print("Data: " + json.dumps(data))
+  return Response("OK", status=200, mimetype="text/plain")
 
 # Query mode
 if "-q" == sys.argv[1][0:2]:
