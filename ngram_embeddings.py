@@ -146,18 +146,6 @@ def index_file(in_file):
         n_chunk += 1
     conn.commit()
 
-q_sql = """
-WITH q_embed AS
-(
-  SELECT uri, SIMILARITY(%s, token)::NUMERIC(4, 3) sim, token, chunk
-  FROM text_embed@text_embed_token_idx
-  WHERE %s %% token
-  ORDER BY sim DESC
-  LIMIT 5
-)
-SELECT * from q_embed where chunk ~* %s;
-"""
-
 def db_connect():
   return psycopg2.connect(db_url)
 
@@ -185,9 +173,21 @@ app = Flask(__name__)
 with app.app_context():
   get_db()
 
+q_sql = """
+WITH q_embed AS
+(
+  SELECT uri, SIMILARITY(%s, token)::NUMERIC(4, 3) sim, token, chunk
+  FROM text_embed@text_embed_token_idx
+  WHERE %s %% token
+  ORDER BY sim DESC
+  LIMIT %s
+)
+SELECT * from q_embed where chunk ~* %s;
+"""
+
 # Arg: search terms
 # Returns: list of {"uri": uri, "sim": sim, "token": token, "chunk": chunk}
-def search(terms):
+def search(terms, limit=5):
   q = ' '.join(terms)
   rv = []
   tok = get_token_for_string(q)
@@ -200,7 +200,7 @@ def search(terms):
     cur.execute("SET pg_trgm.similarity_threshold = %s;", (min_sim,)) # Verified: this works
   conn.commit()
   with conn.cursor() as cur:
-    cur.execute(q_sql, (tok, tok, terms_regex,))
+    cur.execute(q_sql, (tok, tok, limit, terms_regex,))
     rs = cur.fetchall()
     if rs is not None:
       for row in rs:
@@ -216,11 +216,12 @@ def search(terms):
 # EXAMPLE (with a limit of 10 results):
 #   curl http://localhost:18080/search/$( echo -n "Using Lateral Joins" | base64 )
 #
-@app.route("/search/<q_base_64>")
-def do_search(q_base_64):
+# TODO: parameterize limit as URL param
+@app.route("/search/<q_base_64>/<int:limit>")
+def do_search(q_base_64, limit):
   q = decode(q_base_64)
   q = clean_text(q)
-  rv = search(q.split())
+  rv = search(q.split(), limit)
   return Response(json.dumps(rv), status=200, mimetype="application/json")
 
 # Query mode
