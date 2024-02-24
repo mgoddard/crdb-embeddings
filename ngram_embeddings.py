@@ -49,6 +49,9 @@ DELIM = ' '
 min_sim = float(os.environ.get("MIN_SIM", "0.20"))
 print("pg_trgm.similarity_threshold: {} (set via 'export MIN_SIM=0.1')".format(min_sim))
 
+n_threads = int(os.environ.get("N_THREADS", "1"))
+print("n_threads: {} (set via 'export N_THREADS=10')".format(n_threads))
+
 log_level = os.environ.get("LOG_LEVEL", "WARN").upper()
 logging.basicConfig(
   level=log_level
@@ -252,7 +255,8 @@ if "-q" == sys.argv[1][0:2]:
 # Server mode
 elif "-s" == sys.argv[1][0:2]:
   port = int(os.getenv("FLASK_PORT", 18080))
-  app.run(host='0.0.0.0', port=port, threaded=False, debug=True)
+  from waitress import serve
+  serve(app, host="0.0.0.0", port=port, threads=n_threads)
   # Shut down the DB connection when app quits
   with app.app_context():
     get_db().close()
