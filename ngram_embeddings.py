@@ -234,7 +234,8 @@ def do_search(q_base_64, limit, use_regex=True):
 @app.route('/index', methods=['POST'])
 def do_index():
   data = request.get_json(force=True)
-  print("Data: " + json.dumps(data))
+  # Note the extra arguments here which translate the \uxxxx escape codes
+  print("Data: " + json.dumps(data, ensure_ascii=False).encode("utf8").decode())
   return Response("OK", status=200, mimetype="text/plain")
 
 # Query mode
