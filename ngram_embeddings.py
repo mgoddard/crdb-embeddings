@@ -146,7 +146,7 @@ def index_text(uri, text):
         cur.execute(ins_sql, (uri, n_chunk, token, s))
         n_chunk += 1
     conn.commit()
-  conn.close()
+  put_conn(conn)
 
 def index_file(in_file):
   text = ""
