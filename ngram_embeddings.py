@@ -6,6 +6,7 @@ from transformers import BertTokenizer, BertModel
 import base36
 import logging
 import psycopg2
+import psycopg2.pool
 
 # For Flask app
 from flask import Flask, request, Response, g
@@ -133,7 +134,7 @@ CREATE INDEX ON text_embed USING GIN (token gin_trgm_ops);
 
 ins_sql = "INSERT INTO text_embed (uri, chunk_num, token, chunk) VALUES (%s, %s, %s, %s)"
 def index_text(uri, text):
-  conn = db_connect()
+  conn = get_conn()
   with conn.cursor() as cur:
     n_chunk = 0
     for s in re.split(r"\.\s+", text): # Sentence based splitting: makes sense to me.
@@ -155,19 +156,16 @@ def index_file(in_file):
   in_file = re.sub(r"\./", '', in_file) # Trim leading '/'
   index_text(in_file, text)
 
-def db_connect():
-  return psycopg2.connect(db_url)
+pool = None
+def get_conn():
+  global pool
+  if pool is None:
+    pool = psycopg2.pool.SimpleConnectionPool(3, 21, db_url)
+  return pool.getconn()
 
-def get_db():
-  if "db" not in g:
-    g.db = db_connect()
-  # Handle the case of a closed connection
-  try:
-    cur = g.db.cursor()
-    cur.execute("SELECT 1")
-  except psycopg2.OperationalError:
-    g.db = db_connect()
-  return g.db
+def put_conn(conn):
+  global pool
+  pool.putconn(conn)
 
 # Clean any special chars out of text
 def clean_text(text):
@@ -179,8 +177,6 @@ def decode(b64):
   return b.decode(CHARSET).strip()
 
 app = Flask(__name__)
-with app.app_context():
-  get_db()
 
 q_sql = """
 WITH q_embed AS
@@ -203,7 +199,7 @@ def search(terms, limit=5, use_regex=True):
   tok = get_token_for_string(q)
   logging.info("Query string: '{}'\nToken: '{}'\n".format(q, tok))
   t0 = time.time()
-  conn = db_connect()
+  conn = get_conn()
   with conn.cursor() as cur:
     # FIXME: Better to do this once after connect since it'll add to the query runtime
     cur.execute("SET pg_trgm.similarity_threshold = %s;", (min_sim,)) # Verified: this works
@@ -223,7 +219,7 @@ def search(terms, limit=5, use_regex=True):
         rv.append({"uri": uri, "sim": float(sim), "token": token, "chunk": chunk})
   et = time.time() - t0
   logging.info("SQL query time: {} ms\n".format(et * 1000))
-  conn.close()
+  put_conn(conn)
   return rv
 
 #
@@ -258,17 +254,14 @@ elif "-s" == sys.argv[1][0:2]:
   port = int(os.getenv("FLASK_PORT", 18080))
   from waitress import serve
   serve(app, host="0.0.0.0", port=port, threads=n_threads)
-  # Shut down the DB connection when app quits
-  with app.app_context():
-    get_db().close()
 # Indexing mode
 else:
   t0 = time.time()
-  conn = db_connect()
+  conn = get_conn()
   for in_file in sys.argv[1:]:
     print("Indexing file " + in_file + " now ...")
     index_file(in_file)
   et = time.time() - t0
   logging.info("Total time: {} s".format(et))
-  conn.close()
+  put_conn(conn)
 
