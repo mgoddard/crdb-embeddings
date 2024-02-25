@@ -136,7 +136,8 @@ def index_text(uri, text):
   conn = db_connect()
   with conn.cursor() as cur:
     n_chunk = 0
-    for s in re.split(r"\.\s+", text):
+    for s in re.split(r"\.\s+", text): # Sentence based splitting: makes sense to me.
+    #for s in re.split(r"[\r\n]{2,}", text): # Paragraph based splitting: topics could vary too much?
       s = s.strip()
       if (len(s) > 0):
         token = get_token_for_string(s)
