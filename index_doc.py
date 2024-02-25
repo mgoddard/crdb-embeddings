@@ -2,6 +2,7 @@
 
 import requests
 import sys, os, re
+import time
 
 # FIXME: get URL from environment
 url = "http://localhost:1963/index"
@@ -18,9 +19,11 @@ def read_file(in_file):
   return rv
 
 for doc_uri in sys.argv[1:]:
+  t0 = time.time()
   doc_text = read_file(doc_uri)
   doc_uri = re.sub(r"^[\./]+", '', doc_uri)
   #print("URI: {}\nTEXT: {}".format(doc_uri, doc_text))
   req = requests.post(url, json = { "uri": doc_uri, "text": doc_text })
-  print("{}: {}".format(doc_uri, "SUCCESS" if req.status_code == 200 else "FAILED"))
+  et = time.time() - t0
+  print("{}: {} (t = {:.3f} ms)".format(doc_uri, "SUCCESS" if req.status_code == 200 else "FAILED", et*1000))
 
