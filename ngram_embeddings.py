@@ -7,6 +7,7 @@ import base36
 import logging
 import psycopg2
 import psycopg2.pool
+import numpy
 
 # For Flask app
 from flask import Flask, request, Response, g
@@ -99,6 +100,13 @@ def gen_embeddings(s):
   rv = sentence_embedding.tolist()
   return rv
 
+# TODO:
+# 1. Trim the value returned by gen_embeddings to the target length (see below)
+# 2. Normalize the resulting vector: x = x / np.linalg.norm(x)
+# 3. Preserve the dims dictionary to store in the DB table as JSONB
+# 4. proceed with gen_embed_token, but omitting the sorting and trimming phase
+
+
 # From the list of embeddings, the 768 element array, return a string consisting of
 # the base 36 encoded array dimension (2 chars) for the TOP_N elements having the
 # largest magnitude.  These are separated by DELIM and have DELIM appended as well.
@@ -156,6 +164,8 @@ def index_file(in_file):
   in_file = re.sub(r"\./", '', in_file) # Trim leading '/'
   index_text(in_file, text)
 
+# TODO: Once connection is made, set any required session variables
+# https://www.psycopg.org/psycopg3/docs/api/pool.html#psycopg_pool.ConnectionPool.check_connection
 pool = None
 def get_conn():
   global pool
