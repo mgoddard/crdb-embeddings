@@ -7,7 +7,7 @@ import base36
 import logging
 import psycopg2
 import psycopg2.pool
-import numpy
+import numpy as np
 
 # For Flask app
 from flask import Flask, request, Response, g
@@ -98,34 +98,40 @@ def gen_embeddings(s):
   token_vecs = hidden_states[-2][0]
   sentence_embedding = torch.mean(token_vecs, dim=0)
   rv = sentence_embedding.tolist()
+  logging.info("gen_embeddings rv:\n", rv)
   return rv
 
 # TODO:
-# 1. Trim the value returned by gen_embeddings to the target length (see below)
-# 2. Normalize the resulting vector: x = x / np.linalg.norm(x)
-# 3. Preserve the dims dictionary to store in the DB table as JSONB
-# 4. proceed with gen_embed_token, but omitting the sorting and trimming phase
+# Refactor, preserving the dims dictionary to store in the DB table as JSONB
 
+def gen_svec(embed_list):
+  dims = {}
+  for i in range(0, len(embed_list)):
+    dims[base36.dumps(i).zfill(2)] = embed_list[i]
+  trunc = dict(sorted(dims.items(), key=lambda item: abs(item[1]), reverse=True)[N_DISCARD:TOP_N + N_DISCARD])
+  vals = list(trunc.values())
+  norm = np.linalg.norm(vals)
+  trunc = { k: v/norm for k, v in trunc.items() } # Normalize the remaining values in this dict
+  return trunc
 
 # From the list of embeddings, the 768 element array, return a string consisting of
 # the base 36 encoded array dimension (2 chars) for the TOP_N elements having the
 # largest magnitude.  These are separated by DELIM and have DELIM appended as well.
-def gen_embed_token(embed_list):
-  dims = {}
-  for i in range(0, len(embed_list)):
-    dims[base36.dumps(i).zfill(2)] = embed_list[i]
-  rv = DELIM.join(list(dict(sorted(dims.items(), key=lambda item: abs(item[1]), reverse=True)[N_DISCARD:TOP_N + N_DISCARD]).keys()))
+def gen_embed_token(svec):
+  rv = DELIM.join(list(svec.keys()))
   rv += DELIM
   return rv
 
-def get_token_for_string(s):
+# From the given string s, return [token, svec]
+def get_token_svec(s):
   rv = None
   t0 = time.time()
   embed = gen_embeddings(s)
   et = time.time() - t0
   logging.info("gen_embeddings: {} s".format(et))
-  rv = gen_embed_token(embed)
-  return rv
+  svec = gen_svec(embed)
+  tok = gen_embed_token(svec)
+  return [tok, svec]
 
 """
 DROP TABLE IF EXISTS text_embed;
@@ -149,7 +155,7 @@ def index_text(uri, text):
     #for s in re.split(r"[\r\n]{2,}", text): # Paragraph based splitting: topics could vary too much?
       s = s.strip()
       if (len(s) > 0):
-        token = get_token_for_string(s)
+        token = get_token_svec(s)[0]
         logging.debug("URI: {}, CHUNK_NUM: {}\nCHUNK: '{}'\n".format(uri, n_chunk, s))
         cur.execute(ins_sql, (uri, n_chunk, token, s))
         n_chunk += 1
@@ -218,7 +224,7 @@ def search(terms, limit=5, use_regex=True):
   logging.info("use_regex: {}".format(use_regex))
   q = ' '.join(terms)
   rv = []
-  tok = get_token_for_string(q)
+  tok = get_token_svec(q)[0]
   logging.info("Query string: '{}'\nToken: '{}'\n".format(q, tok))
   t0 = time.time()
   conn = get_conn()
