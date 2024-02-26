@@ -4,8 +4,9 @@ import requests
 import sys, os, re
 import time
 
-# FIXME: get URL from environment
-url = "http://localhost:1963/index"
+host = os.environ.get("FLASK_HOST", "localhost")
+port = os.environ.get("FLASK_PORT", "18080")
+url = "http://{}:{}/index".format(host, port)
 
 if len(sys.argv) < 2:
   print("Usage: {} file_to_index [file2 ...]\n".format(sys.argv[0]))

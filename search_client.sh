@@ -1,10 +1,9 @@
 #!/bin/bash
 
-# TODO: Set the host and port of where the app is running
-host=localhost
-port=1963
-max_results=4
-use_regex=True
+. ./env.sh
+
+max_results=3
+use_regex=true
 
 if [ $# -lt 1 ]
 then
@@ -12,5 +11,5 @@ then
   exit 1
 fi
 
-time curl http://$host:$port/search/$( echo -n "$@" | base64 )/$max_results/$use_regex
+curl -s http://$FLASK_HOST:$FLASK_PORT/search/$( echo -n "$@" | base64 )/$max_results/$use_regex | jq
 
