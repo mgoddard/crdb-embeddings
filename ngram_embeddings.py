@@ -140,13 +140,14 @@ CREATE TABLE text_embed
   uri STRING NOT NULL
   , chunk_num INT NOT NULL
   , token STRING NOT NULL
+  , svec JSONB NOT NULL
   , chunk STRING NOT NULL
   , PRIMARY KEY (uri, chunk_num)
 );
 CREATE INDEX ON text_embed USING GIN (token gin_trgm_ops);
 """
 
-ins_sql = "INSERT INTO text_embed (uri, chunk_num, token, chunk) VALUES (%s, %s, %s, %s)"
+ins_sql = "INSERT INTO text_embed (uri, chunk_num, token, chunk, svec) VALUES (%s, %s, %s, %s, %s)"
 def index_text(uri, text):
   conn = get_conn()
   with conn.cursor() as cur:
@@ -155,9 +156,9 @@ def index_text(uri, text):
     #for s in re.split(r"[\r\n]{2,}", text): # Paragraph based splitting: topics could vary too much?
       s = s.strip()
       if (len(s) > 0):
-        token = get_token_svec(s)[0]
+        (token, svec) = get_token_svec(s)
         logging.debug("URI: {}, CHUNK_NUM: {}\nCHUNK: '{}'\n".format(uri, n_chunk, s))
-        cur.execute(ins_sql, (uri, n_chunk, token, s))
+        cur.execute(ins_sql, (uri, n_chunk, token, s, json.dumps(svec)))
         n_chunk += 1
     conn.commit()
   put_conn(conn)
@@ -224,7 +225,7 @@ def search(terms, limit=5, use_regex=True):
   logging.info("use_regex: {}".format(use_regex))
   q = ' '.join(terms)
   rv = []
-  tok = get_token_svec(q)[0]
+  (tok, svec) = get_token_svec(q)
   logging.info("Query string: '{}'\nToken: '{}'\n".format(q, tok))
   t0 = time.time()
   conn = get_conn()
