@@ -221,8 +221,8 @@ SELECT * from q_embed
 
 # Arg: search terms
 # Returns: list of {"uri": uri, "sim": sim, "token": token, "chunk": chunk}
-def search(terms, limit=5, use_regex=True):
-  logging.info("use_regex: {}".format(use_regex))
+def search(terms, limit=5, rerank="none"):
+  logging.info("rerank: {}".format(rerank))
   q = ' '.join(terms)
   rv = []
   (tok, svec) = get_token_svec(q)
@@ -230,7 +230,7 @@ def search(terms, limit=5, use_regex=True):
   t0 = time.time()
   conn = get_conn()
   with conn.cursor() as cur:
-    if use_regex:
+    if rerank.upper() == "REGEX":
       # TODO: stem the terms before forming the regex
       terms_regex = '({})'.format('|'.join(list(set(terms)))) # Remove duplicate terms via the set
       logging.info("terms_regex: {}\n".format(terms_regex))
@@ -253,12 +253,13 @@ def search(terms, limit=5, use_regex=True):
 #   curl http://localhost:18080/search/$( echo -n "Using Lateral Joins" | base64 )
 #
 # TODO: parameterize limit as URL param
+# rerank is one of none, regex, cosine, [TBD]
 @app.route("/search/<q_base_64>/<int:limit>")
-@app.route("/search/<q_base_64>/<int:limit>/<path:use_regex>")
-def do_search(q_base_64, limit, use_regex=True):
+@app.route("/search/<q_base_64>/<int:limit>/<rerank>")
+def do_search(q_base_64, limit, rerank="none"):
   q = decode(q_base_64)
   q = clean_text(q)
-  rv = search(q.split(), limit, use_regex.upper() == "TRUE")
+  rv = search(q.split(), limit, rerank)
   return Response(json.dumps(rv), status=200, mimetype="application/json")
 
 @app.route('/index', methods=['POST'])

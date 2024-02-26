@@ -3,7 +3,7 @@
 . ./env.sh
 
 max_results=3
-use_regex=true
+rerank=regex
 
 if [ $# -lt 1 ]
 then
@@ -11,5 +11,5 @@ then
   exit 1
 fi
 
-curl -s http://$FLASK_HOST:$FLASK_PORT/search/$( echo -n "$@" | base64 )/$max_results/$use_regex | jq
+curl -s http://$FLASK_HOST:$FLASK_PORT/search/$( echo -n "$@" | base64 )/$max_results/$rerank | jq
 
