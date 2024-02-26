@@ -164,13 +164,25 @@ def index_file(in_file):
   in_file = re.sub(r"\./", '', in_file) # Trim leading '/'
   index_text(in_file, text)
 
-# TODO: Once connection is made, set any required session variables
-# https://www.psycopg.org/psycopg3/docs/api/pool.html#psycopg_pool.ConnectionPool.check_connection
+# Extend pool class so we can SET some values in session once connected
+class CrdbConnectionPool(psycopg2.pool.ThreadedConnectionPool):
+  def _connect(self, key=None):
+    """Create a new connection and assign it to 'key' if not None."""
+    conn = psycopg2.connect(*self._args, **self._kwargs)
+    with conn.cursor() as cur:
+      cur.execute("SET pg_trgm.similarity_threshold = %s;", (min_sim,)) # Verified: this works
+    if key is not None:
+      self._used[key] = conn
+      self._rused[id(conn)] = key
+    else:
+      self._pool.append(conn)
+    return conn
+
 pool = None
 def get_conn():
   global pool
   if pool is None:
-    pool = psycopg2.pool.SimpleConnectionPool(3, 21, db_url)
+    pool = CrdbConnectionPool(2, 20, db_url)
   return pool.getconn()
 
 def put_conn(conn):
@@ -210,10 +222,6 @@ def search(terms, limit=5, use_regex=True):
   logging.info("Query string: '{}'\nToken: '{}'\n".format(q, tok))
   t0 = time.time()
   conn = get_conn()
-  with conn.cursor() as cur:
-    # FIXME: Better to do this once after connect since it'll add to the query runtime
-    cur.execute("SET pg_trgm.similarity_threshold = %s;", (min_sim,)) # Verified: this works
-  conn.commit()
   with conn.cursor() as cur:
     if use_regex:
       # TODO: stem the terms before forming the regex
