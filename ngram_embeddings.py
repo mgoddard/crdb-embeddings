@@ -311,6 +311,10 @@ def log_txn_isolation_level():
   logging.info("transaction_isolation: {}".format(txn_lvl))
   put_conn(conn)
 
+@app.route("/health", methods=["GET"])
+def health():
+  return Response("OK", status=200, mimetype="text/plain")
+
 #
 # The search/query
 # EXAMPLE (with a limit of 10 results):
@@ -327,7 +331,7 @@ def do_search(q_base_64, limit, rerank="none"):
   logging.info(get_token_svec.cache_info())
   return Response(json.dumps(rv), status=200, mimetype="application/json")
 
-@app.route('/index', methods=['POST'])
+@app.route("/index", methods=["POST"])
 def do_index():
   #log_txn_isolation_level()
   data = request.get_json(force=True)
