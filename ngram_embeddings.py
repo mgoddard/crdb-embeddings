@@ -14,6 +14,7 @@ from flask import Flask, request, Response, g
 import urllib
 import json
 import base64
+from functools import lru_cache
 
 CHARSET = "utf-8"
 
@@ -127,6 +128,7 @@ def gen_embed_token(svec):
   return rv
 
 # From the given string s, return [token, svec]
+@lru_cache(maxsize=1024)
 def get_token_svec(s):
   rv = None
   t0 = time.time()
@@ -305,6 +307,7 @@ def do_search(q_base_64, limit, rerank="none"):
   q = decode(q_base_64)
   q = clean_text(q)
   rv = search(q.split(), limit, rerank)
+  logging.info(get_token_svec.cache_info())
   return Response(json.dumps(rv), status=200, mimetype="application/json")
 
 @app.route('/index', methods=['POST'])
