@@ -199,6 +199,10 @@ class CrdbConnectionPool(psycopg2.pool.ThreadedConnectionPool):
     conn = psycopg2.connect(*self._args, **self._kwargs)
     with conn.cursor() as cur:
       cur.execute("SET pg_trgm.similarity_threshold = %s;", (min_sim,)) # Verified: this works
+    # The following requires this setting at cluster level:
+    # SET CLUSTER SETTING sql.txn.read_committed_isolation.enabled = true;
+    with conn.cursor() as cur:
+      cur.execute("SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL READ COMMITTED;")
     if key is not None:
       self._used[key] = conn
       self._rused[id(conn)] = key
@@ -294,13 +298,26 @@ def search(terms, limit=5, rerank="none"):
   put_conn(conn)
   return rv
 
+# Verify transaction isolation level
+def log_txn_isolation_level():
+  txn_lvl = "Unknown"
+  conn = get_conn()
+  with conn.cursor() as cur:
+    cur.execute("SHOW transaction_isolation;")
+    rs = cur.fetchall()
+    if rs is not None:
+      for row in rs:
+        (txn_lvl) = row
+  logging.info("transaction_isolation: {}".format(txn_lvl))
+  put_conn(conn)
+
 #
 # The search/query
 # EXAMPLE (with a limit of 10 results):
 #   curl http://localhost:18080/search/$( echo -n "Using Lateral Joins" | base64 )
 #
-# TODO: parameterize limit as URL param
-# rerank is one of none, regex, cosine, [TBD]
+# rerank is one of none, regex, cosine
+#
 @app.route("/search/<q_base_64>/<int:limit>")
 @app.route("/search/<q_base_64>/<int:limit>/<rerank>")
 def do_search(q_base_64, limit, rerank="none"):
@@ -312,6 +329,7 @@ def do_search(q_base_64, limit, rerank="none"):
 
 @app.route('/index', methods=['POST'])
 def do_index():
+  #log_txn_isolation_level()
   data = request.get_json(force=True)
   index_text(data["uri"], data["text"])
   # Note the extra arguments here which translate the \uxxxx escape codes
