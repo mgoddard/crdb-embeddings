@@ -11,5 +11,7 @@ then
   exit 1
 fi
 
+echo "rerank: $rerank"
+
 curl -s http://$FLASK_HOST:$FLASK_PORT/search/$( echo -n "$@" | base64 )/$max_results/$rerank | jq
 
