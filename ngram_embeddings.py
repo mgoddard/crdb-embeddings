@@ -41,8 +41,7 @@ defaultdb=> select substring(token from 1 for 6), count(*) from text_embed group
 N_DISCARD = 2
 
 # Delimiter for the base36 encoded array dimension values
-DELIM = ' '
-#DELIM = '~'
+DELIM = '' # Set to empty string if encoding dimensions?
 
 # Tweak minimum similarity in the DB session.  Lower may be better given the LIMIT clause.
 #   set pg_trgm.similarity_threshold = 0.25;
@@ -103,7 +102,14 @@ def gen_embeddings(s):
 def gen_svec(embed_list):
   dims = {}
   for i in range(0, len(embed_list)):
-    dims[base36.dumps(i).zfill(2)] = embed_list[i]
+    # Preserve the sign of the vector values
+    v = embed_list[i]
+    k = base36.dumps(i).zfill(2)
+    if v < 0:
+      k = '-' + k
+    else:
+      k = '+' + k
+    dims[k] = v
   trunc = dict(sorted(dims.items(), key=lambda item: abs(item[1]), reverse=True)[N_DISCARD:TOP_N + N_DISCARD])
   vals = list(trunc.values())
   norm = np.linalg.norm(vals)
