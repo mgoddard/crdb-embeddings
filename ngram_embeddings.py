@@ -80,7 +80,9 @@ logging.info("BertTokenizer: {} s".format(et))
 
 t0 = time.time()
 # Set this up once and reuse
-model = BertModel.from_pretrained("bert-base-uncased", output_hidden_states = True)
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print("Model will run on {}".format(device))
+model = BertModel.from_pretrained("bert-base-uncased", output_hidden_states = True).to(device)
 model.eval()
 et = time.time() - t0
 logging.info("BertModel + eval: {} s".format(et))
