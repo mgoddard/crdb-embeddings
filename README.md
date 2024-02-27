@@ -47,6 +47,22 @@ defaultdb(> );
 CREATE TABLE
 defaultdb=> CREATE INDEX ON text_embed USING GIN (token gin_trgm_ops);
 CREATE INDEX
+
+defaultdb=> CREATE OR REPLACE FUNCTION score_row (q JSONB, r JSONB)
+defaultdb-> RETURNS FLOAT
+defaultdb-> LANGUAGE SQL
+defaultdb-> AS $$
+defaultdb$>   SELECT COALESCE(SUM(qv * rv), 0.0) score
+defaultdb$>   FROM (
+defaultdb$>     SELECT
+defaultdb$>       (json_each_text(q)).@1 qk
+defaultdb$>       , ((json_each_text(q)).@2)::float qv
+defaultdb$>       , (json_each_text(r)).@1 rk
+defaultdb$>       , ((json_each_text(r)).@2)::float rv
+defaultdb$>   )
+defaultdb$>   WHERE qk = rk;
+defaultdb$> $$;
+CREATE FUNCTION
 ```
 
 ## Set up environment
