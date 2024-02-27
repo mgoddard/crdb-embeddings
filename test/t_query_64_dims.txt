@@ -1,0 +1,31 @@
+[08:09:27 crdb-embeddings]$ time ./search_client.sh $q
+rerank: cosine
+[
+  {
+    "uri": "data/muse_electronics.txt",
+    "sim": 0.10492533168168951,
+    "token": "+69-ae-hn-9f-2x+0n-1e-ez-f4+9h+b2+ke-dx-j6-68+6p-7d-in+de-1o-aa-ib-2n-fs-81+d0-8g+cv+4j-74+8o-8d-k9-da-3q-j8-7b+ge-5t-7w-h5+ex-bi+3j-k5+4n-fl-as+0y-14-38-8i-c4-9j+2h-af+g2+3a+fm-8j+cl-hy+dc-5d",
+    "chunk": "To ensure that the front end is isolated from any momentary power-supply voltage fluctuations, the power-supply rails are diode-decoupled before being fed to the 220µF front-end filter caps"
+  },
+  {
+    "uri": "data/decware_amp.txt",
+    "sim": 0.08841209054603906,
+    "token": "+69-1d-in-fs+3n-hn-f4-ez+7t-jw-a1-9f-95-ae-k9+jo+ke-9e+6p+0k+fm-36-8d-8g-8u-5h-bi-48-84+ii+dk+jv+6c+3o-hk-38-8z-j6-8i-4b-2x-35-bv-fk-k5+2f-8j+3j-1o-fa-6v+ji-dw-hj+b2-81+a5-42+29-8b-gd+62+9h+9o",
+    "chunk": "The result of this series vacuum tube power supply is a complete blocking of power supply harmonics, noise, hash, grain, and spikes"
+  },
+  {
+    "uri": "data/muse_electronics.txt",
+    "sim": 0.07421717319565291,
+    "token": "-al-ez-95-fl+0n+ke+fm-81+ge-0x+0y-aa-9l-dq+9h-j6-5h+cv+8o-ir-in-hn-g9-dx-ft+6m+3o-hv-9e-3q-h5-f4+d0+4n-cj+dg-fh-4h-bz-2i+2m+ij-50-3h-k9-ae+i9-8b+3a-gi-06+gm-as+6a+df-1o+2k+il+gs-fs+jo-57-1f+4j",
+    "chunk": "The 550VA power transformer consumes much of the interior space, and the two electrolytic filter caps (10,000µF each) are each about the size of a soda can"
+  },
+  {
+    "uri": "data/muse_electronics.txt",
+    "sim": 0.014222949080288505,
+    "token": "-ez+69-hn-f4-ae-in-fs+6p+9h-1e+a5-ey-9f+7t+0n-81+ij-1o+3j-as-48+fm-2x-95+jy-h5+0f-c5-8g-c4-fp+ge+87-2n-a1+kj-8j+er+gs+7g+62-j8+4p-k9-af-aa-bi-em+jm+i3+en+1x-8d+4n+2f-7b+86+9r-fl+ic+de+3y+3a-bo",
+    "chunk": "Using 12 MOSFET output devices on large heatsinks, one is given the impression of high current capability and stability into low-impedance loads"
+  }
+]
+
+real	0m0.297s
+

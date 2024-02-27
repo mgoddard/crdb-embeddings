@@ -18,11 +18,11 @@ import base64
 CHARSET = "utf-8"
 
 # Max number of dimensions to store in DB and use for queries (out of 768)
-#TOP_N = 32
-#TOP_N = 10
 #TOP_N = 8
 #TOP_N = 16
-TOP_N = 64
+#TOP_N = 32
+#TOP_N = 64
+TOP_N = 128
 
 # Discard the first N tokens as they have little differentiating value
 """
@@ -60,6 +60,8 @@ logging.basicConfig(
   , datefmt="%m/%d/%Y %I:%M:%S %p"
 )
 print("Log level: {} (export LOG_LEVEL=[DEBUG|INFO|WARN|ERROR] to change this)".format(log_level))
+
+logging.info("TOP_N: {}".format(TOP_N))
 
 db_url = os.getenv("DB_URL")
 if db_url is None:

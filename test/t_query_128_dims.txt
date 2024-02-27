@@ -1,0 +1,31 @@
+[08:58:47 crdb-embeddings]$ time ./search_client.sh $q
+rerank: cosine
+[
+  {
+    "uri": "data/muse_electronics.txt",
+    "sim": 0.08008979200213384,
+    "token": "-ez-f4-al-hn-ae+cv+6p-in-2x-4b-8j-1e-95+ge+ii+ke-81+d0-fs-7b+g2-k6-3x+8o-57-ib-2n-68+hi+4j-35+7f-aa-c2+9h-dx-j8-8d+1i+fq-3w+dc+b2-ir-4f+d5-38+45-c5-cm-9j-eo+jy+0n-6w-5t-7a+i9-fa+62+kt+1s-em+3n+93-k9+ij-dz+7g-hk-gd+hh-3q+3j-24+2h-i0-cr-42-j7+eb+gs-14-15+fm-8b+4t-bz+47-af+4d+h1+i1-a1+9s+gv+4n-ey-dp-50-84+7y-7d-dy-71-jw-j6-4v+7t+aj-5f-ct-bv+kk+bt-2i-fk-7m-9l-da-5r+kb-7c+iq+j5+ao-74+ih",
+    "chunk": "The differential pair, current source, class-A voltage gain stage, and emitter follower that drives the MOSFET gates are all mirrored from the positive to negative rails"
+  },
+  {
+    "uri": "data/decware_amp.txt",
+    "sim": 0.04826586426069951,
+    "token": "+69-1e-aa-in+9h-8b+a5+3o-hn+3b+ii+4y-5h-8g+ke+b2-dp+d0+de-9f-95-36+9m-jh-74+2h+7t-3u-bv-1o-j8+3n+9s+3c-ct-0e-kg-ae-ef-fa+7v+kt-1b+0n-0x-bz-bi-j6-2x+62+6p-6v-c2+d3-48-2n-ey-k8-7r-hk-f6-7c-84-ez-2i+4g-57-8i+31+3j-ix-dx-35+ig-ay-38-2j-da-8j+fm+6a-ir+kw-ei-dy-dd-dq+ij+4z-82-a1-4b+d5-8w+il+34+jm-l4-7b-gi-15+i2+16+2o-k5-dz+0u-cs+lb+8o-dw+ge+d1+fq+er-aw-f4+87+4n-0s-50-by+cl-1d+6d-8l+67-e3",
+    "chunk": "The way they do it is by actually fixing the incoming power that feeds the amplifier through the use of a vacuum tube regulator (shown below) not found in the other models"
+  },
+  {
+    "uri": "data/decware_amp.txt",
+    "sim": 0.04091069919986618,
+    "token": "+69-1d-in-fs+3n-hn-f4-ez+7t-jw-a1-9f-95-ae-k9+jo+ke-9e+6p+0k+fm-36-8d-8g-8u-5h-bi-48-84+ii+dk+jv+6c+3o-hk-38-8z-j6-8i-4b-2x-35-bv-fk-k5+2f-8j+3j-1o-fa-6v+ji-dw-hj+b2-81+a5-42+29-8b-gd+62+9h+9o-7b+j0-7w+4n-k6-gj+2z-1p+gh+3a-cr-5d+1x+bb+hl-da-50-59-js+93+6a-9l-60-dp-c5+bt-at-8w+dc+45+0v+1h-fp-1e+4u+er-c2+i3+jm-ey+9q+0f-aw+0d-1q+ih+1m+i9-2n+cg-ir+9s-2j-j7+h6+bu+ij+hc+hq+j1-dx-dh-14-k8",
+    "chunk": "The result of this series vacuum tube power supply is a complete blocking of power supply harmonics, noise, hash, grain, and spikes"
+  },
+  {
+    "uri": "data/muse_electronics.txt",
+    "sim": 0.011424437179699546,
+    "token": "-ez-95+0n+69-hn-dy+62-84-ae-fk+i2-in-fl-81+ci+29+94-0e-48+9h-at-c4-22-6y-j8-5d-aa+1i+i9-k9+3j-hk-58+6d+hl+j0-b7-1d+8p-ey+3n+gy-as+ij-2j+d0-fp+0v+4d-3u-hb+kj+er-ac-8u+7t-4i-9a+0u-cy-ef-fi-1o-fc+jv-9c-k5+en+hp-50-cz-8j-bv-du+3b+4p+ga-99+ih-1e+fb-1g-dq-4f-7r-8g+i6-8b-af+jk+3d-bg-gq+3o-8w+4z+1x-di-fg-kq+jc-36+87+8o-1w+h9-2n-a1-1y+9p+ax+ic-l5+im-14-38+4t+7s+d8-em+df+2k-dm-20+bd-ft+5e+i3",
+    "chunk": "According to Michael Goddard, the primary design goal was to achieve a tube sound with the reliability and ruggedness of transistors"
+  }
+]
+
+real	0m0.265s
+

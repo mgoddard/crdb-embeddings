@@ -1,0 +1,30 @@
+[08:54:53 crdb-embeddings]$ time ./search_client.sh $q
+rerank: cosine
+[
+  {
+    "uri": "data/muse_electronics.txt",
+    "sim": 0.2902345105026428,
+    "token": "-al-ez-f4-bg-j6-k9+d0+3j-8b-2n-hn-1o-ae+9h-8j+dg",
+    "chunk": "The rear panel holds a gold-plated RCA jack, hefty power cord, AC line fuse, and binding posts for speaker connection"
+  },
+  {
+    "uri": "data/nyt_thai_meatball_soup.txt",
+    "sim": 0.10401737097541876,
+    "token": "-cd+ij-ce+9s-al+kj-2i-fl+b2-3w-1h-2w+i4-k9+69+4p",
+    "chunk": "It starts with ginger-scented chicken-cilantro meatballs that are browned, then simmered in a fragrant coconut milk broth that’s inspired by tom kha gai, a Thai chicken-coconut soup seasoned with lemongrass, galangal, makrut lime leaves and chile"
+  },
+  {
+    "uri": "data/nyt_found_books.txt",
+    "sim": 0.06279582613498429,
+    "token": "+gm-al-8j-9l+86-da-ae-9p-5f-ft-1e+69+gs-6b-e6-in",
+    "chunk": "Work days are built around back-to-back meetings and video calls; evenings revolve around children’s bedtimes; date nights have to be scheduled weeks in advance; even phone calls to catch up with friends can take multiple rounds of back-and-forth coordination by text"
+  },
+  {
+    "uri": "data/muse_electronics.txt",
+    "sim": 0,
+    "token": "-al+69-95-f4-ae-hn-8b-8g-81-2j-2x-aa-3u-1e-1o+3n",
+    "chunk": "This balanced circuitry makes converting the amplifier to balanced inputs simply a matter of changing the RCA input connector to an XLR"
+  }
+]
+
+real	0m0.167s
