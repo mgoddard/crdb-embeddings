@@ -130,6 +130,21 @@ def get_token_svec(s):
   return [tok, svec]
 
 """
+CREATE OR REPLACE FUNCTION score_row (q JSONB, r JSONB)
+RETURNS FLOAT
+LANGUAGE SQL
+AS $$
+  SELECT COALESCE(SUM(qv * rv), 0.0) score
+  FROM (
+    SELECT
+      (json_each_text(q)).@1 qk
+      , ((json_each_text(q)).@2)::float qv
+      , (json_each_text(r)).@1 rk
+      , ((json_each_text(r)).@2)::float rv
+  )
+  WHERE qk = rk;
+$$;
+
 DROP TABLE IF EXISTS text_embed;
 CREATE TABLE text_embed
 (
@@ -263,8 +278,6 @@ def search(terms, limit=5, rerank="none"):
     if rs is not None:
       for row in rs:
         (uri, sim, token, chunk) = row
-        if sim is None: # FIXME: sim can be None
-          sim = 0.0
         rv.append({"uri": uri, "sim": float(sim), "token": token, "chunk": chunk})
   et = time.time() - t0
   logging.info("SQL query time: {} ms".format(et * 1000))
