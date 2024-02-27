@@ -79,9 +79,12 @@ et = time.time() - t0
 logging.info("BertTokenizer: {} s".format(et))
 
 t0 = time.time()
-# Set this up once and reuse
+# NOTE: I did *not* see any speedup running this on a GCP VM with nVidia T4 GPU
+# Install script for drivers on GCP VM:
+#  https://github.com/GoogleCloudPlatform/compute-gpu-installation/blob/main/linux/startup_script.sh
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Model will run on {}".format(device))
+# Set this up once and reuse
 model = BertModel.from_pretrained("bert-base-uncased", output_hidden_states = True).to(device)
 model.eval()
 et = time.time() - t0
@@ -97,7 +100,10 @@ def gen_embeddings(s):
   segments_ids = [1] * len(tokenized_text)
   segments_tensors = torch.tensor([segments_ids])
   with torch.no_grad():
-    outputs = model(tokens_tensor, segments_tensors)
+    if "cuda" == device:
+      outputs = model(tokens_tensor.cuda(), segments_tensors.cuda())
+    else:
+      outputs = model(tokens_tensor, segments_tensors)
     hidden_states = outputs[2]
   token_vecs = hidden_states[-2][0]
   sentence_embedding = torch.mean(token_vecs, dim=0)
