@@ -2,8 +2,8 @@
 
 . ./env.sh
 
-max_results=3
-rerank=regex
+max_results="${MAX_RESULTS:-4}"
+rerank="${RERANK:-regex}"
 
 if [ $# -lt 1 ]
 then
