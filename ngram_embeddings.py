@@ -98,11 +98,7 @@ def gen_embeddings(s):
   token_vecs = hidden_states[-2][0]
   sentence_embedding = torch.mean(token_vecs, dim=0)
   rv = sentence_embedding.tolist()
-  logging.info("gen_embeddings rv:\n", rv)
   return rv
-
-# TODO:
-# Refactor, preserving the dims dictionary to store in the DB table as JSONB
 
 def gen_svec(embed_list):
   dims = {}
@@ -111,7 +107,7 @@ def gen_svec(embed_list):
   trunc = dict(sorted(dims.items(), key=lambda item: abs(item[1]), reverse=True)[N_DISCARD:TOP_N + N_DISCARD])
   vals = list(trunc.values())
   norm = np.linalg.norm(vals)
-  trunc = { k: v/norm for k, v in trunc.items() } # Normalize the remaining values in this dict
+  trunc = { k: v/norm for k, v in trunc.items() } # Normalizing the remaining values in this dict
   return trunc
 
 # From the list of embeddings, the 768 element array, return a string consisting of
@@ -157,7 +153,7 @@ def index_text(uri, text):
       s = s.strip()
       if (len(s) > 0):
         (token, svec) = get_token_svec(s)
-        logging.debug("URI: {}, CHUNK_NUM: {}\nCHUNK: '{}'\n".format(uri, n_chunk, s))
+        logging.debug("URI: {}, CHUNK_NUM: {}\nCHUNK: '{}'".format(uri, n_chunk, s))
         cur.execute(ins_sql, (uri, n_chunk, token, s, json.dumps(svec)))
         n_chunk += 1
     conn.commit()
@@ -207,17 +203,40 @@ def decode(b64):
 
 app = Flask(__name__)
 
-q_sql = """
+rerank_enum = set(["NONE", "REGEX", "COSINE"])
+def gen_sql(rerank):
+  rerank = rerank.upper()
+  if rerank not in rerank_enum:
+    logging.warn("rerank value '{}' not allowed".format(rerank))
+    rerank = "NONE"
+  rv = """
 WITH q_embed AS
 (
-  SELECT uri, SIMILARITY(%s, token)::NUMERIC(4, 3) sim, token, chunk
+  SELECT uri, SIMILARITY(%s, token)::NUMERIC(4, 3) sim, token, chunk, svec
   FROM text_embed@text_embed_token_idx
   WHERE %s %% token
   ORDER BY sim DESC
   LIMIT %s
 )
-SELECT * from q_embed
 """
+  if "REGEX" == rerank:
+    pass # Already handled in search()
+  elif "COSINE" == rerank:
+    rv += """
+, q_cos AS
+(
+  SELECT  uri, score_row(%s, svec) sim, token, chunk
+  FROM q_embed
+)
+SELECT *
+FROM q_cos
+ORDER BY q_cos.sim DESC
+    """
+  if not "COSINE" == rerank:
+    rv += """
+  SELECT uri, sim, token, chunk from q_embed
+    """
+  return rv
 
 # Arg: search terms
 # Returns: list of {"uri": uri, "sim": sim, "token": token, "chunk": chunk}
@@ -226,24 +245,29 @@ def search(terms, limit=5, rerank="none"):
   q = ' '.join(terms)
   rv = []
   (tok, svec) = get_token_svec(q)
-  logging.info("Query string: '{}'\nToken: '{}'\n".format(q, tok))
+  logging.info("Query string: '{}'\nToken: '{}'".format(q, tok))
+  logging.info("Query svec: {}".format(svec))
   t0 = time.time()
   conn = get_conn()
   with conn.cursor() as cur:
-    if rerank.upper() == "REGEX":
-      # TODO: stem the terms before forming the regex
+    if "REGEX" == rerank.upper():
+      # TODO: stem the terms before forming the regex?
       terms_regex = '({})'.format('|'.join(list(set(terms)))) # Remove duplicate terms via the set
-      logging.info("terms_regex: {}\n".format(terms_regex))
-      cur.execute(q_sql + "\nWHERE chunk ~* %s", (tok, tok, limit, terms_regex,))
+      logging.info("terms_regex: {}".format(terms_regex))
+      cur.execute(gen_sql(rerank) + "\nWHERE chunk ~* %s", (tok, tok, limit, terms_regex,))
+    elif "COSINE" == rerank.upper():
+      cur.execute(gen_sql(rerank), (tok, tok, limit, json.dumps(svec),))
     else:
       cur.execute(q_sql, (tok, tok, limit,))
     rs = cur.fetchall()
     if rs is not None:
       for row in rs:
         (uri, sim, token, chunk) = row
+        if sim is None: # FIXME: sim can be None
+          sim = 0.0
         rv.append({"uri": uri, "sim": float(sim), "token": token, "chunk": chunk})
   et = time.time() - t0
-  logging.info("SQL query time: {} ms\n".format(et * 1000))
+  logging.info("SQL query time: {} ms".format(et * 1000))
   put_conn(conn)
   return rv
 
