@@ -51,6 +51,9 @@ DELIM = '' # Set to empty string if encoding dimensions?
 min_sim = float(os.environ.get("MIN_SIM", "0.20"))
 print("pg_trgm.similarity_threshold: {} (set via 'export MIN_SIM=0.1')".format(min_sim))
 
+cache_size = int(os.environ.get("CACHE_SIZE", "1024"))
+print("cache_size: {} (set via 'export CACHE_SIZE=1024')".format(cache_size))
+
 n_threads = int(os.environ.get("N_THREADS", "1"))
 print("n_threads: {} (set via 'export N_THREADS=10')".format(n_threads))
 
@@ -136,7 +139,7 @@ def gen_embed_token(svec):
   return rv
 
 # From the given string s, return [token, svec]
-@lru_cache(maxsize=1024)
+@lru_cache(maxsize=cache_size)
 def get_token_svec(s):
   rv = None
   t0 = time.time()

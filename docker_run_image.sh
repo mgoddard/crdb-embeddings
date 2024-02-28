@@ -10,7 +10,8 @@ export MIN_SIM=0.2
 export N_THREADS=1
 export LOG_LEVEL=WARN
 export FLASK_PORT=18080
+export CACHE_SIZE=1024
 
 docker pull $img:$tag
-docker run -e DB_URL -e MIN_SIM -e N_THREADS -e LOG_LEVEL -e FLASK_PORT --publish 1999:18080 $img
+docker run -e DB_URL -e MIN_SIM -e N_THREADS -e LOG_LEVEL -e FLASK_PORT -e CACHE_SIZE --publish 1999:18080 $img
 
