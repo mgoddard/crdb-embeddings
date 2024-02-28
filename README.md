@@ -33,6 +33,9 @@ psql (16.1, server 13.0.0)
 SSL connection (protocol: TLSv1.3, cipher: TLS_AES_128_GCM_SHA256, compression: off)
 Type "help" for help.
 
+defaultdb=> SET CLUSTER SETTING sql.txn.read_committed_isolation.enabled = true;
+SET CLUSTER SETTING
+
 defaultdb=> DROP TABLE IF EXISTS text_embed;
 DROP TABLE
 defaultdb=> CREATE TABLE text_embed
@@ -45,6 +48,7 @@ defaultdb(>   , chunk STRING NOT NULL
 defaultdb(>   , PRIMARY KEY (uri, chunk_num)
 defaultdb(> );
 CREATE TABLE
+
 defaultdb=> CREATE INDEX ON text_embed USING GIN (token gin_trgm_ops);
 CREATE INDEX
 
