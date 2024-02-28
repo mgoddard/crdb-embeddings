@@ -203,6 +203,7 @@ def setup_db():
     logging.info("text_embed table already exists")
   put_conn(conn)
 
+# TODO: Consider a multi-row insert per URI
 ins_sql = "INSERT INTO text_embed (uri, chunk_num, token, chunk, svec) VALUES (%s, %s, %s, %s, %s)"
 def index_text(uri, text):
   conn = get_conn()
@@ -255,7 +256,7 @@ class CrdbConnectionPool(psycopg2.pool.ThreadedConnectionPool):
         cur.execute("SELECT 1;")
       return rv
     except psycopg2.OperationalError as e:
-      logging.warning(e)
+      logging.warning("getconn(): %s", e)
       self.putconn(rv)
       return self.getconn()
     finally:
@@ -328,7 +329,7 @@ def search(terms, limit=5, rerank="none"):
   logging.info("Query string: '{}'\nToken: '{}'".format(q, tok))
   logging.info("Query svec: {}".format(svec))
   t0 = time.time()
-  conn = get_conn()
+  conn = get_conn() # FIXME: Blocks here(?)
   with conn.cursor() as cur:
     if "REGEX" == rerank.upper():
       # TODO: stem the terms before forming the regex?
