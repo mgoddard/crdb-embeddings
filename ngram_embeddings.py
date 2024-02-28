@@ -220,6 +220,22 @@ class CrdbConnectionPool(psycopg2.pool.ThreadedConnectionPool):
     else:
       self._pool.append(conn)
     return conn
+  # Verify the connection prior to returning it
+  def getconn(self, key=None):
+    """Get a free connection and assign it to 'key' if not None."""
+    self._lock.acquire()
+    try:
+      logging.info("Returning new connection")
+      rv = self._getconn(key)
+      with rv.cursor() as cur:
+        cur.execute("SELECT 1;")
+      return rv
+    except psycopg2.OperationalError as e:
+      logging.warning(e)
+      self.putconn(rv)
+      return self.getconn()
+    finally:
+      self._lock.release()
 
 pool = None
 def get_conn():
