@@ -6,7 +6,9 @@ from transformers import BertTokenizer, BertModel
 import base36
 import logging
 import psycopg2
-import psycopg2.pool
+from psycopg2.errors import SerializationFailure
+import sqlalchemy
+from sqlalchemy import create_engine, text, event, insert, Table, MetaData
 import numpy as np
 
 # For Flask app
@@ -42,7 +44,7 @@ defaultdb=> select substring(token from 1 for 6), count(*) from text_embed group
 N_DISCARD = 2
 
 # Delimiter for the base36 encoded array dimension values
-DELIM = '' # Set to empty string if encoding dimensions?
+DELIM = '' # Set to empty string if including the sign of the value as leading +/-
 
 # Tweak minimum similarity in the DB session.  Lower may be better given the LIMIT clause.
 #   set pg_trgm.similarity_threshold = 0.25;
@@ -76,13 +78,23 @@ if len(sys.argv) < 2:
   print("Usage: {} file [file2 ...]".format(sys.argv[0]))
   sys.exit(1)
 
+db_url = re.sub(r"^postgres(ql)?", "cockroachdb", db_url)
+engine = create_engine(db_url, pool_size=20, pool_pre_ping=True, connect_args = { "application_name": "CRDB Embeddings" })
+
+@event.listens_for(engine, "connect")
+def connect(dbapi_connection, connection_record):
+  cur = dbapi_connection.cursor()
+  cur.execute("SET pg_trgm.similarity_threshold = %s;", (min_sim,))
+  cur.execute("SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL READ COMMITTED;")
+  cur.close()
+
 t0 = time.time()
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 et = time.time() - t0
 logging.info("BertTokenizer: {} s".format(et))
 
 t0 = time.time()
-# NOTE: I did *not* see any speedup running this on a GCP VM with nVidia T4 GPU
+# NOTE: I did *not* see any speedup running this on a GCP VM with nVidia T4 GPU.
 # Install script for drivers on GCP VM:
 #  https://github.com/GoogleCloudPlatform/compute-gpu-installation/blob/main/linux/startup_script.sh
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -181,44 +193,52 @@ CREATE TABLE text_embed
 """
 
 sql_check_exists = """
-SELECT COUNT(*) FROM information_schema.tables WHERE table_catalog = 'defaultdb' AND table_name = 'text_embed';
+SELECT COUNT(*) n FROM information_schema.tables WHERE table_catalog = 'defaultdb' AND table_name = 'text_embed';
 """
 
+text_embed_table = None # Will be set after running setup_db()
+
 def setup_db():
-  conn = get_conn()
   logging.info("Checking whether text_embed table exists")
-  with conn.cursor() as cur:
-    cur.execute(sql_check_exists)
-    table_exists = (cur.fetchone()[0] == 1)
+  n_rows = 0
+  with engine.connect() as conn:
+    rs = conn.execute(text(sql_check_exists))
+    for row in rs:
+      n_rows = row.n
+  table_exists = (n_rows == 1)
   if not table_exists:
     logging.info("Creating text_embed table")
-    with conn.cursor() as cur:
-      cur.execute(ddl_table)
-    conn.commit()
-    logging.info("Creating score_row UDF")
-    with conn.cursor() as cur:
-      cur.execute(ddl_func)
-    conn.commit()
+    with engine.connect() as conn:
+      conn.execute(text("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;"))
+      conn.execute(text(ddl_table))
+      logging.info("Creating score_row UDF")
+      conn.execute(text(ddl_func))
+      conn.commit()
   else:
     logging.info("text_embed table already exists")
-  put_conn(conn)
 
 # TODO: Consider a multi-row insert per URI
 ins_sql = "INSERT INTO text_embed (uri, chunk_num, token, chunk, svec) VALUES (%s, %s, %s, %s, %s)"
 def index_text(uri, text):
-  conn = get_conn()
-  with conn.cursor() as cur:
-    n_chunk = 0
-    for s in re.split(r"\.\s+", text): # Sentence based splitting: makes sense to me.
-    #for s in re.split(r"[\r\n]{2,}", text): # Paragraph based splitting: topics could vary too much?
-      s = s.strip()
-      if (len(s) > 0):
-        (token, svec) = get_token_svec(s)
-        logging.debug("URI: {}, CHUNK_NUM: {}\nCHUNK: '{}'".format(uri, n_chunk, s))
-        cur.execute(ins_sql, (uri, n_chunk, token, s, json.dumps(svec)))
-        n_chunk += 1
-    conn.commit()
-  put_conn(conn)
+  rows = []
+  n_chunk = 0
+  for s in re.split(r"\.\s+", text): # Sentence based splitting: makes sense to me.
+    s = s.strip()
+    if (len(s) > 0):
+      (token, svec) = get_token_svec(s)
+      logging.debug("URI: {}, CHUNK_NUM: {}\nCHUNK: '{}'".format(uri, n_chunk, s))
+      #cur.execute(ins_sql, (uri, n_chunk, token, s, json.dumps(svec)))
+      row_map = {
+         "uri": uri
+         , "chunk_num": n_chunk
+         , "token": token
+         , "svec": json.dumps(svec) # FIXME: verify this
+         , "chunk": s
+      }
+      rows.append(row_map)
+      n_chunk += 1
+  with engine.begin() as conn:
+    conn.execute(insert(text_embed_table), rows)
 
 def index_file(in_file):
   text = ""
@@ -227,51 +247,6 @@ def index_file(in_file):
       text += line
   in_file = re.sub(r"\./", '', in_file) # Trim leading '/'
   index_text(in_file, text)
-
-# Extend pool class so we can SET some values in session once connected
-class CrdbConnectionPool(psycopg2.pool.ThreadedConnectionPool):
-  def _connect(self, key=None):
-    """Create a new connection and assign it to 'key' if not None."""
-    conn = psycopg2.connect(*self._args, **self._kwargs)
-    with conn.cursor() as cur:
-      cur.execute("SET pg_trgm.similarity_threshold = %s;", (min_sim,)) # Verified: this works
-    # The following requires this setting at cluster level:
-    # SET CLUSTER SETTING sql.txn.read_committed_isolation.enabled = true;
-    with conn.cursor() as cur:
-      cur.execute("SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL READ COMMITTED;")
-    if key is not None:
-      self._used[key] = conn
-      self._rused[id(conn)] = key
-    else:
-      self._pool.append(conn)
-    return conn
-  # Verify the connection prior to returning it
-  def getconn(self, key=None):
-    """Get a free connection and assign it to 'key' if not None."""
-    self._lock.acquire()
-    try:
-      logging.info("Returning new connection")
-      rv = self._getconn(key)
-      with rv.cursor() as cur:
-        cur.execute("SELECT 1;")
-      return rv
-    except psycopg2.OperationalError as e:
-      logging.warning("getconn(): %s", e)
-      self.putconn(rv)
-      return self.getconn()
-    finally:
-      self._lock.release()
-
-pool = None
-def get_conn():
-  global pool
-  if pool is None:
-    pool = CrdbConnectionPool(2, 20, db_url)
-  return pool.getconn()
-
-def put_conn(conn):
-  global pool
-  pool.putconn(conn)
 
 # Clean any special chars out of text
 def clean_text(text):
@@ -293,11 +268,11 @@ def gen_sql(rerank):
   rv = """
 WITH q_embed AS
 (
-  SELECT uri, SIMILARITY(%s, token)::NUMERIC(4, 3) sim, token, chunk, svec
+  SELECT uri, SIMILARITY(:q_tok, token)::NUMERIC(4, 3) sim, token, chunk, svec
   FROM text_embed@text_embed_token_idx
-  WHERE %s %% token
+  WHERE :q_tok % token
   ORDER BY sim DESC
-  LIMIT %s
+  LIMIT :limit
 )
 """
   if "REGEX" == rerank:
@@ -306,7 +281,7 @@ WITH q_embed AS
     rv += """
 , q_cos AS
 (
-  SELECT  uri, score_row(%s, svec) sim, token, chunk
+  SELECT  uri, score_row(:q_svec, svec) sim, token, chunk
   FROM q_embed
 )
 SELECT *
@@ -329,39 +304,40 @@ def search(terms, limit=5, rerank="none"):
   logging.info("Query string: '{}'\nToken: '{}'".format(q, tok))
   logging.info("Query svec: {}".format(svec))
   t0 = time.time()
-  conn = get_conn() # FIXME: Blocks here(?)
-  with conn.cursor() as cur:
-    if "REGEX" == rerank.upper():
-      # TODO: stem the terms before forming the regex?
-      terms_regex = '({})'.format('|'.join(list(set(terms)))) # Remove duplicate terms via the set
-      logging.info("terms_regex: {}".format(terms_regex))
-      cur.execute(gen_sql(rerank) + "\nWHERE chunk ~* %s", (tok, tok, limit, terms_regex,))
-    elif "COSINE" == rerank.upper():
-      cur.execute(gen_sql(rerank), (tok, tok, limit, json.dumps(svec),))
-    else:
-      cur.execute(q_sql, (tok, tok, limit,))
-    rs = cur.fetchall()
+  stmt = None
+  if "REGEX" == rerank.upper():
+    # TODO: stem the terms before forming the regex?
+    terms_regex = '({})'.format('|'.join(list(set(terms)))) # Remove duplicate terms via the set
+    logging.info("terms_regex: {}".format(terms_regex))
+    #cur.execute(gen_sql(rerank) + "\nWHERE chunk ~* %s", (tok, tok, limit, terms_regex,))
+    stmt = text(gen_sql(rerank) + "\nWHERE chunk ~* :regex").bindparams(q_tok=tok, limit=limit, regex=terms_regex)
+  elif "COSINE" == rerank.upper():
+    #cur.execute(gen_sql(rerank), (tok, tok, limit, json.dumps(svec),))
+    #stmt = text(gen_sql(rerank)).bindparams(q_tok=tok, limit=limit, q_svec=svec)
+    stmt = text(gen_sql(rerank)).bindparams(q_tok=tok, limit=limit, q_svec=json.dumps(svec))
+  else:
+    #cur.execute(q_sql, (tok, tok, limit,))
+    stmt = text(gen_sql(rerank)).bindparams(q_tok=tok, limit=limit)
+  with engine.connect() as conn:
+    rs = conn.execute(stmt)
     if rs is not None:
       for row in rs:
         (uri, sim, token, chunk) = row
         rv.append({"uri": uri, "sim": float(sim), "token": token, "chunk": chunk})
   et = time.time() - t0
   logging.info("SQL query time: {} ms".format(et * 1000))
-  put_conn(conn)
   return rv
 
 # Verify transaction isolation level
 def log_txn_isolation_level():
   txn_lvl = "Unknown"
-  conn = get_conn()
-  with conn.cursor() as cur:
+  stmt = text("SHOW transaction_isolation;")
+  with engine.connect() as conn:
+    rs = conn.execute(stmt)
     cur.execute("SHOW transaction_isolation;")
-    rs = cur.fetchall()
-    if rs is not None:
-      for row in rs:
-        (txn_lvl) = row
+    for row in rs:
+      (txn_lvl) = row
   logging.info("transaction_isolation: {}".format(txn_lvl))
-  put_conn(conn)
 
 @app.route("/health", methods=["GET"])
 def health():
@@ -392,7 +368,7 @@ def do_index():
   #print("Data: " + json.dumps(data, ensure_ascii=False).encode("utf8").decode())
   return Response("OK", status=200, mimetype="text/plain")
 
-# Query mode
+# Query mode (unlikely to get used)
 if "-q" == sys.argv[1][0:2]:
   terms = sys.argv[2:]
   for row in search(terms):
@@ -400,17 +376,12 @@ if "-q" == sys.argv[1][0:2]:
 # Server mode
 elif "-s" == sys.argv[1][0:2]:
   setup_db()
+  text_embed_table = Table("text_embed", MetaData(), autoload_with=engine)
   port = int(os.getenv("FLASK_PORT", 18080))
   from waitress import serve
   serve(app, host="0.0.0.0", port=port, threads=n_threads)
 # Indexing mode
 else:
-  t0 = time.time()
-  conn = get_conn()
-  for in_file in sys.argv[1:]:
-    print("Indexing file " + in_file + " now ...")
-    index_file(in_file)
-  et = time.time() - t0
-  logging.info("Total time: {} s".format(et))
-  put_conn(conn)
+  print("Usage: {} [-s for server mode] [-q for query mode]\n".format(sys.argv[0]))
+  sys.exit(1)
 
