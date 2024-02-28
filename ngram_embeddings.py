@@ -203,7 +203,7 @@ def setup_db():
     logging.info("text_embed table already exists")
   put_conn(conn)
 
-ins_sql = "UPSERT INTO text_embed (uri, chunk_num, token, chunk, svec) VALUES (%s, %s, %s, %s, %s)"
+ins_sql = "INSERT INTO text_embed (uri, chunk_num, token, chunk, svec) VALUES (%s, %s, %s, %s, %s)"
 def index_text(uri, text):
   conn = get_conn()
   with conn.cursor() as cur:
