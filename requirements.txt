@@ -6,3 +6,5 @@ Flask==2.1.0
 Werkzeug==2.2.2
 waitress
 base36
+SQLAlchemy==2.0.25
+sqlalchemy-cockroachdb==2.0.1
