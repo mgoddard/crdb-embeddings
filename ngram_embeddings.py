@@ -9,6 +9,8 @@ import psycopg2
 from psycopg2.errors import SerializationFailure
 import sqlalchemy
 from sqlalchemy import create_engine, text, event, insert, Table, MetaData
+from sqlalchemy.sql.expression import bindparam
+from sqlalchemy.dialects.postgresql import JSONB
 import numpy as np
 
 # For Flask app
@@ -170,10 +172,10 @@ AS $$
   SELECT COALESCE(SUM(qv * rv), 0.0) score
   FROM (
     SELECT
-      (json_each_text(q)).@1 qk
-      , ((json_each_text(q)).@2)::float qv
-      , (json_each_text(r)).@1 rk
-      , ((json_each_text(r)).@2)::float rv
+      (json_each_text(q::JSONB)).@1 qk
+      , ((json_each_text(q::JSONB)).@2)::float qv
+      , (json_each_text(r::JSONB)).@1 rk
+      , ((json_each_text(r::JSONB)).@2)::float rv
   )
   WHERE qk = rk;
 $$;
@@ -232,7 +234,8 @@ def index_text(uri, text):
          "uri": uri
          , "chunk_num": n_chunk
          , "token": token
-         , "svec": json.dumps(svec) # FIXME: verify this
+         #, "svec": json.dumps(svec) # I think this is correct
+         , "svec": svec # I think this is correct
          , "chunk": s
       }
       rows.append(row_map)
@@ -313,8 +316,9 @@ def search(terms, limit=5, rerank="none"):
     stmt = text(gen_sql(rerank) + "\nWHERE chunk ~* :regex").bindparams(q_tok=tok, limit=limit, regex=terms_regex)
   elif "COSINE" == rerank.upper():
     #cur.execute(gen_sql(rerank), (tok, tok, limit, json.dumps(svec),))
+    stmt = text(gen_sql(rerank)).bindparams(bindparam('q_svec', type_=JSONB), q_tok=tok, limit=limit, q_svec=svec)
     #stmt = text(gen_sql(rerank)).bindparams(q_tok=tok, limit=limit, q_svec=svec)
-    stmt = text(gen_sql(rerank)).bindparams(q_tok=tok, limit=limit, q_svec=json.dumps(svec))
+    #stmt = text(gen_sql(rerank)).bindparams(q_tok=tok, limit=limit, q_svec=json.dumps(svec))
   else:
     #cur.execute(q_sql, (tok, tok, limit,))
     stmt = text(gen_sql(rerank)).bindparams(q_tok=tok, limit=limit)
