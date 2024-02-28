@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: crdb-embeddings-lb
+spec:
+  selector:
+    app: crdb-embeddings
+  ports:
+  - protocol: "TCP"
+    port: 80 
+    targetPort: 18080
+  type: LoadBalancer
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crdb-embeddings
+spec:
+  selector:
+    matchLabels:
+      app: crdb-embeddings
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: crdb-embeddings
+    spec:
+      containers:
+      - name: crdb-embeddings
+        image: mgoddard/crdb-embeddings:1.0
+        imagePullPolicy: Always
+        env:
+          - name: DB_URL
+            value: "postgres://embeduser:embedpasswd@cockroachdb-public:26257/defaultdb"
+          - name: USE_GEOHASH
+            value: "True"
+          - name: MIN_SIM
+            value: "0.2"
+          - name: N_THREADS
+            value: "1"
+          - name: LOG_LEVEL
+            value: "WARN"
+          - name: FLASK_PORT
+            value: "18080"
+          - name: CACHE_SIZE
+            value: "1024"
+        ports:
+        - containerPort: 18080
+      restartPolicy: Always
+
