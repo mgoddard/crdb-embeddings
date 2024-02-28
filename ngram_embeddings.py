@@ -229,13 +229,11 @@ def index_text(uri, text):
     if (len(s) > 0):
       (token, svec) = get_token_svec(s)
       logging.debug("URI: {}, CHUNK_NUM: {}\nCHUNK: '{}'".format(uri, n_chunk, s))
-      #cur.execute(ins_sql, (uri, n_chunk, token, s, json.dumps(svec)))
       row_map = {
          "uri": uri
          , "chunk_num": n_chunk
          , "token": token
-         #, "svec": json.dumps(svec) # I think this is correct
-         , "svec": svec # I think this is correct
+         , "svec": svec
          , "chunk": s
       }
       rows.append(row_map)
@@ -312,15 +310,10 @@ def search(terms, limit=5, rerank="none"):
     # TODO: stem the terms before forming the regex?
     terms_regex = '({})'.format('|'.join(list(set(terms)))) # Remove duplicate terms via the set
     logging.info("terms_regex: {}".format(terms_regex))
-    #cur.execute(gen_sql(rerank) + "\nWHERE chunk ~* %s", (tok, tok, limit, terms_regex,))
     stmt = text(gen_sql(rerank) + "\nWHERE chunk ~* :regex").bindparams(q_tok=tok, limit=limit, regex=terms_regex)
   elif "COSINE" == rerank.upper():
-    #cur.execute(gen_sql(rerank), (tok, tok, limit, json.dumps(svec),))
     stmt = text(gen_sql(rerank)).bindparams(bindparam('q_svec', type_=JSONB), q_tok=tok, limit=limit, q_svec=svec)
-    #stmt = text(gen_sql(rerank)).bindparams(q_tok=tok, limit=limit, q_svec=svec)
-    #stmt = text(gen_sql(rerank)).bindparams(q_tok=tok, limit=limit, q_svec=json.dumps(svec))
   else:
-    #cur.execute(q_sql, (tok, tok, limit,))
     stmt = text(gen_sql(rerank)).bindparams(q_tok=tok, limit=limit)
   with engine.connect() as conn:
     rs = conn.execute(stmt)
