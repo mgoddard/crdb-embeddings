@@ -150,7 +150,7 @@ def get_token_svec(s):
   tok = gen_embed_token(svec)
   return [tok, svec]
 
-"""
+ddl_func = """
 CREATE OR REPLACE FUNCTION score_row (q JSONB, r JSONB)
 RETURNS FLOAT
 LANGUAGE SQL
@@ -165,8 +165,9 @@ AS $$
   )
   WHERE qk = rk;
 $$;
+"""
 
-DROP TABLE IF EXISTS text_embed;
+ddl_table = """
 CREATE TABLE text_embed
 (
   uri STRING NOT NULL
@@ -175,11 +176,34 @@ CREATE TABLE text_embed
   , svec JSONB NOT NULL
   , chunk STRING NOT NULL
   , PRIMARY KEY (uri, chunk_num)
+  , INVERTED INDEX text_embed_token_idx (token gin_trgm_ops)
 );
-CREATE INDEX ON text_embed USING GIN (token gin_trgm_ops);
 """
 
-ins_sql = "INSERT INTO text_embed (uri, chunk_num, token, chunk, svec) VALUES (%s, %s, %s, %s, %s)"
+sql_check_exists = """
+SELECT COUNT(*) FROM information_schema.tables WHERE table_catalog = 'defaultdb' AND table_name = 'text_embed';
+"""
+
+def setup_db():
+  conn = get_conn()
+  logging.info("Checking whether text_embed table exists")
+  with conn.cursor() as cur:
+    cur.execute(sql_check_exists)
+    table_exists = (cur.fetchone()[0] == 1)
+  if not table_exists:
+    logging.info("Creating text_embed table")
+    with conn.cursor() as cur:
+      cur.execute(ddl_table)
+    conn.commit()
+    logging.info("Creating score_row UDF")
+    with conn.cursor() as cur:
+      cur.execute(ddl_func)
+    conn.commit()
+  else:
+    logging.info("text_embed table already exists")
+  put_conn(conn)
+
+ins_sql = "UPSERT INTO text_embed (uri, chunk_num, token, chunk, svec) VALUES (%s, %s, %s, %s, %s)"
 def index_text(uri, text):
   conn = get_conn()
   with conn.cursor() as cur:
@@ -374,6 +398,7 @@ if "-q" == sys.argv[1][0:2]:
     print("URI: {}\nSCORE: {}\nTOKEN: {}\nCHUNK: {}\n".format(row["uri"], row["sim"], row["token"], row["chunk"]))
 # Server mode
 elif "-s" == sys.argv[1][0:2]:
+  setup_db()
   port = int(os.getenv("FLASK_PORT", 18080))
   from waitress import serve
   serve(app, host="0.0.0.0", port=port, threads=n_threads)
