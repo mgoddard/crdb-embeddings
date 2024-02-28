@@ -219,8 +219,6 @@ def setup_db():
   else:
     logging.info("text_embed table already exists")
 
-# TODO: Consider a multi-row insert per URI
-ins_sql = "INSERT INTO text_embed (uri, chunk_num, token, chunk, svec) VALUES (%s, %s, %s, %s, %s)"
 def index_text(uri, text):
   rows = []
   n_chunk = 0
@@ -295,6 +293,7 @@ ORDER BY q_cos.sim DESC
     """
   return rv
 
+# TODO: Wrap the DB queries in a retry function
 # Arg: search terms
 # Returns: list of {"uri": uri, "sim": sim, "token": token, "chunk": chunk}
 def search(terms, limit=5, rerank="none"):
@@ -307,7 +306,6 @@ def search(terms, limit=5, rerank="none"):
   t0 = time.time()
   stmt = None
   if "REGEX" == rerank.upper():
-    # TODO: stem the terms before forming the regex?
     terms_regex = '({})'.format('|'.join(list(set(terms)))) # Remove duplicate terms via the set
     logging.info("terms_regex: {}".format(terms_regex))
     stmt = text(gen_sql(rerank) + "\nWHERE chunk ~* :regex").bindparams(q_tok=tok, limit=limit, regex=terms_regex)
