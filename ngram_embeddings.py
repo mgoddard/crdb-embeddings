@@ -61,6 +61,9 @@ print("cache_size: {} (set via 'export CACHE_SIZE=1024')".format(cache_size))
 n_threads = int(os.environ.get("N_THREADS", "1"))
 print("n_threads: {} (set via 'export N_THREADS=10')".format(n_threads))
 
+max_retries = int(os.environ.get("MAX_RETRIES", "3"))
+print("max_retries: {} (set via 'export MAX_RETRIES=3')".format(n_threads))
+
 log_level = os.environ.get("LOG_LEVEL", "WARN").upper()
 logging.basicConfig(
   level=log_level
@@ -245,7 +248,7 @@ def index_file(in_file):
     for line in f:
       text += line
   in_file = re.sub(r"\./", '', in_file) # Trim leading '/'
-  index_text(in_file, text)
+  retry(index_text, (in_file, text))
 
 # Clean any special chars out of text
 def clean_text(text):
@@ -293,7 +296,6 @@ ORDER BY q_cos.sim DESC
     """
   return rv
 
-# TODO: Wrap the DB queries in a retry function
 # Arg: search terms
 # Returns: list of {"uri": uri, "sim": sim, "token": token, "chunk": chunk}
 def search(terms, limit=5, rerank="none"):
@@ -323,6 +325,32 @@ def search(terms, limit=5, rerank="none"):
   logging.info("SQL query time: {} ms".format(et * 1000))
   return rv
 
+# Retry wrapper for functions interacting with the DB
+def retry(f, args):
+  for retry in range(0, max_retries):
+    if retry > 0:
+      logging.warning("Retry number {}".format(retry))
+    try:
+      return f(*args)
+    except SerializationFailure as e:
+      logging.warning("Error: %s", e)
+      logging.warning("EXECUTE SERIALIZATION_FAILURE BRANCH")
+      sleep_s = (2**retry) * 0.1 * (random.random() + 0.5)
+      logging.warning("Sleeping %s s", sleep_s)
+      time.sleep(sleep_s)
+    except (sqlalchemy.exc.OperationalError, psycopg2.OperationalError) as e:
+      # Get a new connection and try again
+      logging.warning("Error: %s", e)
+      logging.warning("EXECUTE CONNECTION FAILURE BRANCH")
+      sleep_s = 0.12 + random.random() * 0.25
+      logging.warning("Sleeping %s s", sleep_s)
+      time.sleep(sleep_s)
+    except psycopg2.Error as e:
+      logging.warning("Error: %s", e)
+      logging.warning("EXECUTE DEFAULT BRANCH")
+      raise e
+  raise ValueError(f"Transaction did not succeed after {max_retries} retries")
+
 # Verify transaction isolation level
 def log_txn_isolation_level():
   txn_lvl = "Unknown"
@@ -350,7 +378,7 @@ def health():
 def do_search(q_base_64, limit, rerank="none"):
   q = decode(q_base_64)
   q = clean_text(q)
-  rv = search(q.split(), limit, rerank)
+  rv = retry(search, (q.split(), limit, rerank))
   logging.info(get_token_svec.cache_info())
   return Response(json.dumps(rv), status=200, mimetype="application/json")
 
@@ -358,7 +386,7 @@ def do_search(q_base_64, limit, rerank="none"):
 def do_index():
   #log_txn_isolation_level()
   data = request.get_json(force=True)
-  index_text(data["uri"], data["text"])
+  retry(index_text, (data["uri"], data["text"]))
   # Note the extra arguments here which translate the \uxxxx escape codes
   #print("Data: " + json.dumps(data, ensure_ascii=False).encode("utf8").decode())
   return Response("OK", status=200, mimetype="text/plain")
