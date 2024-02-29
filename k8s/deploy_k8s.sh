@@ -50,6 +50,7 @@ run_cmd kubectl describe service crdb-lb
 echo "If not, run 'kubectl describe service crdb-lb' in a separate window"
 
 # Deploy a SQL client
+#SQL_CLIENT_YAML="https://raw.githubusercontent.com/cockroachdb/cockroach-operator/master/examples/client-secure-operator.yaml"
 SQL_CLIENT_YAML="https://raw.githubusercontent.com/cockroachdb/cockroach-operator/v2.10.0/examples/client-secure-operator.yaml"
 echo "Adding a secure SQL client pod ..."
 kubectl create -f $SQL_CLIENT_YAML
@@ -68,10 +69,10 @@ cat $dir/create_user.sql | kubectl exec -i cockroachdb-client-secure -- ./cockro
 
 # Start the CockroachDB DB Console
 echo "Open a browser tab to port 8080 at the IP provided for the DB Console endpoint"
-echo "** Use 'tourist' as both login and password **"
+echo "** Use 'embeduser' as login with password 'embedpasswd' **"
 
-# Start the Flask app
-echo "Press ENTER to start the CockroachDB text embeddings app"
+# Start the Web app
+echo "Press ENTER to start the CockroachDB Embeddings app"
 read
 kubectl apply -f $dir/crdb-embeddings.yaml
 
@@ -110,8 +111,8 @@ echo "** Finally: tear it all down.  CAREFUL -- BE SURE YOU'RE DONE! **"
 echo "Press ENTER to confirm you want to TEAR IT DOWN."
 read
 
-echo "Deleting the Geo Tourist app"
-kubectl delete -f $dir/crdb-embeddings.yaml
+echo "Deleting the CRDB Embeddings app"
+kubectl delete -f $dir/crdb-embeddings-lb
 
 echo "Deleting the SQL client"
 kubectl delete -f $SQL_CLIENT_YAML

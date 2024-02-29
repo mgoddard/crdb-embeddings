@@ -8,7 +8,7 @@ img="$docker_id/$img_name"
 export DB_URL="postgres://test_role:123abc@host.docker.internal:26257/defaultdb?sslmode=require&sslrootcert=/Users/mgoddard/certs/ca.crt"
 export MIN_SIM=0.2
 export N_THREADS=1
-export LOG_LEVEL=WARN
+export LOG_LEVEL=INFO
 export FLASK_PORT=18080
 export CACHE_SIZE=1024
 
