@@ -112,7 +112,7 @@ echo "Press ENTER to confirm you want to TEAR IT DOWN."
 read
 
 echo "Deleting the CRDB Embeddings app"
-kubectl delete -f $dir/crdb-embeddings-lb
+kubectl delete -f $dir/crdb-embeddings.yaml
 
 echo "Deleting the SQL client"
 kubectl delete -f $SQL_CLIENT_YAML
