@@ -64,6 +64,9 @@ print("n_threads: {} (set via 'export N_THREADS=10')".format(n_threads))
 max_retries = int(os.environ.get("MAX_RETRIES", "3"))
 print("max_retries: {} (set via 'export MAX_RETRIES=3')".format(n_threads))
 
+token_array_len = int(os.environ.get("TOKEN_ARRAY_LEN", "8"))
+print("token_array_len: {} (set via 'export TOKEN_ARRAY_LEN=8')".format(n_threads))
+
 log_level = os.environ.get("LOG_LEVEL", "WARN").upper()
 logging.basicConfig(
   level=log_level
@@ -109,6 +112,14 @@ model = BertModel.from_pretrained("bert-base-uncased", output_hidden_states = Tr
 model.eval()
 et = time.time() - t0
 logging.info("BertModel + eval: {} s".format(et))
+
+# Return a list of tokens, trimmed to token_array_len
+def to_token_array(token, n_tokens=None):
+  if n_tokens is None:
+    n_tokens=int(len(token)/3)
+  rv = re.split(r"([-+][a-z0-9]{2})", token)[1::2]
+  rv = rv[0:n_tokens]
+  return rv
 
 # The fist call to this takes ~ 500 ms but subsequent calls take ~ 40 ms
 def gen_embeddings(s):
@@ -184,6 +195,37 @@ AS $$
 $$;
 """
 
+arr_func = """
+CREATE OR REPLACE FUNCTION to_token_array(token STRING, n INT)
+RETURNS STRING[]
+IMMUTABLE LEAKPROOF
+LANGUAGE SQL
+AS $$
+
+SELECT ARRAY_REMOVE(
+  REGEXP_SPLIT_TO_ARRAY(
+    REGEXP_REPLACE(
+      SUBSTRING(token FROM 1 FOR n*3),
+      '([-+])([a-z0-9]{2})', '\\1\\2 ', 'g'
+    ),
+    '\\s+'
+  ), '');
+$$;
+"""
+
+overlap_func = """
+CREATE OR REPLACE FUNCTION overlap(a STRING[], b STRING[])
+RETURNS INT
+IMMUTABLE LEAKPROOF
+LANGUAGE SQL
+AS $$
+  SELECT COUNT(*)
+  FROM (
+    SELECT UNNEST(a) INTERSECT SELECT UNNEST(b)
+  );
+$$;
+"""
+
 ddl_table = """
 CREATE TABLE text_embed
 (
@@ -192,8 +234,9 @@ CREATE TABLE text_embed
   , token STRING NOT NULL
   , svec JSONB NOT NULL
   , chunk STRING NOT NULL
+  , token_array STRING[] NOT NULL
   , PRIMARY KEY (uri, chunk_num)
-  , INVERTED INDEX text_embed_token_idx (token gin_trgm_ops)
+  , INVERTED INDEX text_embed_token_idx (token_array)
 );
 """
 
@@ -218,6 +261,10 @@ def setup_db():
       conn.execute(text(ddl_table))
       logging.info("Creating score_row UDF")
       conn.execute(text(ddl_func))
+      logging.info("Creating to_token_array UDF")
+      conn.execute(text(arr_func))
+      logging.info("Creating overlap UDF")
+      conn.execute(text(overlap_func))
       conn.commit()
   else:
     logging.info("text_embed table already exists")
@@ -236,6 +283,7 @@ def index_text(uri, text):
          , "token": token
          , "svec": svec
          , "chunk": s
+         , "token_array": to_token_array(token)
       }
       rows.append(row_map)
       n_chunk += 1
@@ -270,9 +318,9 @@ def gen_sql(rerank):
   rv = """
 WITH q_embed AS
 (
-  SELECT uri, SIMILARITY(:q_tok, token)::NUMERIC(4, 3) sim, token, chunk, svec
-  FROM text_embed@text_embed_token_idx
-  WHERE :q_tok % token
+  SELECT uri, OVERLAP(TO_TOKEN_ARRAY(:q_tok, :n_tok), token_array)/10.0 sim, token, chunk, svec
+  FROM text_embed
+  WHERE TO_TOKEN_ARRAY(:q_tok, :n_tok) <@ token_array
   ORDER BY sim DESC
   LIMIT :limit
 )
@@ -310,11 +358,11 @@ def search(terms, limit=5, rerank="none"):
   if "REGEX" == rerank.upper():
     terms_regex = '({})'.format('|'.join(list(set(terms)))) # Remove duplicate terms via the set
     logging.info("terms_regex: {}".format(terms_regex))
-    stmt = text(gen_sql(rerank) + "\nWHERE chunk ~* :regex").bindparams(q_tok=tok, limit=limit, regex=terms_regex)
+    stmt = text(gen_sql(rerank) + "\nWHERE chunk ~* :regex").bindparams(q_tok=tok, n_tok=token_array_len, limit=limit, regex=terms_regex)
   elif "COSINE" == rerank.upper():
-    stmt = text(gen_sql(rerank)).bindparams(bindparam('q_svec', type_=JSONB), q_tok=tok, limit=limit, q_svec=svec)
+    stmt = text(gen_sql(rerank)).bindparams(bindparam('q_svec', type_=JSONB), q_tok=tok, n_tok=token_array_len, limit=limit, q_svec=svec)
   else:
-    stmt = text(gen_sql(rerank)).bindparams(q_tok=tok, limit=limit)
+    stmt = text(gen_sql(rerank)).bindparams(q_tok=tok, n_tok=token_array_len, limit=limit)
   with engine.connect() as conn:
     rs = conn.execute(stmt)
     if rs is not None:
