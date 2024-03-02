@@ -62,10 +62,10 @@ n_threads = int(os.environ.get("N_THREADS", "1"))
 print("n_threads: {} (set via 'export N_THREADS=10')".format(n_threads))
 
 max_retries = int(os.environ.get("MAX_RETRIES", "3"))
-print("max_retries: {} (set via 'export MAX_RETRIES=3')".format(n_threads))
+print("max_retries: {} (set via 'export MAX_RETRIES=3')".format(max_retries))
 
 token_array_len = int(os.environ.get("TOKEN_ARRAY_LEN", "8"))
-print("token_array_len: {} (set via 'export TOKEN_ARRAY_LEN=8')".format(n_threads))
+print("token_array_len: {} (set via 'export TOKEN_ARRAY_LEN=8')".format(token_array_len))
 
 log_level = os.environ.get("LOG_LEVEL", "WARN").upper()
 logging.basicConfig(
@@ -320,7 +320,7 @@ WITH q_embed AS
 (
   SELECT uri, OVERLAP(TO_TOKEN_ARRAY(:q_tok, :n_tok), token_array)/10.0 sim, token, chunk, svec
   FROM text_embed
-  WHERE TO_TOKEN_ARRAY(:q_tok, :n_tok) <@ token_array
+  WHERE TO_TOKEN_ARRAY(:q_tok, :n_tok) && token_array
   ORDER BY sim DESC
   LIMIT :limit
 )
