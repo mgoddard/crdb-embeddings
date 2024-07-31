@@ -63,6 +63,7 @@ def connect(dbapi_connection, connection_record):
   cur = dbapi_connection.cursor()
   cur.execute("SET pg_trgm.similarity_threshold = %s;", (min_sim,))
   cur.execute("SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL READ COMMITTED;")
+  cur.execute("SET default_transaction_use_follower_reads = on;")
   cur.close()
 
 t0 = time.time()
@@ -238,6 +239,7 @@ def decode(b64):
 app = Flask(__name__)
 
 rerank_enum = set(["NONE", "REGEX"])
+
 def gen_sql(rerank):
   rerank = rerank.upper()
   if rerank not in rerank_enum:
