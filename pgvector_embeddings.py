@@ -22,13 +22,6 @@ from functools import lru_cache
 
 CHARSET = "utf-8"
 
-# Tweak minimum similarity in the DB session.  Lower may be better given the LIMIT clause.
-#   set pg_trgm.similarity_threshold = 0.25;
-#   set pg_trgm.similarity_threshold = 0.1;
-# The value passed in via the environment will be set in SQL session
-min_sim = float(os.environ.get("MIN_SIM", "0.20"))
-print("pg_trgm.similarity_threshold: {} (set via 'export MIN_SIM=0.1')".format(min_sim))
-
 cache_size = int(os.environ.get("CACHE_SIZE", "1024"))
 print("cache_size: {} (set via 'export CACHE_SIZE=1024')".format(cache_size))
 
@@ -61,9 +54,8 @@ engine = create_engine(db_url, pool_size=20, pool_pre_ping=True, connect_args = 
 @event.listens_for(engine, "connect")
 def connect(dbapi_connection, connection_record):
   cur = dbapi_connection.cursor()
-  cur.execute("SET pg_trgm.similarity_threshold = %s;", (min_sim,))
   cur.execute("SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL READ COMMITTED;")
-  cur.execute("SET default_transaction_use_follower_reads = on;")
+  #cur.execute("SET default_transaction_use_follower_reads = on;")
   cur.close()
 
 t0 = time.time()
@@ -105,61 +97,12 @@ def gen_embeddings(s):
     if "cuda" == device:
       outputs = model(tokens_tensor.cuda(), segments_tensors.cuda())
     else:
-      outputs = model(tokens_tensor, segments_tensors)
+      outputs = model(tokens_tensor, segments_tensors) # FIXME: exception here due to tensor size mismatch
     hidden_states = outputs[2]
   token_vecs = hidden_states[-2][0]
   sentence_embedding = torch.mean(token_vecs, dim=0)
   rv = sentence_embedding.tolist()
   return rv
-
-# Saving these just for reference
-ddl_func = """
-CREATE OR REPLACE FUNCTION score_row (q JSONB, r JSONB)
-RETURNS FLOAT
-LANGUAGE SQL
-AS $$
-  SELECT COALESCE(SUM(qv * rv), 0.0) score
-  FROM (
-    SELECT
-      (json_each_text(q::JSONB)).@1 qk
-      , ((json_each_text(q::JSONB)).@2)::float qv
-      , (json_each_text(r::JSONB)).@1 rk
-      , ((json_each_text(r::JSONB)).@2)::float rv
-  )
-  WHERE qk = rk;
-$$;
-"""
-
-arr_func = """
-CREATE OR REPLACE FUNCTION to_token_array(token STRING, n INT)
-RETURNS STRING[]
-IMMUTABLE LEAKPROOF
-LANGUAGE SQL
-AS $$
-
-SELECT ARRAY_REMOVE(
-  REGEXP_SPLIT_TO_ARRAY(
-    REGEXP_REPLACE(
-      SUBSTRING(token FROM 1 FOR n*3),
-      '([-+])([a-z0-9]{2})', '\\1\\2 ', 'g'
-    ),
-    '\\s+'
-  ), '');
-$$;
-"""
-
-overlap_func = """
-CREATE OR REPLACE FUNCTION overlap(a STRING[], b STRING[])
-RETURNS INT
-IMMUTABLE LEAKPROOF
-LANGUAGE SQL
-AS $$
-  SELECT COUNT(*)
-  FROM (
-    SELECT UNNEST(a) INTERSECT SELECT UNNEST(b)
-  );
-$$;
-"""
 
 ddl_table = """
 CREATE TABLE text_embed
@@ -191,12 +134,6 @@ def setup_db():
     with engine.connect() as conn:
       conn.execute(text("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;"))
       conn.execute(text(ddl_table))
-      logging.info("Creating score_row UDF")
-      conn.execute(text(ddl_func))
-      logging.info("Creating to_token_array UDF")
-      conn.execute(text(arr_func))
-      logging.info("Creating overlap UDF")
-      conn.execute(text(overlap_func))
       conn.commit()
   else:
     logging.info("text_embed table already exists")
@@ -246,16 +183,10 @@ def gen_sql(rerank):
     logging.warn("rerank value '{}' not allowed".format(rerank))
     rerank = "NONE"
   rv = """
-WITH q_embed AS
-(
   SELECT uri, 1 - (embedding <=> (:q_embed)::VECTOR) sim, chunk
   FROM text_embed
   ORDER BY sim DESC
   LIMIT :limit
-)
-"""
-  rv += """
-  SELECT uri, sim, chunk from q_embed
   """
   return rv
 
@@ -277,6 +208,7 @@ def search(terms, limit=5, rerank="none"):
   else:
     stmt = text(gen_sql(rerank)).bindparams(q_embed=embed, limit=limit)
   with engine.connect() as conn:
+    conn.execute(text("SET TRANSACTION AS OF SYSTEM TIME '-5s';"))
     rs = conn.execute(stmt)
     if rs is not None:
       for row in rs:
