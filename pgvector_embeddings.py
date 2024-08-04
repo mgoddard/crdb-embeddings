@@ -22,6 +22,11 @@ from functools import lru_cache
 
 CHARSET = "utf-8"
 
+
+
+min_sentence_len = int(os.environ.get("MIN_SENTENCE_LEN", "8"))
+print("min_sentence_len: {} (set via 'export MIN_SENTENCE_LEN=12')".format(min_sentence_len))
+
 cache_size = int(os.environ.get("CACHE_SIZE", "1024"))
 print("cache_size: {} (set via 'export CACHE_SIZE=1024')".format(cache_size))
 
@@ -74,14 +79,6 @@ model = BertModel.from_pretrained("bert-base-uncased", output_hidden_states = Tr
 model.eval()
 et = time.time() - t0
 logging.info("BertModel + eval: {} s".format(et))
-
-# Return a list of tokens, trimmed to token_array_len
-def to_token_array(token, n_tokens=None):
-  if n_tokens is None:
-    n_tokens=int(len(token)/3)
-  rv = re.split(r"([-+][a-z0-9]{2})", token)[1::2]
-  rv = rv[0:n_tokens]
-  return rv
 
 # The fist call to this takes ~ 500 ms but subsequent calls take ~ 40 ms
 @lru_cache(maxsize=cache_size)
@@ -143,7 +140,7 @@ def index_text(uri, text):
   n_chunk = 0
   for s in re.split(r"\.\s+", text): # Sentence based splitting: makes sense to me.
     s = s.strip()
-    if (len(s) > 0):
+    if (len(s) >= min_sentence_len):
       logging.debug("URI: {}, CHUNK_NUM: {}\nCHUNK: '{}'".format(uri, n_chunk, s))
       row_map = {
          "uri": uri
@@ -183,11 +180,16 @@ def gen_sql(rerank):
     logging.warn("rerank value '{}' not allowed".format(rerank))
     rerank = "NONE"
   rv = """
+WITH q_embed AS
+(
   SELECT uri, 1 - (embedding <=> (:q_embed)::VECTOR) sim, chunk
   FROM text_embed
   ORDER BY sim DESC
   LIMIT :limit
-  """
+)
+SELECT uri, sim, chunk
+FROM q_embed
+"""
   return rv
 
 # Arg: search terms
@@ -208,7 +210,7 @@ def search(terms, limit=5, rerank="none"):
   else:
     stmt = text(gen_sql(rerank)).bindparams(q_embed=embed, limit=limit)
   with engine.connect() as conn:
-    conn.execute(text("SET TRANSACTION AS OF SYSTEM TIME '-5s';"))
+    conn.execute(text("SET TRANSACTION AS OF SYSTEM TIME '-10s';"))
     rs = conn.execute(stmt)
     if rs is not None:
       for row in rs:
