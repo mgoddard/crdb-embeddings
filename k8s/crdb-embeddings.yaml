@@ -28,13 +28,11 @@ spec:
     spec:
       containers:
       - name: crdb-embeddings
-        image: mgoddard/crdb-embeddings-x86:1.0
+        image: mgoddard/crdb-embeddings-x86:1.1
         imagePullPolicy: Always
         env:
           - name: DB_URL
             value: "postgres://embeduser:embedpasswd@cockroachdb-public:26257/defaultdb"
-          - name: MIN_SIM
-            value: "0.2"
           - name: N_THREADS
             value: "1"
           - name: LOG_LEVEL
@@ -45,6 +43,8 @@ spec:
             value: "1024"
           - name: MAX_RETRIES
             value: "3"
+          - name: MIN_SENTENCE_LEN
+            value: "8"
         ports:
         - containerPort: 18080
       restartPolicy: Always
