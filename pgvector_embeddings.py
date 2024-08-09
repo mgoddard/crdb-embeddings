@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import torch
-import re, sys, os, time
+import re, sys, os, time, random
 from transformers import BertTokenizer, BertModel
 import base36
 import logging
@@ -60,6 +60,7 @@ engine = create_engine(db_url, pool_size=20, pool_pre_ping=True, connect_args = 
 def connect(dbapi_connection, connection_record):
   cur = dbapi_connection.cursor()
   cur.execute("SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL READ COMMITTED;")
+  cur.execute("SET plan_cache_mode = auto;")
   #cur.execute("SET default_transaction_use_follower_reads = on;")
   cur.close()
 
