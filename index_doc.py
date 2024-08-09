@@ -15,13 +15,18 @@ if len(sys.argv) < 2:
 def read_file(in_file):
   rv = ""
   with open(in_file, mode="rt") as f:
-    for line in f:
-      rv += line
+    try:
+      for line in f:
+        rv += line
+    except UnicodeDecodeError:
+      rv = None
   return rv
 
 for doc_uri in sys.argv[1:]:
   t0 = time.time()
   doc_text = read_file(doc_uri)
+  if doc_text is None:
+    continue
   doc_uri = re.sub(r"^[\./]+", '', doc_uri)
   #print("URI: {}\nTEXT: {}".format(doc_uri, doc_text))
   req = requests.post(url, json = { "uri": doc_uri, "text": doc_text })
