@@ -22,7 +22,9 @@ from functools import lru_cache
 
 CHARSET = "utf-8"
 
-
+TOP_N = 32
+TOP_N_Q = 64
+N_DISCARD = 1
 
 min_sentence_len = int(os.environ.get("MIN_SENTENCE_LEN", "8"))
 print("min_sentence_len: {} (set via 'export MIN_SENTENCE_LEN=12')".format(min_sentence_len))
@@ -109,8 +111,23 @@ CREATE TABLE text_embed
   , chunk_num INT NOT NULL
   , chunk STRING NOT NULL
   , embedding VECTOR(768)
+  , top_n INT[]
   , PRIMARY KEY (uri, chunk_num)
+  , INVERTED INDEX (top_n)
 );
+"""
+
+overlap_func = """
+CREATE OR REPLACE FUNCTION overlap(a INT[], b INT[])
+RETURNS INT
+IMMUTABLE LEAKPROOF
+LANGUAGE SQL
+AS $$
+  SELECT COUNT(*)
+  FROM (
+    SELECT UNNEST(a) INTERSECT SELECT UNNEST(b)
+  );
+$$;
 """
 
 sql_check_exists = """
@@ -132,9 +149,16 @@ def setup_db():
     with engine.connect() as conn:
       conn.execute(text("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;"))
       conn.execute(text(ddl_table))
+      logging.info("Creating overlap UDF")
+      conn.execute(text(overlap_func))
       conn.commit()
   else:
     logging.info("text_embed table already exists")
+
+def gen_top_n(embed, n):
+  embed_dict = { k: v for v, k in enumerate(embed) }
+  rv = list(dict(sorted(embed_dict.items(), reverse=True)[N_DISCARD:N_DISCARD + n]).values())
+  return rv
 
 def index_text(uri, text):
   rows = []
@@ -143,11 +167,14 @@ def index_text(uri, text):
     s = s.strip()
     if (len(s) >= min_sentence_len):
       logging.debug("URI: {}, CHUNK_NUM: {}\nCHUNK: '{}'".format(uri, n_chunk, s))
+      embed = gen_embeddings(s)
+      top_n = gen_top_n(embed, TOP_N)
       row_map = {
          "uri": uri
          , "chunk_num": n_chunk
          , "chunk": s
-         , "embedding": gen_embeddings(s)
+         , "embedding": embed
+         , "top_n": top_n
       }
       rows.append(row_map)
       n_chunk += 1
@@ -183,13 +210,16 @@ def gen_sql(rerank):
   rv = """
 WITH q_embed AS
 (
-  SELECT uri, 1 - (embedding <=> (:q_embed)::VECTOR) sim, chunk
+  SELECT uri, OVERLAP(:top_n, top_n) score, chunk, embedding
   FROM text_embed
-  ORDER BY sim DESC
-  LIMIT :limit
+  WHERE :top_n && top_n
+  ORDER BY score DESC
+  LIMIT :limit * 5 /* FIXME parameterize this '5' */
 )
-SELECT uri, sim, chunk
+SELECT uri, 1 - (embedding <=> (:q_embed)::VECTOR) sim, chunk
 FROM q_embed
+ORDER BY sim DESC
+LIMIT :limit
 """
   return rv
 
@@ -200,8 +230,9 @@ def search(terms, limit=5, rerank="none"):
   q = ' '.join(terms)
   rv = []
   embed = gen_embeddings(q)
+  top_n = gen_top_n(embed, TOP_N_Q)
   logging.info("Query string: '{}'".format(q))
-  logging.debug("Query vector: '{}'".format(embed))
+  logging.info("Query top_n: '{}'".format(top_n))
   t0 = time.time()
   stmt = None
   if "REGEX" == rerank.upper():
@@ -209,7 +240,7 @@ def search(terms, limit=5, rerank="none"):
     logging.info("terms_regex: {}".format(terms_regex))
     stmt = text(gen_sql(rerank) + "\nWHERE chunk ~* :regex").bindparams(q_embed=embed, limit=limit, regex=terms_regex)
   else:
-    stmt = text(gen_sql(rerank)).bindparams(q_embed=embed, limit=limit)
+    stmt = text(gen_sql(rerank)).bindparams(q_embed=embed, top_n=top_n, limit=limit)
   with engine.connect() as conn:
     conn.execute(text("SET TRANSACTION AS OF SYSTEM TIME '-10s';"))
     rs = conn.execute(stmt)
