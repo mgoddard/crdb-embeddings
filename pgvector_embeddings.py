@@ -22,9 +22,15 @@ from functools import lru_cache
 
 CHARSET = "utf-8"
 
-TOP_N = 32
-TOP_N_Q = 64
+# Number of array dims to discard as these appear too frequently to be useful
 N_DISCARD = 1
+
+TOP_N = int(os.environ.get("TOP_N", "256"))
+print("TOP_N: {} (set via 'export TOP_N=32')".format(TOP_N))
+
+# Smaller value => reduced table scan with && operator
+TOP_N_Q = int(os.environ.get("TOP_N_Q", "4"))
+print("TOP_N_Q: {} (set via 'export TOP_N_Q=8')".format(TOP_N_Q))
 
 min_sentence_len = int(os.environ.get("MIN_SENTENCE_LEN", "8"))
 print("min_sentence_len: {} (set via 'export MIN_SENTENCE_LEN=12')".format(min_sentence_len))
@@ -212,9 +218,9 @@ WITH q_embed AS
 (
   SELECT uri, OVERLAP(:top_n, top_n) score, chunk, embedding
   FROM text_embed
-  WHERE :top_n && top_n
+  WHERE top_n @> :top_n
   ORDER BY score DESC
-  LIMIT :limit * 5 /* FIXME parameterize this '5' */
+  LIMIT :limit * 10 /* FIXME parameterize this multiplier */
 )
 SELECT uri, 1 - (embedding <=> (:q_embed)::VECTOR) sim, chunk
 FROM q_embed
