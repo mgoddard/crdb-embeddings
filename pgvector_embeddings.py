@@ -206,13 +206,7 @@ def decode(b64):
 
 app = Flask(__name__)
 
-rerank_enum = set(["NONE", "REGEX"])
-
-def gen_sql(rerank):
-  rerank = rerank.upper()
-  if rerank not in rerank_enum:
-    logging.warn("rerank value '{}' not allowed".format(rerank))
-    rerank = "NONE"
+def gen_sql():
   rv = """
 WITH q_embed AS
 (
@@ -231,22 +225,15 @@ LIMIT :limit
 
 # Arg: search terms
 # Returns: list of {"uri": uri, "sim": sim, "token": token, "chunk": chunk}
-def search(terms, limit=5, rerank="none"):
-  logging.info("rerank: {}".format(rerank))
+def search(terms, limit, top_n_q):
   q = ' '.join(terms)
   rv = []
   embed = gen_embeddings(q)
-  top_n = gen_top_n(embed, TOP_N_Q)
+  top_n = gen_top_n(embed, top_n_q)
   logging.info("Query string: '{}'".format(q))
   logging.info("Query top_n: '{}'".format(top_n))
   t0 = time.time()
-  stmt = None
-  if "REGEX" == rerank.upper():
-    terms_regex = '({})'.format('|'.join(list(set(terms)))) # Remove duplicate terms via the set
-    logging.info("terms_regex: {}".format(terms_regex))
-    stmt = text(gen_sql(rerank) + "\nWHERE chunk ~* :regex").bindparams(q_embed=embed, limit=limit, regex=terms_regex)
-  else:
-    stmt = text(gen_sql(rerank)).bindparams(q_embed=embed, top_n=top_n, limit=limit)
+  stmt = text(gen_sql()).bindparams(q_embed=embed, top_n=top_n, limit=limit)
   with engine.connect() as conn:
     conn.execute(text("SET TRANSACTION AS OF SYSTEM TIME '-10s';"))
     rs = conn.execute(stmt)
@@ -304,14 +291,12 @@ def health():
 # EXAMPLE (with a limit of 10 results):
 #   curl http://localhost:18080/search/$( echo -n "Using Lateral Joins" | base64 )
 #
-# rerank is one of none, regex, cosine
-#
 @app.route("/search/<q_base_64>/<int:limit>")
-@app.route("/search/<q_base_64>/<int:limit>/<rerank>")
-def do_search(q_base_64, limit, rerank="none"):
+@app.route("/search/<q_base_64>/<int:limit>/<int:top_n_q>")
+def do_search(q_base_64, limit, top_n_q=TOP_N_Q):
   q = decode(q_base_64)
   q = clean_text(q)
-  rv = retry(search, (q.split(), limit, rerank))
+  rv = retry(search, (q.split(), limit, top_n_q))
   logging.info(gen_embeddings.cache_info())
   return Response(json.dumps(rv), status=200, mimetype="application/json")
 
