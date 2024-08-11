@@ -118,6 +118,8 @@ CREATE TABLE text_embed
   , chunk STRING NOT NULL
   , embedding VECTOR(768)
   , top_n INT[]
+  , FAMILY cf1 (uri, chunk_num, chunk, embedding)
+  , FAMILY cf2 (top_n)
   , PRIMARY KEY (uri, chunk_num)
   , INVERTED INDEX (top_n)
 );
