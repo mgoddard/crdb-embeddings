@@ -12,6 +12,8 @@ from sqlalchemy import create_engine, text, event, insert, Table, MetaData
 from sqlalchemy.sql.expression import bindparam
 from sqlalchemy.dialects.postgresql import JSONB
 import numpy as np
+from sklearn.cluster import KMeans
+import joblib
 
 # For Flask app
 from flask import Flask, request, Response, g
@@ -25,12 +27,8 @@ CHARSET = "utf-8"
 # Number of array dims to discard as these appear too frequently to be useful
 N_DISCARD = 1
 
-TOP_N = int(os.environ.get("TOP_N", "256"))
-print("TOP_N: {} (set via 'export TOP_N=32')".format(TOP_N))
-
-# Smaller value => reduced table scan with && operator
-TOP_N_Q = int(os.environ.get("TOP_N_Q", "4"))
-print("TOP_N_Q: {} (set via 'export TOP_N_Q=8')".format(TOP_N_Q))
+model_file = os.environ.get("MODEL_FILE", "model.pkl")
+print("model_file: {} (set via 'export MODEL_FILE=./model.pkl')".format(model_file))
 
 min_sentence_len = int(os.environ.get("MIN_SENTENCE_LEN", "8"))
 print("min_sentence_len: {} (set via 'export MIN_SENTENCE_LEN=12')".format(min_sentence_len))
@@ -77,6 +75,16 @@ tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 et = time.time() - t0
 logging.info("BertTokenizer: {} s".format(et))
 
+"""
+Need to store/load via S3 or other object store
+
+https://gist.github.com/aabadie/074587354d97d872aff6abb65510f618?permalink_comment_id=3892137
+https://stackoverflow.com/questions/51921142/how-to-load-a-model-saved-in-joblib-file-from-google-cloud-storage-bucket
+
+"""
+kmeans_model = joblib.load(model_file)
+logging.info("K-means model loaded")
+
 t0 = time.time()
 # NOTE: I did *not* see any speedup running this on a GCP VM with nVidia T4 GPU.
 # Install script for drivers on GCP VM:
@@ -110,32 +118,28 @@ def gen_embeddings(s):
   rv = sentence_embedding.tolist()
   return rv
 
-ddl_table = """
+ddl_t1 = """
 CREATE TABLE text_embed
 (
   uri STRING NOT NULL
   , chunk_num INT NOT NULL
   , chunk STRING NOT NULL
   , embedding VECTOR(768)
-  , top_n INT[]
-  , FAMILY cf1 (uri, chunk_num, chunk, embedding)
-  , FAMILY cf2 (top_n)
+  , cluster_id INT
   , PRIMARY KEY (uri, chunk_num)
-  , INVERTED INDEX (top_n)
+  , INDEX (cluster_id)
 );
 """
 
-overlap_func = """
-CREATE OR REPLACE FUNCTION overlap(a INT[], b INT[])
-RETURNS INT
-IMMUTABLE LEAKPROOF
-LANGUAGE SQL
-AS $$
-  SELECT COUNT(*)
-  FROM (
-    SELECT UNNEST(a) INTERSECT SELECT UNNEST(b)
-  );
-$$;
+ddl_t2 = """
+CREATE TABLE cluster_assign
+(
+  uri STRING NOT NULL
+  , chunk_num INT8 NOT NULL
+  , cluster_id INT8 NOT NULL
+  , PRIMARY KEY (uri, chunk_num)
+  , INDEX (cluster_id ASC)
+);
 """
 
 sql_check_exists = """
@@ -156,17 +160,11 @@ def setup_db():
     logging.info("Creating text_embed table")
     with engine.connect() as conn:
       conn.execute(text("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;"))
-      conn.execute(text(ddl_table))
-      logging.info("Creating overlap UDF")
-      conn.execute(text(overlap_func))
+      conn.execute(text(ddl_t1))
+      conn.execute(text(ddl_t2))
       conn.commit()
   else:
     logging.info("text_embed table already exists")
-
-def gen_top_n(embed, n):
-  embed_dict = { k: v for v, k in enumerate(embed) }
-  rv = list(dict(sorted(embed_dict.items(), reverse=True)[N_DISCARD:N_DISCARD + n]).values())
-  return rv
 
 def index_text(uri, text):
   rows = []
@@ -176,13 +174,11 @@ def index_text(uri, text):
     if (len(s) >= min_sentence_len):
       logging.debug("URI: {}, CHUNK_NUM: {}\nCHUNK: '{}'".format(uri, n_chunk, s))
       embed = gen_embeddings(s)
-      top_n = gen_top_n(embed, TOP_N)
       row_map = {
          "uri": uri
          , "chunk_num": n_chunk
          , "chunk": s
          , "embedding": embed
-         , "top_n": top_n
       }
       rows.append(row_map)
       n_chunk += 1
@@ -212,11 +208,9 @@ def gen_sql():
   rv = """
 WITH q_embed AS
 (
-  SELECT uri, OVERLAP(:top_n, top_n) score, chunk, embedding
-  FROM text_embed
-  WHERE top_n @> :top_n
-  ORDER BY score DESC
-  LIMIT :limit * 10 /* FIXME parameterize this multiplier */
+  SELECT uri, chunk, embedding
+  FROM v1 
+  WHERE cluster_id = :cluster_id
 )
 SELECT uri, 1 - (embedding <=> (:q_embed)::VECTOR) sim, chunk
 FROM q_embed
@@ -227,15 +221,16 @@ LIMIT :limit
 
 # Arg: search terms
 # Returns: list of {"uri": uri, "sim": sim, "token": token, "chunk": chunk}
-def search(terms, limit, top_n_q):
+def search(terms, limit):
   q = ' '.join(terms)
   rv = []
   embed = gen_embeddings(q)
-  top_n = gen_top_n(embed, top_n_q)
+  #cluster_id = kmeans_model.predict([embed])
+  cluster_id = int(kmeans_model.predict([embed])[0])
   logging.info("Query string: '{}'".format(q))
-  logging.info("Query top_n: '{}'".format(top_n))
+  logging.info("Cluster ID: {}".format(cluster_id))
   t0 = time.time()
-  stmt = text(gen_sql()).bindparams(q_embed=embed, top_n=top_n, limit=limit)
+  stmt = text(gen_sql()).bindparams(q_embed=embed, cluster_id=cluster_id, limit=limit)
   with engine.connect() as conn:
     conn.execute(text("SET TRANSACTION AS OF SYSTEM TIME '-10s';"))
     rs = conn.execute(stmt)
@@ -294,11 +289,10 @@ def health():
 #   curl http://localhost:18080/search/$( echo -n "Using Lateral Joins" | base64 )
 #
 @app.route("/search/<q_base_64>/<int:limit>")
-@app.route("/search/<q_base_64>/<int:limit>/<int:top_n_q>")
-def do_search(q_base_64, limit, top_n_q=TOP_N_Q):
+def do_search(q_base_64, limit):
   q = decode(q_base_64)
   q = clean_text(q)
-  rv = retry(search, (q.split(), limit, top_n_q))
+  rv = retry(search, (q.split(), limit))
   logging.info(gen_embeddings.cache_info())
   return Response(json.dumps(rv), status=200, mimetype="application/json")
 
