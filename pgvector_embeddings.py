@@ -3,7 +3,6 @@
 import torch
 import re, sys, os, time, random
 from transformers import BertTokenizer, BertModel
-import base36
 import logging
 import psycopg2
 from psycopg2.errors import SerializationFailure
@@ -143,11 +142,22 @@ CREATE TABLE cluster_assign
 );
 """
 
+ddl_view = """
+CREATE OR REPLACE VIEW te_ca_view
+AS
+(
+  SELECT te.uri, te.chunk_num, te.chunk, te.embedding, te.top_n, c.cluster_id
+  FROM text_embed te, cluster_assign c
+  WHERE te.uri = c.uri AND te.chunk_num = c.chunk_num
+);
+"""
+
 sql_check_exists = """
 SELECT COUNT(*) n FROM information_schema.tables WHERE table_catalog = 'defaultdb' AND table_name = 'text_embed';
 """
 
 text_embed_table = None # Will be set after running setup_db()
+cluster_assign_table = None
 
 def setup_db():
   logging.info("Checking whether text_embed table exists")
@@ -158,17 +168,20 @@ def setup_db():
       n_rows = row.n
   table_exists = (n_rows == 1)
   if not table_exists:
-    logging.info("Creating text_embed table")
+    logging.info("Creating text_embed tables and view ...")
     with engine.connect() as conn:
       conn.execute(text("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;"))
       conn.execute(text(ddl_t1))
       conn.execute(text(ddl_t2))
+      conn.execute(text(ddl_view))
       conn.commit()
+    logging.info("OK")
   else:
     logging.info("text_embed table already exists")
 
 def index_text(uri, text):
-  rows = []
+  te_rows = []
+  ca_rows = []
   n_chunk = 0
   for s in re.split(r"\.\s+", text): # Sentence based splitting: makes sense to me.
     s = s.strip()
@@ -181,10 +194,18 @@ def index_text(uri, text):
          , "chunk": s
          , "embedding": embed
       }
-      rows.append(row_map)
+      te_rows.append(row_map)
+      cluster_id = int(kmeans_model.predict([embed])[0]) # TODO: insert this into cluster_assign
+      row_map = {
+         "uri": uri
+         , "chunk_num": n_chunk
+         , "cluster_id": cluster_id
+      }
+      ca_rows.append(row_map)
       n_chunk += 1
-  with engine.begin() as conn:
-    conn.execute(insert(text_embed_table), rows)
+  with engine.begin() as conn: # Same TXN for both table INSERTs
+    conn.execute(insert(text_embed_table), te_rows)
+    conn.execute(insert(cluster_assign_table), ca_rows)
 
 def index_file(in_file):
   text = ""
@@ -210,7 +231,7 @@ def gen_sql():
 WITH q_embed AS
 (
   SELECT uri, chunk, embedding
-  FROM v1 
+  FROM te_ca_view
   WHERE cluster_id = :cluster_id
 )
 SELECT uri, 1 - (embedding <=> (:q_embed)::VECTOR) sim, chunk
@@ -226,7 +247,6 @@ def search(terms, limit):
   q = ' '.join(terms)
   rv = []
   embed = gen_embeddings(q)
-  #cluster_id = kmeans_model.predict([embed])
   cluster_id = int(kmeans_model.predict([embed])[0])
   logging.info("Query string: '{}'".format(q))
   logging.info("Cluster ID: {}".format(cluster_id))
@@ -315,6 +335,7 @@ if "-q" == sys.argv[1][0:2]:
 elif "-s" == sys.argv[1][0:2]:
   setup_db()
   text_embed_table = Table("text_embed", MetaData(), autoload_with=engine)
+  cluster_assign_table = Table("cluster_assign", MetaData(), autoload_with=engine)
   port = int(os.getenv("FLASK_PORT", 18080))
   from waitress import serve
   serve(app, host="0.0.0.0", port=port, threads=n_threads)
