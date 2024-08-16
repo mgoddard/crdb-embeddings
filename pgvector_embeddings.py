@@ -14,8 +14,6 @@ from sqlalchemy.dialects.postgresql import JSONB
 import numpy as np
 from sklearn.cluster import KMeans
 import joblib
-
-# For Flask app
 from flask import Flask, request, Response, g
 import urllib
 import json
@@ -76,10 +74,13 @@ et = time.time() - t0
 logging.info("BertTokenizer: {} s".format(et))
 
 """
+
 Need to store/load via S3 or other object store
 
 https://gist.github.com/aabadie/074587354d97d872aff6abb65510f618?permalink_comment_id=3892137
 https://stackoverflow.com/questions/51921142/how-to-load-a-model-saved-in-joblib-file-from-google-cloud-storage-bucket
+
+UPDATEable VIEWs: https://github.com/cockroachdb/cockroach/issues/20948#issuecomment-1603250501
 
 """
 kmeans_model = joblib.load(model_file)
