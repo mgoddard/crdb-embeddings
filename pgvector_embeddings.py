@@ -18,6 +18,7 @@ import urllib
 import json
 import base64
 from functools import lru_cache
+import uuid
 
 CHARSET = "utf-8"
 
@@ -61,6 +62,9 @@ if len(sys.argv) < 2:
 
 db_url = re.sub(r"^postgres(ql)?", "cockroachdb", db_url)
 engine = create_engine(db_url, pool_size=20, pool_pre_ping=True, connect_args = { "application_name": "CRDB Embeddings" })
+
+secret = uuid.uuid4().hex
+logging.warning("shared secret: {}".format(secret))
 
 @event.listens_for(engine, "connect")
 def connect(dbapi_connection, connection_record):
@@ -243,6 +247,45 @@ ORDER BY sim DESC
 LIMIT :limit
 """
   return rv
+
+@app.route("/build_model/<s>")
+def build_model(s):
+  if s != secret:
+    errstr = "Provided secret '{}' != expected value '{}'".format(s, secret)
+    logging.warning(errstr)
+    return Response(errstr, status=200, mimetype="text/plain")
+  # Grab a sample of vectors
+  sql = """
+  SELECT embedding
+  FROM text_embed
+  WHERE random() < :fraction
+  """
+  t0 = time.time()
+  stmt = text(sql).bindparams(fraction=train_fraction)
+  sampled_vecs = []
+  with engine.connect() as conn:
+    conn.execute(text("SET TRANSACTION AS OF SYSTEM TIME '-10s';"))
+    rs = conn.execute(stmt)
+    if rs is not None:
+      for row in rs:
+        sampled_vecs.append([float(x) for x in row[0][1:-1].split(',')]) # Convert strings to float
+  et = time.time() - t0
+  logging.info("SQL query time: {} ms".format(et * 1000))
+  # Train model over this sample
+  kmeans = KMeans(
+    init="random",
+    n_clusters=n_clusters,
+    n_init=10,
+    max_iter=300,
+    random_state=137
+  )
+  t0 = time.time()
+  model = kmeans.fit(sampled_vecs)
+  et = time.time() - t0
+  logging.info("Model build time: {} ms".format(et * 1000))
+  # Store the model to the filesystem
+  joblib.dump(model, model_file)
+  return Response("OK", status=200, mimetype="text/plain")
 
 # Arg: search terms
 # Returns: list of {"uri": uri, "sim": sim, "token": token, "chunk": chunk}
