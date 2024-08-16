@@ -21,8 +21,11 @@ from functools import lru_cache
 
 CHARSET = "utf-8"
 
-# Number of array dims to discard as these appear too frequently to be useful
-N_DISCARD = 1
+n_clusters = int(os.environ.get("N_CLUSTERS", "50"))
+print("n_clusters : {} (set via 'export N_CLUSTERS=50')".format(n_clusters))
+
+train_fraction = float(os.environ.get("TRAIN_FRACTION", "0.10"))
+print("train_fraction: {} (set via 'export TRAIN_FRACTION=0.10')".format(train_fraction))
 
 model_file = os.environ.get("MODEL_FILE", "model.pkl")
 print("model_file: {} (set via 'export MODEL_FILE=./model.pkl')".format(model_file))
@@ -195,7 +198,7 @@ def index_text(uri, text):
          , "embedding": embed
       }
       te_rows.append(row_map)
-      cluster_id = int(kmeans_model.predict([embed])[0]) # TODO: insert this into cluster_assign
+      cluster_id = int(kmeans_model.predict([embed])[0])
       row_map = {
          "uri": uri
          , "chunk_num": n_chunk
