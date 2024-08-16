@@ -89,6 +89,7 @@ https://stackoverflow.com/questions/51921142/how-to-load-a-model-saved-in-joblib
 UPDATEable VIEWs: https://github.com/cockroachdb/cockroach/issues/20948#issuecomment-1603250501
 
 """
+
 kmeans_model = joblib.load(model_file)
 logging.info("K-means model loaded")
 
@@ -250,6 +251,7 @@ LIMIT :limit
 
 @app.route("/build_model/<s>")
 def build_model(s):
+  global kmeans_model
   if s != secret:
     errstr = "Provided secret '{}' != expected value '{}'".format(s, secret)
     logging.warning(errstr)
@@ -285,6 +287,8 @@ def build_model(s):
   logging.info("Model build time: {} ms".format(et * 1000))
   # Store the model to the filesystem
   joblib.dump(model, model_file)
+  # Reload the in-memory copy of the model
+  kmeans_model = model
   return Response("OK", status=200, mimetype="text/plain")
 
 # Arg: search terms
