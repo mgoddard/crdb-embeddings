@@ -150,6 +150,17 @@ CREATE TABLE cluster_assign
 );
 """
 
+ddl_t3 = """
+CREATE TABLE cluster_assign_new
+(
+  uri STRING NOT NULL
+  , chunk_num INT8 NOT NULL
+  , cluster_id INT8 NOT NULL
+  , PRIMARY KEY (uri, chunk_num)
+  , INDEX (cluster_id ASC)
+);
+"""
+
 ddl_view = """
 CREATE OR REPLACE VIEW te_ca_view
 AS
@@ -181,6 +192,7 @@ def setup_db():
       conn.execute(text("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;"))
       conn.execute(text(ddl_t1))
       conn.execute(text(ddl_t2))
+      conn.execute(text(ddl_t3))
       conn.execute(text(ddl_view))
       conn.commit()
     logging.info("OK")
@@ -249,13 +261,55 @@ LIMIT :limit
 """
   return rv
 
+def verify_secret(s):
+  err = None
+  if s != secret:
+    err = "Provided secret '{}' != expected value '{}'".format(s, secret)
+    logging.warning(err)
+  return err
+
+def refresh_cluster_assignments(s):
+  err = verify_secret(s)
+  if err is not None:
+    return Response(err, status=400, mimetype="text/plain")
+  select_sql = """
+  SELECT uri, chunk_num, embedding
+  FROM text_embed
+  ORDER BY 1, 2
+  """
+  t0 = time.time()
+  stmt = text(select_sql)
+  sampled_vecs = []
+  with engine.connect() as conn:
+    conn.execute(text("SET TRANSACTION AS OF SYSTEM TIME '-10s';"))
+    rs = conn.execute(stmt)
+    if rs is not None:
+      for row in rs:
+        (uri, chunk_num, embed) = row
+        #embed = [float(x) for x in embed[0][1:-1].split(',')]
+        embed = [float(x) for x in embed[1:-1].split(',')]
+        cluster_id = int(kmeans_model.predict([embed])[0])
+        row_map = {
+          "uri": uri
+          , "chunk_num": chunk_num
+          , "cluster_id": cluster_id
+        }
+        with engine.begin() as conn_ins:
+          conn_ins.execute(insert(cluster_assign_table_new), [row_map])
+  et = time.time() - t0
+  logging.info("Cluster assign time: {} ms".format(et * 1000))
+  return Response("OK", status=200, mimetype="text/plain")
+
+@app.route("/cluster_assign/<s>")
+def cluster_assign(s):
+  return retry(refresh_cluster_assignments, (s,))
+
 @app.route("/build_model/<s>")
 def build_model(s):
   global kmeans_model
-  if s != secret:
-    errstr = "Provided secret '{}' != expected value '{}'".format(s, secret)
-    logging.warning(errstr)
-    return Response(errstr, status=200, mimetype="text/plain")
+  err = verify_secret(s)
+  if err is not None:
+    return Response(err, status=400, mimetype="text/plain")
   # Grab a sample of vectors
   sql = """
   SELECT embedding
@@ -386,6 +440,7 @@ elif "-s" == sys.argv[1][0:2]:
   setup_db()
   text_embed_table = Table("text_embed", MetaData(), autoload_with=engine)
   cluster_assign_table = Table("cluster_assign", MetaData(), autoload_with=engine)
+  cluster_assign_table_new = Table("cluster_assign_new", MetaData(), autoload_with=engine)
   port = int(os.getenv("FLASK_PORT", 18080))
   from waitress import serve
   serve(app, host="0.0.0.0", port=port, threads=n_threads)
