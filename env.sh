@@ -7,12 +7,12 @@ export LOG_LEVEL=INFO
 export N_THREADS=1
 export CACHE_SIZE=1024
 export MIN_SENTENCE_LEN=8
-export N_CLUSTERS=50
-export TRAIN_FRACTION=0.25
+export N_CLUSTERS=100
+export TRAIN_FRACTION=0.75
 export MODEL_FILE=/tmp/model.pkl
 export BATCH_SIZE=512
 
 # For client
-export MAX_RESULTS=6
+export MAX_RESULTS=5
 export TOP_N_Q=8
 

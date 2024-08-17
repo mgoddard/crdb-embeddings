@@ -169,8 +169,7 @@ CREATE OR REPLACE VIEW te_ca_view
 AS
 (
   SELECT te.uri, te.chunk_num, te.chunk, te.embedding, te.top_n, c.cluster_id
-  FROM text_embed te, cluster_assign_new c
-  /* FROM text_embed te, cluster_assign c */
+  FROM text_embed te, cluster_assign c
   WHERE te.uri = c.uri AND te.chunk_num = c.chunk_num
 );
 """
@@ -272,6 +271,7 @@ def verify_secret(s):
     logging.warning(err)
   return err
 
+# FIXME: once the inserts are finished, switch the view definition to the new table
 def refresh_cluster_assignments(s):
   err = verify_secret(s)
   if err is not None:
@@ -299,6 +299,7 @@ def refresh_cluster_assignments(s):
         }
         ins_list.append(row_map)
         if len(ins_list) == batch_size:
+          logging.info("Inserting batch of {} rows".format(batch_size))
           with engine.begin() as conn_ins:
             conn_ins.execute(insert(cluster_assign_table_new), ins_list)
           ins_list = []
