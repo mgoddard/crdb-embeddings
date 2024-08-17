@@ -22,6 +22,9 @@ import uuid
 
 CHARSET = "utf-8"
 
+batch_size = int(os.environ.get("BATCH_SIZE", "512"))
+print("batch_size: {} (set via 'export BATCH_SIZE=512')".format(batch_size))
+
 n_clusters = int(os.environ.get("N_CLUSTERS", "50"))
 print("n_clusters : {} (set via 'export N_CLUSTERS=50')".format(n_clusters))
 
@@ -166,7 +169,8 @@ CREATE OR REPLACE VIEW te_ca_view
 AS
 (
   SELECT te.uri, te.chunk_num, te.chunk, te.embedding, te.top_n, c.cluster_id
-  FROM text_embed te, cluster_assign c
+  FROM text_embed te, cluster_assign_new c
+  /* FROM text_embed te, cluster_assign c */
   WHERE te.uri = c.uri AND te.chunk_num = c.chunk_num
 );
 """
@@ -279,14 +283,13 @@ def refresh_cluster_assignments(s):
   """
   t0 = time.time()
   stmt = text(select_sql)
-  sampled_vecs = []
   with engine.connect() as conn:
     conn.execute(text("SET TRANSACTION AS OF SYSTEM TIME '-10s';"))
     rs = conn.execute(stmt)
+    ins_list = []
     if rs is not None:
       for row in rs:
         (uri, chunk_num, embed) = row
-        #embed = [float(x) for x in embed[0][1:-1].split(',')]
         embed = [float(x) for x in embed[1:-1].split(',')]
         cluster_id = int(kmeans_model.predict([embed])[0])
         row_map = {
@@ -294,8 +297,15 @@ def refresh_cluster_assignments(s):
           , "chunk_num": chunk_num
           , "cluster_id": cluster_id
         }
-        with engine.begin() as conn_ins:
-          conn_ins.execute(insert(cluster_assign_table_new), [row_map])
+        ins_list.append(row_map)
+        if len(ins_list) == batch_size:
+          with engine.begin() as conn_ins:
+            conn_ins.execute(insert(cluster_assign_table_new), ins_list)
+          ins_list = []
+    # Finish the INSERTs
+    if len(ins_list) > 0:
+      with engine.begin() as conn_ins:
+        conn_ins.execute(insert(cluster_assign_table_new), ins_list)
   et = time.time() - t0
   logging.info("Cluster assign time: {} ms".format(et * 1000))
   return Response("OK", status=200, mimetype="text/plain")
