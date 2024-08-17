@@ -19,8 +19,10 @@ import json
 import base64
 from functools import lru_cache
 import uuid
+import os.path
 
 CHARSET = "utf-8"
+kmeans_model = None
 
 batch_size = int(os.environ.get("BATCH_SIZE", "512"))
 print("batch_size: {} (set via 'export BATCH_SIZE=512')".format(batch_size))
@@ -92,9 +94,6 @@ https://stackoverflow.com/questions/51921142/how-to-load-a-model-saved-in-joblib
 UPDATEable VIEWs: https://github.com/cockroachdb/cockroach/issues/20948#issuecomment-1603250501
 
 """
-
-kmeans_model = joblib.load(model_file)
-logging.info("K-means model loaded")
 
 t0 = time.time()
 # NOTE: I did *not* see any speedup running this on a GCP VM with nVidia T4 GPU.
@@ -448,6 +447,12 @@ if "-q" == sys.argv[1][0:2]:
     print("URI: {}\nSCORE: {}\nTOKEN: {}\nCHUNK: {}\n".format(row["uri"], row["sim"], row["token"], row["chunk"]))
 # Server mode
 elif "-s" == sys.argv[1][0:2]:
+  if os.path.isfile(model_file): # Check to see if model already exists
+    kmeans_model = joblib.load(model_file)
+  else:
+    logging.info("Building new K-means model")
+    build_model(secret)
+  logging.info("K-means model loaded")
   setup_db()
   text_embed_table = Table("text_embed", MetaData(), autoload_with=engine)
   cluster_assign_table = Table("cluster_assign", MetaData(), autoload_with=engine)
