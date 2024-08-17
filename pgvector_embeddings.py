@@ -168,7 +168,7 @@ ddl_view = """
 CREATE OR REPLACE VIEW te_ca_view
 AS
 (
-  SELECT te.uri, te.chunk_num, te.chunk, te.embedding, te.top_n, c.cluster_id
+  SELECT te.uri, te.chunk_num, te.chunk, te.embedding, c.cluster_id
   FROM text_embed te, cluster_assign c
   WHERE te.uri = c.uri AND te.chunk_num = c.chunk_num
 );
