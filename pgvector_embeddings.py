@@ -343,7 +343,8 @@ def build_model(s):
     n_clusters=n_clusters,
     n_init=10,
     max_iter=300,
-    random_state=137
+    random_state=137,
+    verbose=True
   )
   t0 = time.time()
   model = kmeans.fit(sampled_vecs)
