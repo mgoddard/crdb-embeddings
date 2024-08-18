@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
       - name: crdb-embeddings
-        image: mgoddard/crdb-embeddings-x86:1.1
+        image: mgoddard/crdb-embeddings-x86:1.8
         imagePullPolicy: Always
         env:
           - name: DB_URL
@@ -36,7 +36,7 @@ spec:
           - name: N_THREADS
             value: "1"
           - name: LOG_LEVEL
-            value: "WARN"
+            value: "INFO"
           - name: FLASK_PORT
             value: "18080"
           - name: CACHE_SIZE
@@ -45,6 +45,18 @@ spec:
             value: "3"
           - name: MIN_SENTENCE_LEN
             value: "8"
+          - name: N_CLUSTERS
+            value: "100"
+          - name: TRAIN_FRACTION
+            value: "0.75"
+          - name: MODEL_FILE
+            value: "/tmp/model.pkl"
+          - name: MODEL_FILE_URL
+            value: "https://storage.googleapis.com/crl-goddard-text/model.pkl"
+          - name: BATCH_SIZE
+            value: "512"
+          - name: KMEANS_VERBOSE
+            value: "1"
         ports:
         - containerPort: 18080
       restartPolicy: Always
