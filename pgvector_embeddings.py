@@ -24,6 +24,9 @@ import os.path
 CHARSET = "utf-8"
 kmeans_model = None
 
+kmeans_verbose = int(os.environ.get("KMEANS_VERBOSE", "0"))
+print("kmeans_verbose: {} (set via 'export KMEANS_VERBOSE=1')".format(kmeans_verbose))
+
 batch_size = int(os.environ.get("BATCH_SIZE", "512"))
 print("batch_size: {} (set via 'export BATCH_SIZE=512')".format(batch_size))
 
@@ -79,6 +82,7 @@ def connect(dbapi_connection, connection_record):
   #cur.execute("SET default_transaction_use_follower_reads = on;")
   cur.close()
 
+# TODO: keep a pool of tokenizer and Bert model for multi-threading this app
 t0 = time.time()
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 et = time.time() - t0
@@ -90,8 +94,6 @@ Need to store/load via S3 or other object store
 
 https://gist.github.com/aabadie/074587354d97d872aff6abb65510f618?permalink_comment_id=3892137
 https://stackoverflow.com/questions/51921142/how-to-load-a-model-saved-in-joblib-file-from-google-cloud-storage-bucket
-
-UPDATEable VIEWs: https://github.com/cockroachdb/cockroach/issues/20948#issuecomment-1603250501
 
 """
 
@@ -153,7 +155,7 @@ CREATE TABLE cluster_assign
 """
 
 ddl_t3 = """
-CREATE TABLE cluster_assign_new
+CREATE TABLE {}
 (
   uri STRING NOT NULL
   , chunk_num INT8 NOT NULL
@@ -180,6 +182,12 @@ SELECT COUNT(*) n FROM information_schema.tables WHERE table_catalog = 'defaultd
 text_embed_table = None # Will be set after running setup_db()
 cluster_assign_table = None
 
+def run_ddl(ddl):
+  with engine.connect() as conn:
+    conn.execute(text("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;"))
+    conn.execute(text(ddl))
+    conn.commit()
+
 def setup_db():
   logging.info("Checking whether text_embed table exists")
   n_rows = 0
@@ -190,16 +198,38 @@ def setup_db():
   table_exists = (n_rows == 1)
   if not table_exists:
     logging.info("Creating text_embed tables and view ...")
-    with engine.connect() as conn:
-      conn.execute(text("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;"))
-      conn.execute(text(ddl_t1))
-      conn.execute(text(ddl_t2))
-      conn.execute(text(ddl_t3))
-      conn.execute(text(ddl_view))
-      conn.commit()
+    run_ddl(ddl_t1)
+    run_ddl(ddl_t2)
+    run_ddl(ddl_view)
     logging.info("OK")
   else:
     logging.info("text_embed table already exists")
+
+# Retry wrapper for functions interacting with the DB
+def retry(f, args):
+  for retry in range(0, max_retries):
+    if retry > 0:
+      logging.warning("Retry number {}".format(retry))
+    try:
+      return f(*args)
+    except SerializationFailure as e:
+      logging.warning("Error: %s", e)
+      logging.warning("EXECUTE SERIALIZATION_FAILURE BRANCH")
+      sleep_s = (2**retry) * 0.1 * (random.random() + 0.5)
+      logging.warning("Sleeping %s s", sleep_s)
+      time.sleep(sleep_s)
+    except (sqlalchemy.exc.OperationalError, psycopg2.OperationalError) as e:
+      # Get a new connection and try again
+      logging.warning("Error: %s", e)
+      logging.warning("EXECUTE CONNECTION FAILURE BRANCH")
+      sleep_s = 0.12 + random.random() * 0.25
+      logging.warning("Sleeping %s s", sleep_s)
+      time.sleep(sleep_s)
+    except psycopg2.Error as e:
+      logging.warning("Error: %s", e)
+      logging.warning("EXECUTE DEFAULT BRANCH")
+      raise e
+  raise ValueError(f"Transaction did not succeed after {max_retries} retries")
 
 def index_text(uri, text):
   te_rows = []
@@ -270,11 +300,14 @@ def verify_secret(s):
     logging.warning(err)
   return err
 
-# FIXME: once the inserts are finished, switch the view definition to the new table
 def refresh_cluster_assignments(s):
   err = verify_secret(s)
   if err is not None:
     return Response(err, status=400, mimetype="text/plain")
+  # Temporary table to insert mappings into
+  temp_table_name = "cluster_assign_temp_{}".format(uuid.uuid4().hex)
+  run_ddl(ddl_t3.format(temp_table_name))
+  cluster_assign_table_new = Table(temp_table_name, MetaData(), autoload_with=engine, extend_existing=True)
   select_sql = """
   SELECT uri, chunk_num, embedding
   FROM text_embed
@@ -308,7 +341,19 @@ def refresh_cluster_assignments(s):
         conn_ins.execute(insert(cluster_assign_table_new), ins_list)
   et = time.time() - t0
   logging.info("Cluster assign time: {} ms".format(et * 1000))
-  return Response("OK", status=200, mimetype="text/plain")
+  # Swap the tables
+  t0 = time.time()
+  logging.info("Swapping the tables for cluster_assign ...")
+  with engine.connect() as conn:
+    conn.execute(text("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;"))
+    conn.execute(text("DROP VIEW te_ca_view;"))
+    conn.execute(text("DROP TABLE cluster_assign;"))
+    conn.execute(text("ALTER TABLE {} RENAME TO cluster_assign;".format(temp_table_name)))
+    conn.execute(text(ddl_view))
+    conn.commit()
+  et = time.time() - t0
+  logging.info("Table swap time: {} ms".format(et * 1000))
+  return Response("OK", status=200, mimetype="text/plain") # FIXME: this isn't returning in K8s app
 
 @app.route("/cluster_assign/<s>")
 def cluster_assign(s):
@@ -337,14 +382,14 @@ def build_model(s):
         sampled_vecs.append([float(x) for x in row[0][1:-1].split(',')]) # Convert strings to float
   et = time.time() - t0
   logging.info("SQL query time: {} ms".format(et * 1000))
-  # Train model over this sample
+  # TODO: Optimize these parameters to make this more efficient
   kmeans = KMeans(
     init="random",
     n_clusters=n_clusters,
     n_init=10,
     max_iter=300,
     random_state=137,
-    verbose=True
+    verbose=kmeans_verbose
   )
   t0 = time.time()
   model = kmeans.fit(sampled_vecs)
@@ -377,32 +422,6 @@ def search(terms, limit):
   et = time.time() - t0
   logging.info("SQL query time: {} ms".format(et * 1000))
   return rv
-
-# Retry wrapper for functions interacting with the DB
-def retry(f, args):
-  for retry in range(0, max_retries):
-    if retry > 0:
-      logging.warning("Retry number {}".format(retry))
-    try:
-      return f(*args)
-    except SerializationFailure as e:
-      logging.warning("Error: %s", e)
-      logging.warning("EXECUTE SERIALIZATION_FAILURE BRANCH")
-      sleep_s = (2**retry) * 0.1 * (random.random() + 0.5)
-      logging.warning("Sleeping %s s", sleep_s)
-      time.sleep(sleep_s)
-    except (sqlalchemy.exc.OperationalError, psycopg2.OperationalError) as e:
-      # Get a new connection and try again
-      logging.warning("Error: %s", e)
-      logging.warning("EXECUTE CONNECTION FAILURE BRANCH")
-      sleep_s = 0.12 + random.random() * 0.25
-      logging.warning("Sleeping %s s", sleep_s)
-      time.sleep(sleep_s)
-    except psycopg2.Error as e:
-      logging.warning("Error: %s", e)
-      logging.warning("EXECUTE DEFAULT BRANCH")
-      raise e
-  raise ValueError(f"Transaction did not succeed after {max_retries} retries")
 
 # Verify transaction isolation level
 def log_txn_isolation_level():
@@ -457,7 +476,6 @@ elif "-s" == sys.argv[1][0:2]:
   setup_db()
   text_embed_table = Table("text_embed", MetaData(), autoload_with=engine)
   cluster_assign_table = Table("cluster_assign", MetaData(), autoload_with=engine)
-  cluster_assign_table_new = Table("cluster_assign_new", MetaData(), autoload_with=engine)
   port = int(os.getenv("FLASK_PORT", 18080))
   from waitress import serve
   serve(app, host="0.0.0.0", port=port, threads=n_threads)
