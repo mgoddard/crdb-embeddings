@@ -105,6 +105,12 @@ https://stackoverflow.com/questions/51921142/how-to-load-a-model-saved-in-joblib
 
 """
 
+# Suppress warnings from BertModel
+loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict]
+for logger in loggers:
+  if "transformers" in logger.name.lower():
+    logger.setLevel(logging.ERROR)
+
 t0 = time.time()
 # NOTE: I did *not* see any speedup running this on a GCP VM with nVidia T4 GPU.
 # Install script for drivers on GCP VM:
@@ -467,6 +473,11 @@ def do_index():
   retry(index_text, (data["uri"], data["text"]))
   # Note the extra arguments here which translate the \uxxxx escape codes
   #print("Data: " + json.dumps(data, ensure_ascii=False).encode("utf8").decode())
+  return Response("OK", status=200, mimetype="text/plain")
+
+@app.route("/log_secret", methods=["GET"])
+def log_secret():
+  logging.info("Secret: {}".format(secret))
   return Response("OK", status=200, mimetype="text/plain")
 
 # Query mode (unlikely to get used)
