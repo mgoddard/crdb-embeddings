@@ -24,6 +24,14 @@ import os.path
 CHARSET = "utf-8"
 kmeans_model = None
 
+"""
+n_init="auto", # Model build time: 412732.28907585144 ms (no max_iter here)
+max_iter=100, # Model build time: 134614.4199371338 ms (n_init = 10, max_iter = 100)
+max_iter=25, # Model build time: 40821.63381576538 ms (n_init = 10, max_iter = 25)
+"""
+kmeans_max_iter = int(os.environ.get("KMEANS_MAX_ITER", "25"))
+print("kmeans_max_iter: {} (set via 'export KMEANS_MAX_ITER=25')".format(kmeans_max_iter))
+
 kmeans_verbose = int(os.environ.get("KMEANS_VERBOSE", "0"))
 print("kmeans_verbose: {} (set via 'export KMEANS_VERBOSE=1')".format(kmeans_verbose))
 
@@ -365,6 +373,7 @@ def build_model(s):
   err = verify_secret(s)
   if err is not None:
     return Response(err, status=400, mimetype="text/plain")
+  logging.info("Starting model build ...")
   # Grab a sample of vectors
   sql = """
   SELECT embedding
@@ -382,15 +391,15 @@ def build_model(s):
         sampled_vecs.append([float(x) for x in row[0][1:-1].split(',')]) # Convert strings to float
   et = time.time() - t0
   logging.info("SQL query time: {} ms".format(et * 1000))
-  # TODO: Optimize these parameters to make this more efficient
   kmeans = KMeans(
-    init="random",
     n_clusters=n_clusters,
-    n_init=10,
-    max_iter=300,
     random_state=137,
+    init="random",
+    n_init=10,
+    max_iter=kmeans_max_iter,
     verbose=kmeans_verbose
   )
+  logging.info("Starting model build ...")
   t0 = time.time()
   model = kmeans.fit(sampled_vecs)
   et = time.time() - t0
