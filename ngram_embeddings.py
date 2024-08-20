@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import torch
-import re, sys, os, time
+import re, sys, os, time, random
 from transformers import BertTokenizer, BertModel
 import base36
 import logging
@@ -25,9 +25,9 @@ CHARSET = "utf-8"
 # Max number of dimensions to store in DB and use for queries (out of 768)
 #TOP_N = 8
 #TOP_N = 16
-#TOP_N = 32
+TOP_N = 32
 #TOP_N = 64
-TOP_N = 128
+#TOP_N = 128
 
 # Discard the first N tokens as they have little differentiating value
 """
@@ -139,6 +139,7 @@ def gen_embeddings(s):
   token_vecs = hidden_states[-2][0]
   sentence_embedding = torch.mean(token_vecs, dim=0)
   rv = sentence_embedding.tolist()
+  logging.debug("vector dimensionality: {}".format(len(rv)))
   return rv
 
 def gen_svec(embed_list):
@@ -156,6 +157,7 @@ def gen_svec(embed_list):
   vals = list(trunc.values())
   norm = np.linalg.norm(vals)
   trunc = { k: v/norm for k, v in trunc.items() } # Normalizing the remaining values in this dict
+  print("trunc: ", json.dumps(trunc))
   return trunc
 
 # From the list of embeddings, the 768 element array, return a string consisting of
@@ -320,7 +322,7 @@ WITH q_embed AS
 (
   SELECT uri, OVERLAP(TO_TOKEN_ARRAY(:q_tok, :n_tok), token_array)/10.0 sim, token, chunk, svec
   FROM text_embed
-  WHERE TO_TOKEN_ARRAY(:q_tok, :n_tok) && token_array
+  WHERE token_array && TO_TOKEN_ARRAY(:q_tok, :n_tok)
   ORDER BY sim DESC
   LIMIT :limit
 )
