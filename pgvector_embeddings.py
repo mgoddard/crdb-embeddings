@@ -20,6 +20,7 @@ import base64
 from functools import lru_cache
 import uuid
 import os.path
+import queue
 
 CHARSET = "utf-8"
 kmeans_model = None
@@ -62,7 +63,7 @@ print("max_retries: {} (set via 'export MAX_RETRIES=3')".format(max_retries))
 log_level = os.environ.get("LOG_LEVEL", "WARN").upper()
 logging.basicConfig(
   level=log_level
-  , format="[%(asctime)s] %(message)s"
+  , format="[%(asctime)s %(threadName)s] %(message)s"
   , datefmt="%m/%d/%Y %I:%M:%S %p"
 )
 print("Log level: {} (export LOG_LEVEL=[DEBUG|INFO|WARN|ERROR] to change this)".format(log_level))
@@ -87,12 +88,13 @@ def connect(dbapi_connection, connection_record):
   cur = dbapi_connection.cursor()
   cur.execute("SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL READ COMMITTED;")
   cur.execute("SET plan_cache_mode = auto;")
-  #cur.execute("SET default_transaction_use_follower_reads = on;")
   cur.close()
 
-# TODO: keep a pool of tokenizer and Bert model for multi-threading this app
+tokenizer_q = queue.Queue()
 t0 = time.time()
-tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+for i in range(0, n_threads):
+  tok = BertTokenizer.from_pretrained("bert-base-uncased")
+  tokenizer_q.put(tok)
 et = time.time() - t0
 logging.info("BertTokenizer: {} s".format(et))
 
@@ -118,27 +120,36 @@ t0 = time.time()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Model will run on {}".format(device))
 # Set this up once and reuse
-model = BertModel.from_pretrained("bert-base-uncased", output_hidden_states = True).to(device)
-model.eval()
+bert_model_q = queue.Queue()
+for i in range(0, n_threads):
+  bert = BertModel.from_pretrained("bert-base-uncased", output_hidden_states = True).to(device)
+  bert.eval()
+  bert_model_q.put(bert)
 et = time.time() - t0
 logging.info("BertModel + eval: {} s".format(et))
 
 # The fist call to this takes ~ 500 ms but subsequent calls take ~ 40 ms
 @lru_cache(maxsize=cache_size)
 def gen_embeddings(s):
+  global tokenizer_q
+  global bert_model_q
   rv = None
   marked_text = "[CLS] " + s + " [SEP]"
+  tokenizer = tokenizer_q.get()
   tokenized_text = tokenizer.tokenize(marked_text)
   indexed_tokens = tokenizer.convert_tokens_to_ids(tokenized_text)
+  tokenizer_q.put(tokenizer)
   tokens_tensor = torch.tensor([indexed_tokens])
   segments_ids = [1] * len(tokenized_text)
   segments_tensors = torch.tensor([segments_ids])
+  model = bert_model_q.get()
   with torch.no_grad():
     if "cuda" == device:
       outputs = model(tokens_tensor.cuda(), segments_tensors.cuda())
     else:
       outputs = model(tokens_tensor, segments_tensors) # FIXME: exception here due to tensor size mismatch
     hidden_states = outputs[2]
+  bert_model_q.put(model)
   token_vecs = hidden_states[-2][0]
   sentence_embedding = torch.mean(token_vecs, dim=0)
   rv = sentence_embedding.tolist()
