@@ -460,10 +460,6 @@ def log_txn_isolation_level():
       (txn_lvl) = row
   logging.info("transaction_isolation: {}".format(txn_lvl))
 
-@app.route("/health", methods=["GET"])
-def health():
-  return Response("OK", status=200, mimetype="text/plain")
-
 #
 # The search/query
 # EXAMPLE (with a limit of 10 results):
@@ -489,6 +485,10 @@ def do_index():
 @app.route("/log_secret", methods=["GET"])
 def log_secret():
   logging.info("Secret: {}".format(secret))
+  return Response("OK", status=200, mimetype="text/plain")
+
+@app.route("/health", methods=["GET"])
+def health():
   return Response("OK", status=200, mimetype="text/plain")
 
 # Query mode (unlikely to get used)

@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
       - name: crdb-embeddings
-        image: mgoddard/crdb-embeddings-x86:1.11
+        image: mgoddard/crdb-embeddings-x86:1.13
         imagePullPolicy: Always
         env:
           - name: DB_URL
@@ -61,5 +61,11 @@ spec:
             value: "25"
         ports:
         - containerPort: 18080
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 18080
+          initialDelaySeconds: 5
+          periodSeconds: 5
       restartPolicy: Always
 
