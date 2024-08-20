@@ -21,6 +21,7 @@ from functools import lru_cache
 import uuid
 import os.path
 import queue
+import pickle
 
 CHARSET = "utf-8"
 kmeans_model = None
@@ -187,6 +188,16 @@ CREATE TABLE {}
   , cluster_id INT8 NOT NULL
   , PRIMARY KEY (uri, chunk_num)
   , INDEX (cluster_id ASC)
+);
+"""
+
+ddl_t4 = """
+CREATE TABLE blob_store
+(
+  path STRING NOT NULL
+  , ts TIMESTAMP NOT NULL DEFAULT now()
+  , blob BYTEA NOT NULL
+  , PRIMARY KEY (path, ts)
 );
 """
 
@@ -423,6 +434,13 @@ def build_model(s):
   logging.info("Model build time: {} ms".format(et * 1000))
   # Store the model to the filesystem
   joblib.dump(model, model_file)
+  # Store the model to the DB
+  row_map = {
+    "path": model_file
+    , "blob": pickle.dumps(model)
+  }
+  with engine.begin() as conn: # Same TXN for both table INSERTs
+    conn.execute(insert(blob_table), [row_map])
   # Reload the in-memory copy of the model
   kmeans_model = model
   return Response("OK", status=200, mimetype="text/plain")
@@ -502,6 +520,7 @@ elif "-s" == sys.argv[1][0:2]:
   setup_db()
   text_embed_table = Table("text_embed", MetaData(), autoload_with=engine)
   cluster_assign_table = Table("cluster_assign", MetaData(), autoload_with=engine)
+  blob_table = Table("blob_store", MetaData(), autoload_with=engine)
   port = int(os.getenv("FLASK_PORT", 18080))
   from waitress import serve
   serve(app, host="0.0.0.0", port=port, threads=n_threads)
