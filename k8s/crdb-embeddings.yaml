@@ -59,6 +59,8 @@ spec:
             value: "1"
           - name: KMEANS_MAX_ITER
             value: "25"
+          - name: SECRET
+            value: "TextWithNoSpecialChars"
         ports:
         - containerPort: 18080
         readinessProbe:

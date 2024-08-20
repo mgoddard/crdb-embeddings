@@ -60,6 +60,9 @@ print("n_threads: {} (set via 'export N_THREADS=10')".format(n_threads))
 max_retries = int(os.environ.get("MAX_RETRIES", "3"))
 print("max_retries: {} (set via 'export MAX_RETRIES=3')".format(max_retries))
 
+secret = os.environ.get("SECRET", uuid.uuid4().hex)
+print("shared secret: {}".format(secret))
+
 log_level = os.environ.get("LOG_LEVEL", "WARN").upper()
 logging.basicConfig(
   level=log_level
@@ -79,9 +82,6 @@ if len(sys.argv) < 2:
 
 db_url = re.sub(r"^postgres(ql)?", "cockroachdb", db_url)
 engine = create_engine(db_url, pool_size=20, pool_pre_ping=True, connect_args = { "application_name": "CRDB Embeddings" })
-
-secret = uuid.uuid4().hex
-logging.warning("shared secret: {}".format(secret))
 
 @event.listens_for(engine, "connect")
 def connect(dbapi_connection, connection_record):
@@ -480,11 +480,6 @@ def do_index():
   retry(index_text, (data["uri"], data["text"]))
   # Note the extra arguments here which translate the \uxxxx escape codes
   #print("Data: " + json.dumps(data, ensure_ascii=False).encode("utf8").decode())
-  return Response("OK", status=200, mimetype="text/plain")
-
-@app.route("/log_secret", methods=["GET"])
-def log_secret():
-  logging.info("Secret: {}".format(secret))
   return Response("OK", status=200, mimetype="text/plain")
 
 @app.route("/health", methods=["GET"])
