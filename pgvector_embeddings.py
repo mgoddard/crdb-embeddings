@@ -14,7 +14,6 @@ import numpy as np
 from sklearn.cluster import KMeans
 import joblib
 from flask import Flask, request, Response, g
-from flask_apscheduler import APScheduler
 import urllib
 import json
 import base64
@@ -26,8 +25,6 @@ import pickle
 
 CHARSET = "utf-8"
 kmeans_model = None
-scheduler = APScheduler()
-scheduler.api_enabled = True
 
 """
 n_init="auto", # Model build time: 412732.28907585144 ms (no max_iter here)
@@ -230,8 +227,6 @@ def run_ddl(ddl):
     conn.execute(text(ddl))
     conn.commit()
 
-# Periodically run this to keep the blob store from growing too large
-@scheduler.task("interval", id="prune_job", seconds=300, misfire_grace_time=900)
 def prune_blob_store():
   logging.info("Pruning blob_store table ...")
   sql = """
@@ -337,8 +332,6 @@ def decode(b64):
   return b.decode(CHARSET).strip()
 
 app = Flask(__name__)
-scheduler.init_app(app)
-scheduler.start()
 
 def gen_sql():
   rv = """
@@ -470,6 +463,7 @@ def build_model(s):
     conn.execute(insert(blob_table), [row_map])
   # Reload the in-memory copy of the model
   kmeans_model = model
+  prune_blob_store()
   return Response("OK", status=200, mimetype="text/plain")
 
 # Arg: search terms
