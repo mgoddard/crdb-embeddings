@@ -504,6 +504,23 @@ def do_index():
 def health():
   return Response("OK", status=200, mimetype="text/plain")
 
+# Fetch most recent model from the DB
+def get_model_from_db():
+  logging.info("Fetching model from the DB ...")
+  sql = """
+  SELECT path, ts, blob
+  FROM blob_store
+  ORDER BY ts DESC LIMIT 1;
+  """
+  rv = None
+  with engine.connect() as conn:
+    rs = conn.execute(text(sql))
+    for row in rs:
+      blob = row.blob
+      rv = pickle.loads(blob)
+      logging.info("OK")
+  return rv
+
 # Query mode (unlikely to get used)
 if "-q" == sys.argv[1][0:2]:
   terms = sys.argv[2:]
@@ -514,8 +531,12 @@ elif "-s" == sys.argv[1][0:2]:
   if os.path.isfile(model_file): # Check to see if model already exists
     kmeans_model = joblib.load(model_file)
   else:
-    logging.info("Building new K-means model")
-    build_model(secret)
+    mdl = get_model_from_db()
+    if mdl is None:
+      logging.info("Building new K-means model")
+      build_model(secret)
+    else:
+      kmeans_model = mdl
   logging.info("K-means model loaded")
   setup_db()
   text_embed_table = Table("text_embed", MetaData(), autoload_with=engine)
