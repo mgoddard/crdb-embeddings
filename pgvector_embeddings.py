@@ -166,9 +166,7 @@ CREATE TABLE text_embed
   , chunk_num INT NOT NULL
   , chunk STRING NOT NULL
   , embedding VECTOR(768)
-  , cluster_id INT
   , PRIMARY KEY (uri, chunk_num)
-  , INDEX (cluster_id)
 );
 """
 
