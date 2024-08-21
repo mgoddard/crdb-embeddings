@@ -80,10 +80,6 @@ if db_url is None:
   print("DB_URL must be set")
   sys.exit(1)
 
-if len(sys.argv) < 2:
-  print("Usage: {} file [file2 ...]".format(sys.argv[0]))
-  sys.exit(1)
-
 db_url = re.sub(r"^postgres(ql)?", "cockroachdb", db_url)
 engine = create_engine(db_url, pool_size=20, pool_pre_ping=True, connect_args = { "application_name": "CRDB Embeddings" })
 
@@ -540,32 +536,22 @@ def get_model_from_db():
       logging.info("OK")
   return rv
 
-# Query mode (unlikely to get used)
-if "-q" == sys.argv[1][0:2]:
-  terms = sys.argv[2:]
-  for row in search(terms):
-    print("URI: {}\nSCORE: {}\nTOKEN: {}\nCHUNK: {}\n".format(row["uri"], row["sim"], row["token"], row["chunk"]))
-# Server mode
-elif "-s" == sys.argv[1][0:2]:
-  setup_db()
-  text_embed_table = Table("text_embed", MetaData(), autoload_with=engine)
-  cluster_assign_table = Table("cluster_assign", MetaData(), autoload_with=engine)
-  blob_table = Table("blob_store", MetaData(), autoload_with=engine)
-  if model_file is not None and len(model_file) > 0 and os.path.isfile(model_file):
-    kmeans_model = joblib.load(model_file)
-  else:
-    model_from_db = get_model_from_db()
-    if model_from_db is None:
-      logging.info("Building new K-means model")
-      build_model(secret)
-    else:
-      kmeans_model = model_from_db
-  logging.info("K-means model loaded")
-  port = int(os.getenv("FLASK_PORT", 18080))
-  from waitress import serve
-  serve(app, host="0.0.0.0", port=port, threads=n_threads)
-# Indexing mode
+# main()
+setup_db()
+text_embed_table = Table("text_embed", MetaData(), autoload_with=engine)
+cluster_assign_table = Table("cluster_assign", MetaData(), autoload_with=engine)
+blob_table = Table("blob_store", MetaData(), autoload_with=engine)
+if model_file is not None and len(model_file) > 0 and os.path.isfile(model_file):
+  kmeans_model = joblib.load(model_file)
 else:
-  print("Usage: {} [-s for server mode] [-q for query mode]\n".format(sys.argv[0]))
-  sys.exit(1)
+  model_from_db = get_model_from_db()
+  if model_from_db is None:
+    logging.info("Building new K-means model")
+    build_model(secret)
+  else:
+    kmeans_model = model_from_db
+logging.info("K-means model loaded")
+port = int(os.getenv("FLASK_PORT", 18080))
+from waitress import serve
+serve(app, host="0.0.0.0", port=port, threads=n_threads)
 

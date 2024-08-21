@@ -7,5 +7,5 @@ pip3 install --no-cache-dir -r ./requirements.txt && rm -rf ~/.cache/pip
 #curl -o $MODEL_FILE $MODEL_FILE_URL
 
 # Start the app
-exec python ./pgvector_embeddings.py -s
+exec python ./pgvector_embeddings.py
 
