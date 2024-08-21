@@ -439,7 +439,7 @@ def build_model(s):
     "path": model_file
     , "blob": pickle.dumps(model)
   }
-  with engine.begin() as conn: # Same TXN for both table INSERTs
+  with engine.begin() as conn:
     conn.execute(insert(blob_table), [row_map])
   # Reload the in-memory copy of the model
   kmeans_model = model
@@ -528,15 +528,15 @@ if "-q" == sys.argv[1][0:2]:
     print("URI: {}\nSCORE: {}\nTOKEN: {}\nCHUNK: {}\n".format(row["uri"], row["sim"], row["token"], row["chunk"]))
 # Server mode
 elif "-s" == sys.argv[1][0:2]:
-  if os.path.isfile(model_file): # Check to see if model already exists
+  if model_file is not None and len(model_file) > 0 and os.path.isfile(model_file):
     kmeans_model = joblib.load(model_file)
   else:
-    mdl = get_model_from_db()
-    if mdl is None:
+    model_from_db = get_model_from_db()
+    if model_from_db is None:
       logging.info("Building new K-means model")
       build_model(secret)
     else:
-      kmeans_model = mdl
+      kmeans_model = model_from_db
   logging.info("K-means model loaded")
   setup_db()
   text_embed_table = Table("text_embed", MetaData(), autoload_with=engine)
