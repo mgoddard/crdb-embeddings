@@ -1,0 +1,5 @@
+To facilitate managing the LSM tree structure, the storage engine maintains an in-memory representation of the LSM known as the memtable; periodically, data from the memtable is flushed to SST files on disk.
+
+Another file on disk called the write-ahead log (hereafter WAL) is associated with each memtable to ensure durability in case of power loss or other failures. The WAL is where the freshest updates issued to the storage engine by the replication layer are stored on disk. Each WAL has a 1 to 1 correspondence with a memtable; they are kept in sync, and updates from the WAL and memtable are written to SSTs periodically as part of the storage engine's normal operation.
+
+The relationship between the memtable, the WAL, and the SST files is shown in the diagram below. New values are written to the WAL at the same time as they are written to the memtable. From the memtable they are eventually written to SST files on disk for longer-term storage.
