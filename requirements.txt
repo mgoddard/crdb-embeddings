@@ -4,6 +4,7 @@ transformers
 torch
 Flask==2.1.0
 Werkzeug==2.2.2
+Flask-APScheduler
 waitress
 base36
 SQLAlchemy==2.0.25

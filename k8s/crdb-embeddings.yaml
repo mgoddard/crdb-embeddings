@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
       - name: crdb-embeddings
-        image: mgoddard/crdb-embeddings-x86:1.17
+        image: mgoddard/crdb-embeddings-x86:1.18
         imagePullPolicy: Always
         env:
           - name: DB_URL
@@ -61,6 +61,8 @@ spec:
             value: "25"
           - name: SECRET
             value: "TextWithNoSpecialChars"
+          - name: BLOB_STORE_KEEP_N_ROWS
+            value: "3"
         ports:
         - containerPort: 18080
         readinessProbe:

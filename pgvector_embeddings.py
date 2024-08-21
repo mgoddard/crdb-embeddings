@@ -14,6 +14,7 @@ import numpy as np
 from sklearn.cluster import KMeans
 import joblib
 from flask import Flask, request, Response, g
+from flask_apscheduler import APScheduler
 import urllib
 import json
 import base64
@@ -25,6 +26,8 @@ import pickle
 
 CHARSET = "utf-8"
 kmeans_model = None
+scheduler = APScheduler()
+scheduler.api_enabled = True
 
 """
 n_init="auto", # Model build time: 412732.28907585144 ms (no max_iter here)
@@ -63,6 +66,9 @@ print("max_retries: {} (set via 'export MAX_RETRIES=3')".format(max_retries))
 
 secret = os.environ.get("SECRET", uuid.uuid4().hex)
 print("shared secret: {}".format(secret))
+
+blob_store_keep_n_rows = os.environ.get("BLOB_STORE_KEEP_N_ROWS", "3")
+print("blob_store_keep_n_rows: {}".format(blob_store_keep_n_rows))
 
 log_level = os.environ.get("LOG_LEVEL", "WARN").upper()
 logging.basicConfig(
@@ -224,6 +230,24 @@ def run_ddl(ddl):
     conn.execute(text(ddl))
     conn.commit()
 
+# Periodically run this to keep the blob store from growing too large
+@scheduler.task("interval", id="prune_job", seconds=300, misfire_grace_time=900)
+def prune_blob_store():
+  logging.info("Pruning blob_store table ...")
+  sql = """
+  DELETE FROM blob_store
+  WHERE (path, ts) IN
+  (
+    SELECT path, ts
+    FROM blob_store
+    ORDER BY ts DESC
+    OFFSET {});
+  """
+  with engine.connect() as conn:
+    conn.execute(text(sql.format(blob_store_keep_n_rows)))
+    conn.commit()
+  logging.info("OK")
+
 def setup_db():
   logging.info("Checking whether text_embed table exists")
   n_rows = 0
@@ -313,6 +337,8 @@ def decode(b64):
   return b.decode(CHARSET).strip()
 
 app = Flask(__name__)
+scheduler.init_app(app)
+scheduler.start()
 
 def gen_sql():
   rv = """
