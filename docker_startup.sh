@@ -4,7 +4,7 @@
 pip3 install --no-cache-dir -r ./requirements.txt && rm -rf ~/.cache/pip
 
 # Grab model via curl and copy to $MODEL_FILE
-curl -o $MODEL_FILE $MODEL_FILE_URL
+#curl -o $MODEL_FILE $MODEL_FILE_URL
 
 # Start the app
 exec python ./pgvector_embeddings.py -s

@@ -342,6 +342,7 @@ def refresh_cluster_assignments(s):
     return Response(err, status=400, mimetype="text/plain")
   # Temporary table to insert mappings into
   temp_table_name = "cluster_assign_temp_{}".format(uuid.uuid4().hex)
+  logging.info("Inserting cluster assignments into {}".format(temp_table_name))
   run_ddl(ddl_t3.format(temp_table_name))
   cluster_assign_table_new = Table(temp_table_name, MetaData(), autoload_with=engine, extend_existing=True)
   select_sql = """
@@ -401,7 +402,7 @@ def build_model(s):
   err = verify_secret(s)
   if err is not None:
     return Response(err, status=400, mimetype="text/plain")
-  logging.info("Starting model build ...")
+  logging.info("Getting data sample for model build ...")
   # Grab a sample of vectors
   sql = """
   SELECT embedding
@@ -528,6 +529,10 @@ if "-q" == sys.argv[1][0:2]:
     print("URI: {}\nSCORE: {}\nTOKEN: {}\nCHUNK: {}\n".format(row["uri"], row["sim"], row["token"], row["chunk"]))
 # Server mode
 elif "-s" == sys.argv[1][0:2]:
+  setup_db()
+  text_embed_table = Table("text_embed", MetaData(), autoload_with=engine)
+  cluster_assign_table = Table("cluster_assign", MetaData(), autoload_with=engine)
+  blob_table = Table("blob_store", MetaData(), autoload_with=engine)
   if model_file is not None and len(model_file) > 0 and os.path.isfile(model_file):
     kmeans_model = joblib.load(model_file)
   else:
@@ -538,10 +543,6 @@ elif "-s" == sys.argv[1][0:2]:
     else:
       kmeans_model = model_from_db
   logging.info("K-means model loaded")
-  setup_db()
-  text_embed_table = Table("text_embed", MetaData(), autoload_with=engine)
-  cluster_assign_table = Table("cluster_assign", MetaData(), autoload_with=engine)
-  blob_table = Table("blob_store", MetaData(), autoload_with=engine)
   port = int(os.getenv("FLASK_PORT", 18080))
   from waitress import serve
   serve(app, host="0.0.0.0", port=port, threads=n_threads)

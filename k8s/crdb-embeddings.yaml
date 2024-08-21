@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
       - name: crdb-embeddings
-        image: mgoddard/crdb-embeddings-x86:1.13
+        image: mgoddard/crdb-embeddings-x86:1.17
         imagePullPolicy: Always
         env:
           - name: DB_URL
