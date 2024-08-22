@@ -24,7 +24,7 @@ import queue
 import pickle
 
 CHARSET = "utf-8"
-kmeans_model = None
+kmeans_model = { "read": None, "write": None }
 
 """
 n_init="auto", # Model build time: 412732.28907585144 ms (no max_iter here)
@@ -296,7 +296,7 @@ def index_text(uri, text):
          , "embedding": embed
       }
       te_rows.append(row_map)
-      cluster_id = int(kmeans_model.predict([embed])[0])
+      cluster_id = int(kmeans_model["write"].predict([embed])[0])
       row_map = {
          "uri": uri
          , "chunk_num": n_chunk
@@ -373,7 +373,7 @@ def refresh_cluster_assignments(s):
       for row in rs:
         (uri, chunk_num, embed) = row
         embed = [float(x) for x in embed[1:-1].split(',')]
-        cluster_id = int(kmeans_model.predict([embed])[0])
+        cluster_id = int(kmeans_model["write"].predict([embed])[0])
         row_map = {
           "uri": uri
           , "chunk_num": chunk_num
@@ -403,11 +403,21 @@ def refresh_cluster_assignments(s):
     conn.commit()
   et = time.time() - t0
   logging.info("Table swap time: {} ms".format(et * 1000))
+  kmeans_model["read"] = kmeans_model["write"] # Once cluster assignments are updated
   return Response("OK", status=200, mimetype="text/plain") # FIXME: this isn't returning in K8s app
 
 @app.route("/cluster_assign/<s>")
 def cluster_assign(s):
   return retry(refresh_cluster_assignments, (s,))
+
+# Store the model to the DB
+def store_model_in_db(mdl):
+  row_map = {
+    "path": model_file
+    , "blob": pickle.dumps(mdl)
+  }
+  with engine.begin() as conn:
+    conn.execute(insert(blob_table), [row_map])
 
 @app.route("/build_model/<s>")
 def build_model(s):
@@ -448,15 +458,9 @@ def build_model(s):
   logging.info("Model build time: {} ms".format(et * 1000))
   # Store the model to the filesystem
   joblib.dump(model, model_file)
-  # Store the model to the DB
-  row_map = {
-    "path": model_file
-    , "blob": pickle.dumps(model)
-  }
-  with engine.begin() as conn:
-    conn.execute(insert(blob_table), [row_map])
+  store_model_in_db(model)
   # Reload the in-memory copy of the model
-  kmeans_model = model
+  kmeans_model["write"] = model
   prune_blob_store()
   return Response("OK", status=200, mimetype="text/plain")
 
@@ -466,7 +470,7 @@ def search(terms, limit):
   q = ' '.join(terms)
   rv = []
   embed = gen_embeddings(q)
-  cluster_id = int(kmeans_model.predict([embed])[0])
+  cluster_id = int(kmeans_model["read"].predict([embed])[0])
   logging.info("Query string: '{}'".format(q))
   logging.info("Cluster ID: {}".format(cluster_id))
   t0 = time.time()
@@ -541,15 +545,20 @@ setup_db()
 text_embed_table = Table("text_embed", MetaData(), autoload_with=engine)
 cluster_assign_table = Table("cluster_assign", MetaData(), autoload_with=engine)
 blob_table = Table("blob_store", MetaData(), autoload_with=engine)
-if model_file is not None and len(model_file) > 0 and os.path.isfile(model_file):
-  kmeans_model = joblib.load(model_file)
-else:
-  model_from_db = get_model_from_db()
-  if model_from_db is None:
+model_from_db = get_model_from_db()
+if model_from_db is None:
+  if model_file is not None and len(model_file) > 0 and os.path.isfile(model_file):
+    kmeans_model["read"] = joblib.load(model_file)
+    kmeans_model["write"] = kmeans_model["read"]
+    store_model_in_db(kmeans_model["read"])
+  else:
     logging.info("Building new K-means model")
     build_model(secret)
-  else:
-    kmeans_model = model_from_db
+    kmeans_model["read"] = kmeans_model["write"]
+else:
+  kmeans_model["write"] = model_from_db
+  kmeans_model["read"] = model_from_db
+ 
 logging.info("K-means model loaded")
 port = int(os.getenv("FLASK_PORT", 18080))
 from waitress import serve
