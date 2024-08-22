@@ -226,6 +226,24 @@ user	0m0.012s
 sys	0m0.014s
 ```
 
+## Rebuild the K-Means model
+
+This takes a while (it is influenced by the `TRAIN_FRACTION` value).
+
+```
+[16:55:59 crdb-embeddings]$ . ./env.sh
+[16:56:02 crdb-embeddings]$ ./build_model.sh $SECRET
+```
+
+## Refresh the cluster ID to row assignments
+
+This also takes a while, but is necessary after the model is rebuilt.
+
+```
+[16:57:43 crdb-embeddings]$ . ./env.sh
+[16:57:50 crdb-embeddings]$ ./cluster_assign.sh $SECRET
+```
+
 ## References
 
 * https://www.cockroachlabs.com/docs/releases/v24.2#v24-2-0-sql
