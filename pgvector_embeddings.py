@@ -22,6 +22,7 @@ import uuid
 import os.path
 import queue
 import pickle
+import requests
 
 CHARSET = "utf-8"
 kmeans_model = { "read": None, "write": None }
@@ -48,6 +49,9 @@ print("train_fraction: {} (set via 'export TRAIN_FRACTION=0.10')".format(train_f
 
 model_file = os.environ.get("MODEL_FILE", "model.pkl")
 print("model_file: {} (set via 'export MODEL_FILE=./model.pkl')".format(model_file))
+
+model_url = os.environ.get("MODEL_FILE_URL", "https://storage.googleapis.com/crl-goddard-text/model.pkl")
+print("model_url: {} (set via 'export MODEL_FILE_URL=https://somewhere.com/path/model.pkl')".format(model_url))
 
 min_sentence_len = int(os.environ.get("MIN_SENTENCE_LEN", "8"))
 print("min_sentence_len: {} (set via 'export MIN_SENTENCE_LEN=12')".format(min_sentence_len))
@@ -127,6 +131,14 @@ for i in range(0, n_threads):
   bert_model_q.put(bert)
 et = time.time() - t0
 logging.info("BertModel + eval: {} s".format(et))
+
+# Used to download a model if none exists on FS or in DB
+def download_file(url, local_fname):
+  with requests.get(url, stream=True) as r:
+    r.raise_for_status()
+    with open(local_fname, "wb") as f:
+      for chunk in r.iter_content(chunk_size=8192): 
+        f.write(chunk)
 
 # The fist call to this takes ~ 500 ms but subsequent calls take ~ 40 ms
 @lru_cache(maxsize=cache_size)
@@ -545,21 +557,26 @@ setup_db()
 text_embed_table = Table("text_embed", MetaData(), autoload_with=engine)
 cluster_assign_table = Table("cluster_assign", MetaData(), autoload_with=engine)
 blob_table = Table("blob_store", MetaData(), autoload_with=engine)
+
+# Load the K-means model
 model_from_db = get_model_from_db()
 if model_from_db is None:
-  if model_file is not None and len(model_file) > 0 and os.path.isfile(model_file):
-    kmeans_model["read"] = joblib.load(model_file)
-    kmeans_model["write"] = kmeans_model["read"]
-    store_model_in_db(kmeans_model["read"])
-  else:
-    logging.info("Building new K-means model")
-    build_model(secret)
-    kmeans_model["read"] = kmeans_model["write"]
+  if not os.path.isfile(model_file):
+    logging.info("Downloading bootstrap K-means file ...")
+    logging.info("\tURL: {}".format(model_url))
+    logging.info("\tLocal file: {}".format(model_file))
+    download_file(model_url, model_file)
+    logging.info("OK")
+  # Now the file is on the local FS, so load it and store it
+  kmeans_model["read"] = joblib.load(model_file)
+  kmeans_model["write"] = kmeans_model["read"]
+  store_model_in_db(kmeans_model["read"])
 else:
   kmeans_model["write"] = model_from_db
   kmeans_model["read"] = model_from_db
- 
 logging.info("K-means model loaded")
+logging.info("You may need to update K-means cluster assignments by making a GET request to the /cluster_assign/{} endpoint.".format(secret))
+
 port = int(os.getenv("FLASK_PORT", 18080))
 from waitress import serve
 serve(app, host="0.0.0.0", port=port, threads=n_threads)
