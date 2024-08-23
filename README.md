@@ -231,6 +231,8 @@ sys	0m0.014s
 ## Rebuild the K-Means model
 
 **Caveat:** If your data set is small, the default model will perform better.
+For now, if you perform this step and want to roll back to the default model,
+perform the actions listed under "Rollback to bootstrap model", below.
 
 This takes a while (the `TRAIN_FRACTION` value affects the time).
 
@@ -248,6 +250,21 @@ If the search results don't make sense, it's likely you need to run this.
 [16:57:43 crdb-embeddings]$ . ./env.sh
 [16:57:50 crdb-embeddings]$ ./cluster_assign.sh $SECRET
 ```
+
+## Rollback to bootstrap model
+
+In the database, truncate the `blob_store` table:
+```
+defaultdb=> TRUNCATE TABLE blob_store;
+```
+
+Remove the existing model on the filesystem:
+```
+[18:49:47 crdb-embeddings]$ . ./env.sh
+[18:49:53 crdb-embeddings]$ rm -f $MODEL_FILE
+```
+
+Restart the app
 
 ## References
 
