@@ -261,6 +261,7 @@ def setup_db():
     logging.info("Creating text_embed tables and view ...")
     run_ddl(ddl_t1)
     run_ddl(ddl_t2)
+    run_ddl(ddl_t4)
     run_ddl(ddl_view)
     logging.info("OK")
   else:
