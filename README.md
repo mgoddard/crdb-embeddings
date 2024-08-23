@@ -1,17 +1,18 @@
 # CockroachDB: Semantic Search
 
-New in CockroachDB 24.2 is support for vectors.  Now, we can store vector
+New in CockroachDB 24.2 is support for vectors.  Now we can store vector
 embeddings within CockroachDB with pgvector-compatible semantics to build
 AI-driven applications. Numerous built-in functions have been added for running
-similarity search across vectors.
+similarity search across vectors.  Here, we use the `<=>` (cosine similarity)
+operator.
 
 The caveat with this is that vector indexing is not supported in this release.
 Still, that won't stop us from experimenting with some semantic indexing and
 search.  To make up for the lack of indexing on these vectors, we'll add a
 K-Means clustering step to our app and create an index on the cluster ID values
 which we'll map to the primary key of the table storing the data.  This gives
-us a two phased approach to search: (1) use this index, (2) order the result set
-according to each row's cosine similarity to the query string.
+us a two phased approach to search: (1) use this index, (2) order the resulting
+rows according to each row's cosine similarity to the query string.
 
 This demo can be run locally using the steps outlined below or in Kubernetes (K8s),
 adjacent to a
@@ -20,9 +21,10 @@ using the deployment defined [here](./k8s/crdb-embeddings.yaml).
 
 ## DB setup
 
-* Install a CockroachDB instance, using v. 24.2.x
+* Install a CockroachDB instance, using version 24.2+
 * Create a user account for the app
 * GRANT this user/role access to the DB being used
+* The app creates all the required tables and indexes
 
 ## Configure environment variables
 
@@ -64,12 +66,12 @@ The minimum length of a sentence, in characters:
 export MIN_SENTENCE_LEN=8
 ```
 
-The number of clusters to create in the K-Means model.  The tradeoff here is of
+The number of clusters to create in the K-Means model.  The tradeoff here is
 query speed vs. recall; e.g. if the number is too low, more data must be
 scanned during the cosine similarity phase.  If the number is too high, then
 matching documents may be missed entirely as their cluster ID value will not
 align with the cluster ID value that gets mapped to the query string.  For the
-small data size used in my own experiments, 250k rows, a value of 100 seemed
+small data size used in these experiments, 250k rows, a value of 100 seemed
 like the best fit:
 ```
 export N_CLUSTERS=100
@@ -77,7 +79,7 @@ export N_CLUSTERS=100
 
 The fraction of rows to scan when building the K-Means model.  A value of 1.0
 might make more sense for a small data set, but a smaller fraction would be
-a better fit for a larger data set.  Again, there's a tradeoff here in terms
+better suited to a larger data set.  Again, there's a tradeoff here in terms
 of fidelity, with a larger fraction (theoretically) leading to a better model:
 ```
 export TRAIN_FRACTION=0.75
@@ -90,14 +92,14 @@ provided below.  After that, the model is stored in the DB itself:
 export MODEL_FILE=/tmp/model.pkl
 ```
 
-See above.  This model was built according to the discussion above, but it
+See above.  This model was built according to the discussion above, and it
 should be suitable for getting started:
 ```
 export MODEL_FILE_URL="https://storage.googleapis.com/crl-goddard-text/model.pkl"
 ```
 
 This applies during the process of assigning a cluster ID value to each of the rows.
-The value of 512 shown here yielded the best data insert rate for me.
+The value of 512 shown here yielded the best data insert rate:
 ```
 export BATCH_SIZE=512
 ```
@@ -110,7 +112,7 @@ export KMEANS_VERBOSE=1
 ```
 
 Building a K-Means model is iterative.  This value of "25" reduced the model
-build times yet resulted in a useful model.  Probably with experimenting with:
+build times yet resulted in a useful model.  Worthy of futher experimentation:
 ```
 export KMEANS_MAX_ITER=25
 ```
@@ -228,7 +230,7 @@ sys	0m0.014s
 
 ## Rebuild the K-Means model
 
-This takes a while (it is influenced by the `TRAIN_FRACTION` value).
+This takes a while (the `TRAIN_FRACTION` value affects the time).
 
 ```
 [16:55:59 crdb-embeddings]$ . ./env.sh
@@ -238,6 +240,7 @@ This takes a while (it is influenced by the `TRAIN_FRACTION` value).
 ## Refresh the cluster ID to row assignments
 
 This also takes a while, but is necessary after the model is rebuilt.
+If the search results don't make sense, it's likely you need to run this.
 
 ```
 [16:57:43 crdb-embeddings]$ . ./env.sh
