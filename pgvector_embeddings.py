@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import torch
-import re, sys, os, time, random
+import re, sys, os, time, random, io
 from transformers import BertTokenizer, BertModel
 import logging
 import psycopg2
@@ -24,6 +24,7 @@ import queue
 import pickle
 import requests
 
+BLOCK_SIZE = 64 * (1 << 10) # Used when striping the model across > 1 row in blob_store
 CHARSET = "utf-8"
 kmeans_model = { "read": None, "write": None }
 
@@ -205,8 +206,9 @@ CREATE TABLE blob_store
 (
   path STRING NOT NULL
   , ts TIMESTAMP NOT NULL DEFAULT now()
+  , n_row INT NOT NULL
   , blob BYTEA NOT NULL
-  , PRIMARY KEY (path, ts)
+  , PRIMARY KEY (path, ts, n_row)
 );
 """
 
@@ -241,8 +243,10 @@ def prune_blob_store():
   (
     SELECT path, ts
     FROM blob_store
-    ORDER BY ts DESC
-    OFFSET {});
+    GROUP BY 1, 2
+    ORDER BY 2 DESC
+    OFFSET {}
+  );
   """
   with engine.connect() as conn:
     conn.execute(text(sql.format(blob_store_keep_n_rows)))
@@ -425,12 +429,19 @@ def cluster_assign(s):
 
 # Store the model to the DB
 def store_model_in_db(mdl):
-  row_map = {
-    "path": model_file
-    , "blob": pickle.dumps(mdl)
-  }
+  rows = []
+  orig_io = io.BytesIO(pickle.dumps(mdl))
+  chunk = orig_io.read(BLOCK_SIZE)
+  while chunk:
+    row_map = {
+      "path": model_file
+      , "n_row": len(rows)
+      , "blob": chunk
+    }
+    rows.append(row_map)
+    chunk = orig_io.read(BLOCK_SIZE)
   with engine.begin() as conn:
-    conn.execute(insert(blob_table), [row_map])
+    conn.execute(insert(blob_table), rows)
 
 @app.route("/build_model/<s>")
 def build_model(s):
@@ -540,17 +551,30 @@ def health():
 def get_model_from_db():
   logging.info("Fetching model from the DB ...")
   sql = """
-  SELECT path, ts, blob
-  FROM blob_store
-  ORDER BY ts DESC LIMIT 1;
+  WITH u AS
+  (
+    SELECT path, ts
+    FROM blob_store
+    ORDER BY ts DESC
+    LIMIT 1
+  )
+  SELECT b.blob blob
+  FROM blob_store b, u
+  WHERE b.path = u.path AND b.ts = u.ts
+  ORDER BY b.n_row ASC;
   """
   rv = None
+  buf = io.BytesIO()
   with engine.connect() as conn:
     rs = conn.execute(text(sql))
     for row in rs:
-      blob = row.blob
-      rv = pickle.loads(blob)
-      logging.info("OK")
+      buf.write(row.blob)
+  blob = buf.getvalue()
+  if len(blob) > 0:
+    rv = pickle.loads(blob)
+    logging.info("OK")
+  else:
+    logging.info("No model in the DB")
   return rv
 
 # main()

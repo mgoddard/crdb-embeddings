@@ -230,6 +230,8 @@ sys	0m0.014s
 
 ## Rebuild the K-Means model
 
+**Caveat:** If your data set is small, the default model will perform better.
+
 This takes a while (the `TRAIN_FRACTION` value affects the time).
 
 ```
