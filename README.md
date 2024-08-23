@@ -112,7 +112,7 @@ export KMEANS_VERBOSE=1
 ```
 
 Building a K-Means model is iterative.  This value of "25" reduced the model
-build times yet resulted in a useful model.  Worthy of futher experimentation:
+build times yet resulted in a useful model.  Merits further experimentation:
 ```
 export KMEANS_MAX_ITER=25
 ```
