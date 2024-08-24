@@ -103,15 +103,6 @@ for i in range(0, n_threads):
 et = time.time() - t0
 logging.info("BertTokenizer: {} s".format(et))
 
-"""
-
-Need to store/load via S3 or other object store
-
-https://gist.github.com/aabadie/074587354d97d872aff6abb65510f618?permalink_comment_id=3892137
-https://stackoverflow.com/questions/51921142/how-to-load-a-model-saved-in-joblib-file-from-google-cloud-storage-bucket
-
-"""
-
 # Suppress warnings from BertModel
 loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict]
 for logger in loggers:
@@ -324,6 +315,7 @@ def index_text(uri, text):
   with engine.begin() as conn: # Same TXN for both table INSERTs
     conn.execute(insert(text_embed_table), te_rows)
     conn.execute(insert(cluster_assign_table), ca_rows)
+    conn.commit()
 
 def index_file(in_file):
   text = ""
