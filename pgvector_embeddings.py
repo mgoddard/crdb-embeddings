@@ -133,6 +133,7 @@ def download_file(url, local_fname):
         f.write(chunk)
 
 # The fist call to this takes ~ 500 ms but subsequent calls take ~ 40 ms
+# TODO: Try replacing Bert with Fastembed (https://github.com/qdrant/fastembed)
 @lru_cache(maxsize=cache_size)
 def gen_embeddings(s):
   global tokenizer_q
@@ -288,15 +289,19 @@ def retry(f, args):
       raise e
   raise ValueError(f"Transaction did not succeed after {max_retries} retries")
 
+# TODO: report cumulative time in calls to gen_embeddings() and also DB time
 def index_text(uri, text):
   te_rows = []
   ca_rows = []
   n_chunk = 0
+  t_embed = 0
   for s in re.split(r"\.\s+", text): # Sentence based splitting: makes sense to me.
     s = s.strip()
     if (len(s) >= min_sentence_len):
       logging.debug("URI: {}, CHUNK_NUM: {}\nCHUNK: '{}'".format(uri, n_chunk, s))
+      t0 = time.time()
       embed = gen_embeddings(s)
+      t_embed += (time.time() - t0)
       row_map = {
          "uri": uri
          , "chunk_num": n_chunk
@@ -312,10 +317,14 @@ def index_text(uri, text):
       }
       ca_rows.append(row_map)
       n_chunk += 1
+  logging.info("Cumulative time for gen_embeddings(): {} ms".format(t_embed * 1000))
+  t0 = time.time()
   with engine.begin() as conn: # Same TXN for both table INSERTs
     conn.execute(insert(text_embed_table), te_rows)
     conn.execute(insert(cluster_assign_table), ca_rows)
     conn.commit()
+  et = time.time() - t0
+  logging.info("DB INSERT time: {} ms".format(et * 1000))
 
 def index_file(in_file):
   text = ""
