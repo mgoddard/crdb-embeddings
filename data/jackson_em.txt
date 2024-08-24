@@ -1,0 +1,36 @@
+Although amber and lodestone were known to the ancient Greeks, elec- 
+trodynamics developed as a quantitative subject in less than a hundred years. 
+Cavendish's remarkable experiments in electrostatics were done from 1771 to 
+1773. Coulomb's monumental researches began to be published in 1785. This 
+marked the beginning of quantitative research in electricity and magnetism on a 
+worldwide scale. Fifty years later Faraday was studying the effects of time- 
+varying currents and magnetic fields. By 1864 Maxwell had published his famous 
+paper on a dynamical theory of the electromagnetic field. 
+
+The story of the development of our understanding of electricity and 
+magnetism and of light is, of course, much longer and richer than the mention of 
+a few names from one century would indicate. For a detailed account of the 
+fascinating history, the reader should consult the authoritative volumes by 
+Whittaker A briefer account, with emphasis on optical phenomena, appears at 
+the beginning of Born and Wolf. 
+
+This book is self-contained in that, though some mathematical background 
+(vector calculus, differential equations) is assumed, the subject of elec- 
+trodynamics is developed from its beginnings in electrostatics. Most readers are 
+not coming to the subject for the first time, however. The purpose of this 
+introduction is therefore not to set the stage for a discussion of Coulomb's law 
+and other basics, but rather to present a review and a survey of classical 
+electromagnetism. Questions such as the current accuracy of the inverse square 
+law of force (mass of the photon), the limits of validity of the principle of linear 
+superposition, the effects of discreteness of charge and of energy differences are 
+discussed. "Bread and butter" topics such as the boundary conditions for 
+macroscopic fields at surfaces between different media and at conductors are 
+also treated. The aim is to set classical electromagnetism in context, to indicate 
+its domain of validity, and to elucidate some of the idealizations that it contains. 
+Some results from later in the book and some nonclassical ideas are used in the 
+course of the discussion. Certainly a reader beginning electromagnetism for the 
+first time will not follow all the arguments or see their significance. It is intended, 
+however, that for others this introduction will serve as a springboard into the 
+later parts of the book, beyond Chapter 5, as well as a reminder of how the 
+subject stands as an experimental science.
+
