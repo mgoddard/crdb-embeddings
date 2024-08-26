@@ -55,12 +55,6 @@ Number of threads to run in the Flask app:
 export N_THREADS=10
 ```
 
-The process of generating embeddings from text is expensive, so the embeddings
-are cached for reuse (in case queries are repeated, etc.):
-```
-export CACHE_SIZE=1024
-```
-
 The minimum length of a sentence, in characters:
 ```
 export MIN_SENTENCE_LEN=8
@@ -71,10 +65,10 @@ query speed vs. recall; e.g. if the number is too low, more data must be
 scanned during the cosine similarity phase.  If the number is too high, then
 matching documents may be missed entirely as their cluster ID value will not
 align with the cluster ID value that gets mapped to the query string.  For the
-small data size used in these experiments, 250k rows, a value of 100 seemed
+small data size used in these experiments, 50k rows, a value of 500 seemed
 like the best fit:
 ```
-export N_CLUSTERS=100
+export N_CLUSTERS=500
 ```
 
 The fraction of rows to scan when building the K-Means model.  A value of 1.0
@@ -95,7 +89,7 @@ export MODEL_FILE=/tmp/model.pkl
 See above.  This model was built according to the discussion above, and it
 should be suitable for getting started:
 ```
-export MODEL_FILE_URL="https://storage.googleapis.com/crl-goddard-text/model_Fastembed_55k.pkl"
+export MODEL_FILE_URL="https://storage.googleapis.com/crl-goddard-text/model_Fastembed_500.pkl"
 ```
 
 This applies during the process of assigning a cluster ID value to each of the rows.
@@ -111,10 +105,9 @@ It can be disabled by setting this to "0":
 export KMEANS_VERBOSE=1
 ```
 
-Building a K-Means model is iterative.  This value of "25" reduced the model
-build times yet resulted in a useful model.  Merits further experimentation:
+Building a K-Means model is iterative.  This value of "100" seems to work well enough:
 ```
-export KMEANS_MAX_ITER=25
+export KMEANS_MAX_ITER=100
 ```
 
 When starting out without a K-Means model (if not using the `MODEL_FILE_URL`, for
