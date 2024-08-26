@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-# TODO: Try replacing Bert with Fastembed (https://github.com/qdrant/fastembed)
-
 import re, sys, os, time, random, io
 import logging
 import psycopg2
@@ -29,18 +27,10 @@ BLOCK_SIZE = 64 * (1 << 10) # Used when striping the model across > 1 row in blo
 CHARSET = "utf-8"
 kmeans_model = { "read": None, "write": None }
 
-# ValueError: X has 384 features, but KMeans is expecting 768 features as input.
-# FIXME: this 768 value is derived from the existing model which isn't compatible
-# with this new "fastembed" LLM.
 #KMEANS_DIM = 768 # Bert
 KMEANS_DIM = 384 # Fastembed
 
-"""
-n_init="auto", # Model build time: 412732.28907585144 ms (no max_iter here)
-max_iter=100, # Model build time: 134614.4199371338 ms (n_init = 10, max_iter = 100)
-max_iter=25, # Model build time: 40821.63381576538 ms (n_init = 10, max_iter = 25)
-"""
-kmeans_max_iter = int(os.environ.get("KMEANS_MAX_ITER", "25"))
+kmeans_max_iter = int(os.environ.get("KMEANS_MAX_ITER", "100"))
 print("kmeans_max_iter: {} (set via 'export KMEANS_MAX_ITER=25')".format(kmeans_max_iter))
 
 kmeans_verbose = int(os.environ.get("KMEANS_VERBOSE", "0"))
@@ -52,10 +42,10 @@ print("skip_kmeans: {} (set via 'export SKIP_KMEANS=False')".format(skip_kmeans)
 batch_size = int(os.environ.get("BATCH_SIZE", "512"))
 print("batch_size: {} (set via 'export BATCH_SIZE=512')".format(batch_size))
 
-n_clusters = int(os.environ.get("N_CLUSTERS", "50"))
+n_clusters = int(os.environ.get("N_CLUSTERS", "500"))
 print("n_clusters : {} (set via 'export N_CLUSTERS=50')".format(n_clusters))
 
-train_fraction = float(os.environ.get("TRAIN_FRACTION", "0.10"))
+train_fraction = float(os.environ.get("TRAIN_FRACTION", "0.5"))
 print("train_fraction: {} (set via 'export TRAIN_FRACTION=0.10')".format(train_fraction))
 
 model_file = os.environ.get("MODEL_FILE", "model.pkl")
@@ -66,9 +56,6 @@ print("model_url: {} (set via 'export MODEL_FILE_URL=https://somewhere.com/path/
 
 min_sentence_len = int(os.environ.get("MIN_SENTENCE_LEN", "8"))
 print("min_sentence_len: {} (set via 'export MIN_SENTENCE_LEN=12')".format(min_sentence_len))
-
-cache_size = int(os.environ.get("CACHE_SIZE", "1024"))
-print("cache_size: {} (set via 'export CACHE_SIZE=1024')".format(cache_size))
 
 n_threads = int(os.environ.get("N_THREADS", "1"))
 print("n_threads: {} (set via 'export N_THREADS=10')".format(n_threads))
@@ -252,13 +239,9 @@ def retry(f, args):
 
 # Return cluster ID value for embedding using "read" or "write" model
 def get_cluster_id(rw, embed):
-  # Zero pad embed to KMEANS_DIM dimensions (until I figure out how to change KMeans)
-  #embed += [0.0] * (KMEANS_DIM - len(embed))
-  #embed_padded = embed + [0.0] * (KMEANS_DIM - len(embed))
   embed_padded = embed
   for i in range(0, KMEANS_DIM - len(embed)):
     embed_padded.append(0.0)
-  #logging.info("dim of embed: {}".format(len(embed_padded)))
   return int(kmeans_model[rw].predict([embed_padded])[0])
 
 def index_text(uri, text):
@@ -400,7 +383,7 @@ def refresh_cluster_assignments(s):
   et = time.time() - t0
   logging.info("Table swap time: {} ms".format(et * 1000))
   kmeans_model["read"] = kmeans_model["write"] # Once cluster assignments are updated
-  return Response("OK", status=200, mimetype="text/plain") # FIXME: this isn't returning in K8s app
+  return Response("OK", status=200, mimetype="text/plain")
 
 @app.route("/cluster_assign/<s>")
 def cluster_assign(s):
