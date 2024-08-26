@@ -120,7 +120,7 @@ export KMEANS_MAX_ITER=25
 When starting out without a K-Means model (if not using the `MODEL_FILE_URL`, for
 example), this would be set to `True` and then the documents could be added using
 `index_doc.py` and then the model would be built as shown below.  Then, the app
-would be restarted with this value reset to `True` and the cluster assignment step
+would be restarted with this value reset to `False` and the cluster assignment step
 would need to be done prior to running a search.
 ```
 export SKIP_KMEANS=False
