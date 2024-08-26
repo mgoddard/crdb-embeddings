@@ -95,7 +95,7 @@ export MODEL_FILE=/tmp/model.pkl
 See above.  This model was built according to the discussion above, and it
 should be suitable for getting started:
 ```
-export MODEL_FILE_URL="https://storage.googleapis.com/crl-goddard-text/model.pkl"
+export MODEL_FILE_URL="https://storage.googleapis.com/crl-goddard-text/model_Fastembed_55k.pkl"
 ```
 
 This applies during the process of assigning a cluster ID value to each of the rows.
@@ -115,6 +115,15 @@ Building a K-Means model is iterative.  This value of "25" reduced the model
 build times yet resulted in a useful model.  Merits further experimentation:
 ```
 export KMEANS_MAX_ITER=25
+```
+
+When starting out without a K-Means model (if not using the `MODEL_FILE_URL`, for
+example), this would be set to `True` and then the documents could be added using
+`index_doc.py` and then the model would be built as shown below.  Then, the app
+would be restarted with this value reset to `True` and the cluster assignment step
+would need to be done prior to running a search.
+```
+export SKIP_KMEANS=False
 ```
 
 This is just a string that's required as a URL parameter to the app's `/cluster_assign`
@@ -139,15 +148,16 @@ export MAX_RESULTS=5
 ## Start the Flask server process
 
 ```
-[16:33:10 crdb-embeddings]$ . ./env.sh
-[16:34:01 crdb-embeddings]$ ./pgvector_embeddings.py
+[05:43:35 crdb-embeddings]$ . ./env.sh
+[05:43:41 crdb-embeddings]$ ./pgvector_embeddings.py
 kmeans_max_iter: 25 (set via 'export KMEANS_MAX_ITER=25')
 kmeans_verbose: 1 (set via 'export KMEANS_VERBOSE=1')
+skip_kmeans: False (set via 'export SKIP_KMEANS=False')
 batch_size: 512 (set via 'export BATCH_SIZE=512')
 n_clusters : 100 (set via 'export N_CLUSTERS=50')
 train_fraction: 0.75 (set via 'export TRAIN_FRACTION=0.10')
 model_file: /tmp/model.pkl (set via 'export MODEL_FILE=./model.pkl')
-model_url: https://storage.googleapis.com/crl-goddard-text/model.pkl (set via 'export MODEL_FILE_URL=https://somewhere.com/path/model.pkl')
+model_url: https://storage.googleapis.com/crl-goddard-text/model_Fastembed_55k.pkl (set via 'export MODEL_FILE_URL=https://somewhere.com/path/model.pkl')
 min_sentence_len: 8 (set via 'export MIN_SENTENCE_LEN=12')
 cache_size: 1024 (set via 'export CACHE_SIZE=1024')
 n_threads: 10 (set via 'export N_THREADS=10')
@@ -155,20 +165,26 @@ max_retries: 3 (set via 'export MAX_RETRIES=3')
 shared secret: TextWithNoSpecialChars
 blob_store_keep_n_rows: 3
 Log level: INFO (export LOG_LEVEL=[DEBUG|INFO|WARN|ERROR] to change this)
-[08/22/2024 04:34:06 PM MainThread] BertTokenizer: 0.7987060546875 s
-Model will run on cpu
-[08/22/2024 04:34:09 PM MainThread] BertModel + eval: 2.566020965576172 s
-[08/22/2024 04:34:09 PM MainThread] Checking whether text_embed table exists
-[08/22/2024 04:34:09 PM MainThread] text_embed table already exists
-/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/sqlalchemy_cockroachdb/base.py:226: SAWarning: Did not recognize type 'vector' of column 'embedding'
+Fetching 5 files: 100%|██████████████████████████████████████████████████████████████████████████| 5/5 [00:00<00:00, 106454.42it/s]
+Fetching 5 files: 100%|███████████████████████████████████████████████████████████████████████████| 5/5 [00:00<00:00, 31823.25it/s]
+Fetching 5 files: 100%|██████████████████████████████████████████████████████████████████████████| 5/5 [00:00<00:00, 116508.44it/s]
+Fetching 5 files: 100%|███████████████████████████████████████████████████████████████████████████| 5/5 [00:00<00:00, 26749.39it/s]
+Fetching 5 files: 100%|██████████████████████████████████████████████████████████████████████████| 5/5 [00:00<00:00, 102300.10it/s]
+Fetching 5 files: 100%|███████████████████████████████████████████████████████████████████████████| 5/5 [00:00<00:00, 57456.22it/s]
+Fetching 5 files: 100%|███████████████████████████████████████████████████████████████████████████| 5/5 [00:00<00:00, 22310.13it/s]
+Fetching 5 files: 100%|███████████████████████████████████████████████████████████████████████████| 5/5 [00:00<00:00, 75709.46it/s]
+Fetching 5 files: 100%|███████████████████████████████████████████████████████████████████████████| 5/5 [00:00<00:00, 35484.81it/s]
+Fetching 5 files: 100%|██████████████████████████████████████████████████████████████████████████| 5/5 [00:00<00:00, 192399.27it/s]
+[08/26/2024 05:43:50 AM MainThread] TextEmbedding model ready: 1.7020652294158936 s
+[08/26/2024 05:43:50 AM MainThread] Checking whether text_embed table exists
+[08/26/2024 05:43:51 AM MainThread] text_embed table already exists
+/opt/homebrew/lib/python3.12/site-packages/sqlalchemy_cockroachdb/base.py:226: SAWarning: Did not recognize type 'vector' of column 'embedding'
   warn(f"Did not recognize type '{type_name}' of column '{name}'")
-/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/sqlalchemy_cockroachdb/base.py:226: SAWarning: Did not recognize type 'ARRAY' of column 'top_n'
-  warn(f"Did not recognize type '{type_name}' of column '{name}'")
-[08/22/2024 04:34:09 PM MainThread] Fetching model from the DB ...
-[08/22/2024 04:34:09 PM MainThread] OK
-[08/22/2024 04:34:09 PM MainThread] K-means model loaded
-[08/22/2024 04:34:09 PM MainThread] You may need to update K-means cluster assignments by making a GET request to the /cluster_assign/TextWithNoSpecialChars endpoint.
-[08/22/2024 04:34:09 PM MainThread] Serving on http://0.0.0.0:1972
+[08/26/2024 05:43:51 AM MainThread] Fetching model from the DB ...
+[08/26/2024 05:43:51 AM MainThread] OK
+[08/26/2024 05:43:51 AM MainThread] K-means model loaded
+[08/26/2024 05:43:51 AM MainThread] You may need to update K-means cluster assignments by making a GET request to the /cluster_assign/TextWithNoSpecialChars endpoint.
+[08/26/2024 05:43:51 AM MainThread] Serving on http://0.0.0.0:1972
 ```
 
 ## Index some documents
@@ -273,4 +289,5 @@ Restart the app
 * https://huggingface.co/blog/bert-101
 * https://huggingface.co/distilbert/distilbert-base-uncased
 * https://mccormickml.com/2019/05/14/BERT-word-embeddings-tutorial/
+* https://github.com/qdrant/fastembed
 

@@ -12,10 +12,11 @@ export MIN_SENTENCE_LEN=8
 export N_CLUSTERS=100
 export TRAIN_FRACTION=0.75
 export MODEL_FILE=/tmp/model.pkl
-export MODEL_FILE_URL="https://storage.googleapis.com/crl-goddard-text/model.pkl"
+export MODEL_FILE_URL="https://storage.googleapis.com/crl-goddard-text/model_Fastembed_55k.pkl"
 export BATCH_SIZE=512
 export KMEANS_VERBOSE=1
 export KMEANS_MAX_ITER=25
+export SKIP_KMEANS=False
 export SECRET="TextWithNoSpecialChars"
 export BLOB_STORE_KEEP_N_ROWS=3
 

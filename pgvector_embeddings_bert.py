@@ -1,8 +1,8 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
-# TODO: Try replacing Bert with Fastembed (https://github.com/qdrant/fastembed)
-
+import torch
 import re, sys, os, time, random, io
+from transformers import BertTokenizer, BertModel
 import logging
 import psycopg2
 from psycopg2.errors import SerializationFailure
@@ -23,17 +23,10 @@ import os.path
 import queue
 import pickle
 import requests
-from fastembed import TextEmbedding
 
 BLOCK_SIZE = 64 * (1 << 10) # Used when striping the model across > 1 row in blob_store
 CHARSET = "utf-8"
 kmeans_model = { "read": None, "write": None }
-
-# ValueError: X has 384 features, but KMeans is expecting 768 features as input.
-# FIXME: this 768 value is derived from the existing model which isn't compatible
-# with this new "fastembed" LLM.
-#KMEANS_DIM = 768 # Bert
-KMEANS_DIM = 384 # Fastembed
 
 """
 n_init="auto", # Model build time: 412732.28907585144 ms (no max_iter here)
@@ -45,9 +38,6 @@ print("kmeans_max_iter: {} (set via 'export KMEANS_MAX_ITER=25')".format(kmeans_
 
 kmeans_verbose = int(os.environ.get("KMEANS_VERBOSE", "0"))
 print("kmeans_verbose: {} (set via 'export KMEANS_VERBOSE=1')".format(kmeans_verbose))
-
-skip_kmeans = os.environ.get("SKIP_KMEANS", "False").lower() == "true"
-print("skip_kmeans: {} (set via 'export SKIP_KMEANS=False')".format(skip_kmeans))
 
 batch_size = int(os.environ.get("BATCH_SIZE", "512"))
 print("batch_size: {} (set via 'export BATCH_SIZE=512')".format(batch_size))
@@ -105,13 +95,34 @@ def connect(dbapi_connection, connection_record):
   cur.execute("SET plan_cache_mode = auto;")
   cur.close()
 
+tokenizer_q = queue.Queue()
 t0 = time.time()
-embed_model_q = queue.Queue()
 for i in range(0, n_threads):
-  embedding_model = TextEmbedding()
-  embed_model_q.put(embedding_model)
+  tok = BertTokenizer.from_pretrained("bert-base-uncased")
+  tokenizer_q.put(tok)
 et = time.time() - t0
-logging.info("TextEmbedding model ready: {} s".format(et))
+logging.info("BertTokenizer: {} s".format(et))
+
+# Suppress warnings from BertModel
+loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict]
+for logger in loggers:
+  if "transformers" in logger.name.lower():
+    logger.setLevel(logging.ERROR)
+
+t0 = time.time()
+# NOTE: I did *not* see any speedup running this on a GCP VM with nVidia T4 GPU.
+# Install script for drivers on GCP VM:
+#  https://github.com/GoogleCloudPlatform/compute-gpu-installation/blob/main/linux/startup_script.sh
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print("Model will run on {}".format(device))
+# Set this up once and reuse
+bert_model_q = queue.Queue()
+for i in range(0, n_threads):
+  bert = BertModel.from_pretrained("bert-base-uncased", output_hidden_states = True).to(device)
+  bert.eval()
+  bert_model_q.put(bert)
+et = time.time() - t0
+logging.info("BertModel + eval: {} s".format(et))
 
 # Used to download a model if none exists on FS or in DB
 def download_file(url, local_fname):
@@ -121,16 +132,44 @@ def download_file(url, local_fname):
       for chunk in r.iter_content(chunk_size=8192): 
         f.write(chunk)
 
+# The fist call to this takes ~ 500 ms but subsequent calls take ~ 40 ms
+# TODO: Try replacing Bert with Fastembed (https://github.com/qdrant/fastembed)
+@lru_cache(maxsize=cache_size)
+def gen_embeddings(s):
+  global tokenizer_q
+  global bert_model_q
+  rv = None
+  marked_text = "[CLS] " + s + " [SEP]"
+  tokenizer = tokenizer_q.get()
+  tokenized_text = tokenizer.tokenize(marked_text)
+  indexed_tokens = tokenizer.convert_tokens_to_ids(tokenized_text)
+  tokenizer_q.put(tokenizer)
+  tokens_tensor = torch.tensor([indexed_tokens])
+  segments_ids = [1] * len(tokenized_text)
+  segments_tensors = torch.tensor([segments_ids])
+  model = bert_model_q.get()
+  with torch.no_grad():
+    if "cuda" == device:
+      outputs = model(tokens_tensor.cuda(), segments_tensors.cuda())
+    else:
+      outputs = model(tokens_tensor, segments_tensors) # FIXME: exception here due to tensor size mismatch
+    hidden_states = outputs[2]
+  bert_model_q.put(model)
+  token_vecs = hidden_states[-2][0]
+  sentence_embedding = torch.mean(token_vecs, dim=0)
+  rv = sentence_embedding.tolist()
+  return rv
+
 ddl_t1 = """
 CREATE TABLE text_embed
 (
   uri STRING NOT NULL
   , chunk_num INT NOT NULL
   , chunk STRING NOT NULL
-  , embedding VECTOR ({})
+  , embedding VECTOR(768)
   , PRIMARY KEY (uri, chunk_num)
 );
-""".format(KMEANS_DIM)
+"""
 
 ddl_t2 = """
 CREATE TABLE cluster_assign
@@ -250,56 +289,39 @@ def retry(f, args):
       raise e
   raise ValueError(f"Transaction did not succeed after {max_retries} retries")
 
-# Return cluster ID value for embedding using "read" or "write" model
-def get_cluster_id(rw, embed):
-  # Zero pad embed to KMEANS_DIM dimensions (until I figure out how to change KMeans)
-  #embed += [0.0] * (KMEANS_DIM - len(embed))
-  #embed_padded = embed + [0.0] * (KMEANS_DIM - len(embed))
-  embed_padded = embed
-  for i in range(0, KMEANS_DIM - len(embed)):
-    embed_padded.append(0.0)
-  #logging.info("dim of embed: {}".format(len(embed_padded)))
-  return int(kmeans_model[rw].predict([embed_padded])[0])
-
+# TODO: report cumulative time in calls to gen_embeddings() and also DB time
 def index_text(uri, text):
   te_rows = []
   ca_rows = []
   n_chunk = 0
-  s_list = []
+  t_embed = 0
   for s in re.split(r"\.\s+", text): # Sentence based splitting: makes sense to me.
     s = s.strip()
     if (len(s) >= min_sentence_len):
-      s_list.append(s)
-  t0 = time.time()
-  global embed_model_q
-  embed_model = embed_model_q.get()
-  embed_list = list(embed_model.embed(s_list))
-  embed_list = [x.tolist() for x in embed_list]
-  embed_model_q.put(embed_model)
-  et = time.time() - t0
-  logging.info("Time to generate embeddings(): {} ms".format(et * 1000))
-  for i in range(0, len(s_list)):
-    row_map = {
-      "uri": uri
-      , "chunk_num": n_chunk
-      , "chunk": s_list[i]
-      , "embedding": embed_list[i]
-    }
-    te_rows.append(row_map)
-    if not skip_kmeans:
-      cluster_id = get_cluster_id("write", embed_list[i])
+      logging.debug("URI: {}, CHUNK_NUM: {}\nCHUNK: '{}'".format(uri, n_chunk, s))
+      t0 = time.time()
+      embed = gen_embeddings(s)
+      t_embed += (time.time() - t0)
+      row_map = {
+         "uri": uri
+         , "chunk_num": n_chunk
+         , "chunk": s
+         , "embedding": embed
+      }
+      te_rows.append(row_map)
+      cluster_id = int(kmeans_model["write"].predict([embed])[0])
       row_map = {
          "uri": uri
          , "chunk_num": n_chunk
          , "cluster_id": cluster_id
       }
       ca_rows.append(row_map)
-    n_chunk += 1
+      n_chunk += 1
+  logging.info("Cumulative time for gen_embeddings(): {} ms".format(t_embed * 1000))
   t0 = time.time()
   with engine.begin() as conn: # Same TXN for both table INSERTs
     conn.execute(insert(text_embed_table), te_rows)
-    if not skip_kmeans:
-      conn.execute(insert(cluster_assign_table), ca_rows)
+    conn.execute(insert(cluster_assign_table), ca_rows)
     conn.commit()
   et = time.time() - t0
   logging.info("DB INSERT time: {} ms".format(et * 1000))
@@ -369,7 +391,7 @@ def refresh_cluster_assignments(s):
       for row in rs:
         (uri, chunk_num, embed) = row
         embed = [float(x) for x in embed[1:-1].split(',')]
-        cluster_id = get_cluster_id("write", embed)
+        cluster_id = int(kmeans_model["write"].predict([embed])[0])
         row_map = {
           "uri": uri
           , "chunk_num": chunk_num
@@ -472,13 +494,8 @@ def build_model(s):
 def search(terms, limit):
   q = ' '.join(terms)
   rv = []
-  global embed_model_q
-  embed_model = embed_model_q.get()
-  embed_list = list(embed_model.embed([q]))
-  embed_list = [x.tolist() for x in embed_list]
-  embed_model_q.put(embed_model)
-  embed = embed_list[0]
-  cluster_id = get_cluster_id("read", embed)
+  embed = gen_embeddings(q)
+  cluster_id = int(kmeans_model["read"].predict([embed])[0])
   logging.info("Query string: '{}'".format(q))
   logging.info("Cluster ID: {}".format(cluster_id))
   t0 = time.time()
@@ -515,6 +532,7 @@ def do_search(q_base_64, limit):
   q = decode(q_base_64)
   q = clean_text(q)
   rv = retry(search, (q.split(), limit))
+  logging.info(gen_embeddings.cache_info())
   return Response(json.dumps(rv), status=200, mimetype="application/json")
 
 @app.route("/index", methods=["POST"])
@@ -567,26 +585,23 @@ cluster_assign_table = Table("cluster_assign", MetaData(), autoload_with=engine)
 blob_table = Table("blob_store", MetaData(), autoload_with=engine)
 
 # Load the K-means model
-if not skip_kmeans:
-  model_from_db = get_model_from_db()
-  if model_from_db is None:
-    if not os.path.isfile(model_file):
-      logging.info("Downloading bootstrap K-means file ...")
-      logging.info("\tURL: {}".format(model_url))
-      logging.info("\tLocal file: {}".format(model_file))
-      download_file(model_url, model_file)
-      logging.info("OK")
-    # Now the file is on the local FS, so load it and store it
-    kmeans_model["read"] = joblib.load(model_file)
-    kmeans_model["write"] = kmeans_model["read"]
-    store_model_in_db(kmeans_model["read"])
-  else:
-    kmeans_model["write"] = model_from_db
-    kmeans_model["read"] = model_from_db
-  logging.info("K-means model loaded")
-  logging.info("You may need to update K-means cluster assignments by making a GET request to the /cluster_assign/{} endpoint.".format(secret))
+model_from_db = get_model_from_db()
+if model_from_db is None:
+  if not os.path.isfile(model_file):
+    logging.info("Downloading bootstrap K-means file ...")
+    logging.info("\tURL: {}".format(model_url))
+    logging.info("\tLocal file: {}".format(model_file))
+    download_file(model_url, model_file)
+    logging.info("OK")
+  # Now the file is on the local FS, so load it and store it
+  kmeans_model["read"] = joblib.load(model_file)
+  kmeans_model["write"] = kmeans_model["read"]
+  store_model_in_db(kmeans_model["read"])
 else:
-  logging.info("Skipping loading K-Means model")
+  kmeans_model["write"] = model_from_db
+  kmeans_model["read"] = model_from_db
+logging.info("K-means model loaded")
+logging.info("You may need to update K-means cluster assignments by making a GET request to the /cluster_assign/{} endpoint.".format(secret))
 
 port = int(os.getenv("FLASK_PORT", 18080))
 from waitress import serve

@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
       - name: crdb-embeddings
-        image: mgoddard/crdb-embeddings-x86:1.21
+        image: mgoddard/crdb-embeddings-x86:1.22
         imagePullPolicy: Always
         env:
           - name: DB_URL
@@ -52,7 +52,7 @@ spec:
           - name: MODEL_FILE
             value: "/tmp/model.pkl"
           - name: MODEL_FILE_URL
-            value: "https://storage.googleapis.com/crl-goddard-text/model.pkl"
+            value: "https://storage.googleapis.com/crl-goddard-text/model_Fastembed_55k.pkl"
           - name: BATCH_SIZE
             value: "512"
           - name: KMEANS_VERBOSE
@@ -63,6 +63,8 @@ spec:
             value: "TextWithNoSpecialChars"
           - name: BLOB_STORE_KEEP_N_ROWS
             value: "3"
+          - name: SKIP_KMEANS
+            value: "False"
         ports:
         - containerPort: 18080
         readinessProbe:
