@@ -1,0 +1,520 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                  IMPORT INTO
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The IMPORT INTO statement imports CSV data into an existing table. IMPORT
+   INTO appends new rows onto the table.
+
+Considerations
+
+     * IMPORT INTO only works for existing tables. For information on how to
+       import data into new tables, see IMPORT.
+     * IMPORT INTO cannot be used within a transaction or during a rolling
+       upgrade.
+     * IMPORT INTO invalidates all foreign keys on the target table. To
+       validate the foreign key(s), use the VALIDATE CONSTRAINT statement.
+     * IMPORT INTO cannot be used to insert data into a column for an
+       existing row. To do this, use INSERT.
+
+Required privileges
+
+   Only members of the admin role can run IMPORT INTO. By default, the root
+   user belongs to the admin role.
+
+Synopsis
+
+   IMPORT INTO table_name ( column_name , ) CSV AVRO DATA ( file_location , )
+   WITH option = value ,
+   Note:
+
+   While importing into an existing table, the table is taken offline.
+
+Parameters
+
+   Parameter            Description                                           
+   table_name           The name of the table you want to import into.        
+                        The table columns you want to import.                 
+   column_name                                                                
+                        Note: Currently, target columns are not enforced.     
+                        The URL of a CSV or Avro file containing the table    
+   file_location        data. This can be a comma-separated list of URLs. For 
+                        an example, see Import into an existing table from    
+                        multiple CSV files below.                             
+   <option> [= <value>] Control your import's behavior with CSV import        
+                        options or Avro import options.                       
+
+  Import file URLs
+
+   URLs for the files you want to import must use the format shown below. For
+   examples, see Example file URLs.
+
+ [scheme]://[host]/[path]?[parameters]
+
+   Location        Scheme    Host         Parameters                          
+                                          AUTH ^1 (optional; can be implicit  
+   Amazon          s3        Bucket name  or specified), AWS_ACCESS_KEY_ID,   
+                                          AWS_SECRET_ACCESS_KEY,              
+                                          AWS_SESSION_TOKEN                   
+                             N/A (see     AZURE_ACCOUNT_KEY,                  
+   Azure           azure     Example file AZURE_ACCOUNT_NAME                  
+                             URLs         
+                                          AUTH (optional; can be default,     
+   Google Cloud ^2 gs        Bucket name  implicit, or specified),            
+                                          CREDENTIALS                         
+   HTTP ^3         http      Remote host  N/A                                 
+                             nodeID or                                        
+   NFS/Local ^4    nodelocal self ^5 (see N/A
+                             Example file 
+                             URLs)        
+                                          AWS_ACCESS_KEY_ID,                  
+   S3-compatible   s3        Bucket name  AWS_SECRET_ACCESS_KEY,              
+   services ^6                            AWS_SESSION_TOKEN, AWS_REGION ^7    
+                                          (optional), AWS_ENDPOINT            
+
+   Note:
+
+   The location parameters often contain special characters that need to be
+   URI-encoded. Use Javascript's encodeURIComponent function or Go language's
+   url.QueryEscape function to URI-encode the parameters. Other languages
+   provide similar functions to URI-encode special characters.
+
+   Note:
+
+   If your environment requires an HTTP or HTTPS proxy server for outgoing
+   connections, you can set the standard HTTP_PROXY and HTTPS_PROXY
+   environment variables when starting CockroachDB.
+
+   If you cannot run a full proxy, you can disable external HTTP(S) access
+   (as well as custom HTTP(S) endpoints) when performing bulk operations
+   (e.g., BACKUP, RESTORE, etc.) by using the --external-io-disable-http
+   flag. You can also disable the use of implicit credentials when accessing
+   external cloud storage services for various bulk operations by using the
+   --external-io-disable-implicit-credentials flag.
+
+     * ^1 If the AUTH parameter is not provided, AWS connections default to
+       specified and the access keys must be provided in the URI parameters.
+       If the AUTH parameter is implicit, the access keys can be ommitted and
+       the credentials will be loaded from the environment.
+
+     * ^2 If the AUTH parameter is not specified, the
+       cloudstorage.gs.default.key cluster setting will be used if it is
+       non-empty, otherwise the implicit behavior is used. If the AUTH
+       parameter is implicit, all GCS connections use Google's default
+       authentication strategy. If the AUTH parameter is default, the
+       cloudstorage.gs.default.key cluster setting must be set to the
+       contents of a service account file which will be used during
+       authentication. If the AUTH parameter is specified, GCS connections
+       are authenticated on a per-statement basis, which allows the JSON key
+       object to be sent in the CREDENTIALS parameter. The JSON key object
+       should be base64-encoded (using the standard encoding in RFC 4648).
+
+     * ^3 You can create your own HTTP server with Caddy or nginx. A custom
+       root CA can be appended to the system's default CAs by setting the
+       cloudstorage.http.custom_ca cluster setting, which will be used when
+       verifying certificates from HTTPS URLs.
+
+     * ^4 The file system backup location on the NFS drive is relative to the
+       path specified by the --external-io-dir flag set while starting the
+       node. If the flag is set to disabled, then imports from local
+       directories and NFS drives are disabled.
+
+     * ^5 Using a nodeID is required and the data files will be in the extern
+       directory of the specified node. In most cases (including single-node
+       clusters), using nodelocal://1/<path> is sufficient. Use self if you
+       do not want to specify a nodeID, and the individual data files will be
+       in the extern directories of arbitrary nodes; however, to work
+       correctly, each node must have the --external-io-dir flag point to the
+       same NFS mount or other network-backed, shared storage.
+
+     * ^6 A custom root CA can be appended to the system's default CAs by
+       setting the cloudstorage.http.custom_ca cluster setting, which will be
+       used when verifying certificates from an S3-compatible service.
+
+     * ^7 The AWS_REGION parameter is optional since it is not a required
+       parameter for most S3-compatible services. Specify the parameter only
+       if your S3-compatible service requires it.
+
+    Example file URLs
+
+Location  Example                                                                    
+Amazon S3 s3://acme-co/employees.sql?AWS_ACCESS_KEY_ID=123&AWS_SECRET_ACCESS_KEY=456 
+Azure     azure://employees.sql?AZURE_ACCOUNT_KEY=123&AZURE_ACCOUNT_NAME=acme-co     
+Google    gs://acme-co/employees.sql                                                 
+Cloud     
+HTTP      http://localhost:8080/employees.sql                                        
+NFS/Local nodelocal://1/path/employees,                                              
+          nodelocal://self/nfsmount/backups/employees ^5                             
+
+  CSV import options
+
+   You can control the IMPORT process's behavior using any of the following
+   key-value pairs as a <option> [= <value>].
+
+   Option     Value                             Example                       
+              The unicode character that        To use tab-delimited values:  
+   delimiter  delimits columns in your rows.    IMPORT INTO foo (..) CSV DATA 
+                                                ('file.csv') WITH delimiter = 
+              Default: ,.                       e'\t';                        
+              The unicode character that        IMPORT INTO foo (..) CSV DATA 
+   comment    identifies rows to skip.          ('file.csv') WITH comment =   
+                                                '#';                          
+                                                To use empty columns as NULL: 
+   nullif     The string that should be         IMPORT INTO foo (..) CSV DATA 
+              converted to NULL.                ('file.csv') WITH nullif =    
+                                                '';                           
+              The number of rows to be skipped  To import CSV files with      
+   skip       while importing a file.           column headers: IMPORT INTO   
+                                                ... CSV DATA ('file.csv')     
+              Default: '0'.                     WITH skip = '1';              
+              The decompression codec to be                                   
+              used: gzip, bzip, auto, or none.                                
+                                                IMPORT INTO ... WITH
+   decompress Default: 'auto', which guesses    decompress = 'bzip';
+              based on file extension (.gz,     
+              .bz, .bz2). none disables         
+              decompression.                    
+
+   For examples showing how to use these options, see the IMPORT - Examples
+   section.
+
+   For instructions and working examples showing how to migrate data from
+   other databases and formats, see the Migration Overview. For information
+   on how to import data into new tables, see IMPORT.
+
+  Avro import options
+
+   Option                 Description            Example                      
+                          Rejects Avro records                                
+                          that do not have a                                  
+                          one-to-one mapping                                  
+                          between Avro fields to 
+                          the target CockroachDB 
+                          schema. By default,    
+                          CockroachDB ignores    IMPORT INTO foo (..) AVRO
+   strict_validation      unknown Avro fields    DATA ('file.avro') WITH
+                          and sets missing SQL   strict_validation;
+                          fields to NULL.        
+                          CockroachDB will also  
+                          attempt to convert the 
+                          Avro field to the      
+                          CockroachDB data type; 
+                          otherwise, it will     
+                          report an error.       
+                          The unicode character                               
+                          to indicate new lines  To use tab-terminated        
+                          in the input binary or records: IMPORT INTO foo     
+   records_terminated_by  JSON file. This is not (..) AVRO DATA ('file.csv')  
+                          needed for Avro OCF.   WITH records_terminated_by = 
+                                                 e'\t';
+                          Default: \n            
+                          Use when importing a                                
+                          binary file containing                              
+                          Avro records. The      IMPORT INTO foo (..) AVRO    
+                          schema is not included DATA ('file.bjson') WITH     
+   data_as_binary_records in the file, so you    data_as_binary_records,
+                          need to specify the    schema_uri='..';
+                          schema with either the 
+                          schema or schema_uri   
+                          option.                
+                          Use when importing a                                
+                          JSON file containing                                
+                          Avro records. The      IMPORT INTO foo (..) AVRO    
+                          schema is not included DATA ('file.bjson') WITH     
+   data_as_json_records   in the file, so you    data_as_json_records,        
+                          need to specify the    schema='{ "type":
+                          schema with either the "record",..}';
+                          schema or schema_uri   
+                          option.                
+                          The schema of the Avro                              
+                          records included in    See data_as_json_records     
+   schema                 the binary or JSON     example above.
+                          file. This is not      
+                          needed for Avro OCF.   
+                          The URI of the file                                 
+                          containing the schema                               
+                          of the Avro records    See data_as_binary_records
+   schema_uri             include in the binary  example above.
+                          or JSON file. This is  
+                          not needed for Avro    
+                          OCF.                   
+
+Requirements
+
+  Prerequisites
+
+   Before using IMPORT INTO, you should have:
+
+     * An existing table to import into (use CREATE TABLE).
+     * The CSV or Avro data you want to import, preferably hosted on cloud
+       storage. This location must be equally accessible to all nodes using
+       the same import file location. This is necessary because the IMPORT
+       INTO statement is issued once by the client, but is executed
+       concurrently across all nodes of the cluster. For more information,
+       see the Import file location section below.
+   Warning:
+
+   Column values cannot be generated by DEFAULT when importing; an import
+   must include a value for every column specified in the IMPORT INTO
+   statement. To use DEFAULT values, your file must contain values for the
+   column upon import, or you can add the column or alter the column after
+   the table has been imported.
+
+  Available storage
+
+   Each node in the cluster is assigned an equal part of the imported data,
+   and so must have enough temp space to store it. In addition, data is
+   persisted as a normal table, and so there must also be enough space to
+   hold the final, replicated data. The node's first-listed/default store
+   directory must have enough available storage to hold its portion of the
+   data.
+
+   On cockroach start, if you set --max-disk-temp-storage, it must also be
+   greater than the portion of the data a node will store in temp space.
+
+  Import file location
+
+   We strongly recommend using cloud/remote storage (Amazon S3, Google Cloud
+   Platform, etc.) for the data you want to import, but local files are
+   supported as well.
+
+   To import a local file, you have the following options:
+
+     * Option 1. Run a local file server to make the file accessible from all
+       nodes.
+
+     * Option 2. Make the file accessible from a local node's store. You can
+       do this by using cockroach nodelocal upload or by manually placing the
+       file in the extern directory:
+
+         1. Create an extern directory on a node's store. The pathname will
+            differ depending on the --store flag passed to cockroach start
+            (if any), but will look something like
+            /path/to/cockroach-data/extern/.
+         2. Copy the file to a node's extern directory.
+         3. Assuming the file is called data.sql and you uploaded it to node
+            1, you can access it in your IMPORT statement using the following
+            import file URL: 'nodelocal://1/data.sql'.
+
+Performance
+
+   All nodes are used during the import job, which means all nodes' CPU and
+   RAM will be partially consumed by the IMPORT task in addition to serving
+   normal traffic.
+
+Viewing and controlling import jobs
+
+   After CockroachDB successfully initiates an import into an existing table,
+   it registers the import as a job, which you can view with SHOW JOBS.
+
+   After the import has been initiated, you can control it with PAUSE JOB,
+   RESUME JOB, and CANCEL JOB.
+
+   Note:
+
+   If initiated correctly, the statement returns when the import is finished
+   or if it encounters an error. In some cases, the import can continue after
+   an error has been returned (the error message will tell you that the
+   import has resumed in background).
+
+   Warning:
+
+   Pausing and then resuming an IMPORT INTO job will cause it to restart from
+   the beginning.
+
+Examples
+
+  Import into an existing table from a CSV file
+
+   Amazon S3:
+
+   copy
+
+ > IMPORT INTO customers (id, name)
+     CSV DATA (
+       's3://acme-co/customers.csv?AWS_ACCESS_KEY_ID=[placeholder]&AWS_SECRET_ACCESS_KEY=[placeholder]&AWS_SESSION_TOKEN=[placeholder]'
+     );
+
+   Azure:
+
+   copy
+
+ > IMPORT INTO customers (id, name)
+     CSV DATA (
+       'azure://acme-co/customer-import-data.csv?AZURE_ACCOUNT_KEY=hash&AZURE_ACCOUNT_NAME=acme-co'
+     );
+
+   Google Cloud:
+
+   copy
+
+ > IMPORT INTO customers (id, name)
+     CSV DATA (
+       'gs://acme-co/customers.csv'
+     );
+
+  Import into an existing table from multiple CSV files
+
+   Amazon S3:
+
+   copy
+
+ > IMPORT INTO customers (id, name)
+     CSV DATA (
+       's3://acme-co/customers.csv?AWS_ACCESS_KEY_ID=[placeholder]&AWS_SECRET_ACCESS_KEY=[placeholder]',
+       's3://acme-co/customers2.csv?AWS_ACCESS_KEY_ID=[placeholder]&AWS_SECRET_ACCESS_KEY=[placeholder',
+       's3://acme-co/customers3.csv?AWS_ACCESS_KEY_ID=[placeholder]&AWS_SECRET_ACCESS_KEY=[placeholder]',
+       's3://acme-co/customers4.csv?AWS_ACCESS_KEY_ID=[placeholder]&AWS_SECRET_ACCESS_KEY=[placeholder]',
+     );
+
+   Azure:
+
+   copy
+
+ > IMPORT INTO customers (id, name)
+     CSV DATA (
+       'azure://acme-co/customer-import-data1.1.csv?AZURE_ACCOUNT_KEY=hash&AZURE_ACCOUNT_NAME=acme-co',
+       'azure://acme-co/customer-import-data1.2.csv?AZURE_ACCOUNT_KEY=hash&AZURE_ACCOUNT_NAME=acme-co',
+       'azure://acme-co/customer-import-data1.3.csv?AZURE_ACCOUNT_KEY=hash&AZURE_ACCOUNT_NAME=acme-co',
+       'azure://acme-co/customer-import-data1.4.csv?AZURE_ACCOUNT_KEY=hash&AZURE_ACCOUNT_NAME=acme-co',
+       'azure://acme-co/customer-import-data1.5.csv?AZURE_ACCOUNT_KEY=hash&AZURE_ACCOUNT_NAME=acme-co',   
+     );
+
+   Google Cloud:
+
+   copy
+
+ > IMPORT INTO customers (id, name)
+     CSV DATA (
+       'gs://acme-co/customers.csv',
+       'gs://acme-co/customers2.csv',
+       'gs://acme-co/customers3.csv',
+       'gs://acme-co/customers4.csv',
+     );
+
+  Import into an existing table from an Avro file
+
+   Avro OCF data, JSON records, or binary records can be imported. The
+   following are examples of importing Avro OCF data.
+
+   To specify the table schema in-line:
+
+   Amazon S3:
+
+   copy
+
+ > IMPORT INTO customers
+     AVRO DATA (
+       's3://acme-co/customers.avro?AWS_ACCESS_KEY_ID=[placeholder]&AWS_SECRET_ACCESS_KEY=[placeholder]&AWS_SESSION_TOKEN=[placeholder]'
+     );
+
+   Azure:
+
+   copy
+
+ > IMPORT INTO customers
+     AVRO DATA (
+       'azure://acme-co/customers.avro?AZURE_ACCOUNT_KEY=hash&AZURE_ACCOUNT_NAME=acme-co'
+     );
+
+   Google Cloud:
+
+   copy
+
+ > IMPORT INTO customers
+     AVRO DATA (
+       'gs://acme-co/customers.avro'
+     );
+
+   For more detailed information about importing data from Avro and examples,
+   see Migrate from Avro.
+
+Known limitations
+
+     * While importing into an existing table, the table is taken offline.
+     * After importing into an existing table, constraints will be
+       un-validated and need to be re-validated.
+     * Imported rows must not conflict with existing rows in the table or any
+       unique secondary indexes.
+     * IMPORT INTO works for only a single existing table, and the table must
+       not be interleaved.
+     * IMPORT INTO cannot be used within a transaction.
+     * IMPORT INTO can sometimes fail with a "context canceled" error, or can
+       restart itself many times without ever finishing. If this is
+       happening, it is likely due to a high amount of disk contention. This
+       can be mitigated by setting the kv.bulk_io_write.max_rate cluster
+       setting to a value below your max disk write speed. For example, to
+       set it to 10MB/s, execute:
+       copy
+
+ > SET CLUSTER SETTING kv.bulk_io_write.max_rate = '10MB';
+
+See also
+
+     * Create a File Server
+     * IMPORT
+     * Migration Overview
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

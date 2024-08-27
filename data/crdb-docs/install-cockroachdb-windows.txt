@@ -1,0 +1,154 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                         Install CockroachDB on Windows
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+   Mac Linux Windows
+
+   See Release Notes for what's new in the latest release, v20.2.0-alpha.2.
+   To upgrade to this release from an older version, see Cluster Upgrade.
+
+Download the executable
+
+   Warning:
+   The CockroachDB executable for Windows is experimental and not suitable
+   for production deployments. Windows 8 or higher is required.
+    1. Download and extract the CockroachDB v20.2.0-alpha.2 archive for
+       Windows.
+
+    2. To ensure that CockroachDB can use location-based names as time zone
+       identifiers, download Go's official zoneinfo.zip and set the ZONEINFO
+       environment variable to point to the zip file.
+
+    3. Open PowerShell, navigate to the directory containing the executable,
+       and make sure it works:
+
+       copy
+
+ PS C:\cockroach-v20.2.0-alpha.2.windows-6.2-amd64> .\cockroach.exe version
+
+    4. Keep up-to-date with CockroachDB releases and best practices:
+
+Use Kubernetes
+
+   To orchestrate CockroachDB locally using Kubernetes, either with
+   configuration files or the Helm package manager, see Orchestrate
+   CockroachDB Locally with Minikube.
+
+Use Docker
+
+   Warning:
+   Running a stateful application like CockroachDB in Docker is more complex
+   and error-prone than most uses of Docker. Unless you are very experienced
+   with Docker, we recommend starting with a different installation and
+   deployment method.
+    1. Install Docker for Windows.
+
+       Docker for Windows requires 64bit Windows 10 Pro and Microsoft
+       Hyper-V. Please see the official documentation for more details. Note
+       that if your system does not satisfy the stated requirements, you can
+       try using Docker Toolbox.
+    2. Open PowerShell and confirm that the Docker daemon is running in the
+       background:
+
+       copy
+
+ PS C:\Users\username> docker version
+
+       If you do not see the server listed, start Docker for Windows.
+
+    3. Share your local drives. This makes it possible to mount local
+       directories as data volumes to persist node data after containers are
+       stopped or deleted.
+
+    4. Pull the image for the v20.2.0-alpha.2 release of CockroachDB from
+       Docker Hub:
+
+       copy
+
+ PS C:\Users\username> docker pull cockroachdb/cockroach-unstable:v20.2.0-alpha.2
+
+    5. Keep up-to-date with CockroachDB releases and best practices:
+
+What's next?
+
+     * If you're just getting started with CockroachDB:
+          * Start a cluster locally and talk to it via the built-in SQL
+            client
+          * Learn more about CockroachDB SQL
+          * Build a simple application with CockroachDB using
+            Postgres-compatible client drivers and ORMs
+          * Explore core CockroachDB features like automatic replication,
+            rebalancing, and fault tolerance
+     * If you're ready to run CockroachDB in production:
+          * Review the Production Checklist
+          * Deploy CockroachDB manually or use an orchestration system like
+            Kubernetes
+   Note:
+   By default, each node of a CockroachDB cluster periodically shares
+   anonymous usage details with Cockroach Labs. For an explanation of the
+   details that get shared and how to opt-out of reporting, see Diagnostics
+   Reporting.
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

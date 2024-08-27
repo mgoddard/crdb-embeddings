@@ -1,0 +1,313 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                     JSONB
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The JSONB data type stores JSON (JavaScript Object Notation) data as a
+   binary representation of the JSONB value, which eliminates whitespace,
+   duplicate keys, and key ordering. JSONB supports inverted indexes.
+
+   Tip:
+   For a hands-on demonstration of storing and querying JSON data from a
+   third-party API, see the JSON tutorial.
+   Note:
+
+   Vectorized execution is currently not supported for this data type.
+
+Alias
+
+   In CockroachDB, JSON is an alias for JSONB.
+
+   Note:
+   In PostgreSQL, JSONB and JSON are two different data types. In
+   CockroachDB, the JSONB / JSON data type is similar in behavior to the
+   JSONB data type in PostgreSQL.
+
+Considerations
+
+     * The primary key, foreign key, and unique constraints cannot be used on
+       JSONB values.
+     * A standard index cannot be created on a JSONB column; you must use an
+       inverted index.
+
+Syntax
+
+   The syntax for the JSONB data type follows the format specified in
+   RFC8259. A constant value of type JSONB can be expressed using an
+   interpreted literal or a string literal annotated with type JSONB.
+
+   There are six types of JSONB values:
+
+     * null
+     * Boolean
+     * String
+     * Number (i.e., decimal, not the standard int64)
+     * Array (i.e., an ordered sequence of JSONB values)
+     * Object (i.e., a mapping from strings to JSONB values)
+
+   Examples:
+
+     * '{"type": "account creation", "username": "harvestboy93"}'
+     * '{"first_name": "Ernie", "status": "Looking for treats", "location" :
+       "Brooklyn"}'
+   Note:
+   If duplicate keys are included in the input, only the last value is kept.
+
+Size
+
+   The size of a JSONB value is variable, but it's recommended to keep values
+   under 1 MB to ensure performance. Above that threshold, write
+   amplification and other considerations may cause significant performance
+   degradation.
+
+JSONB Functions
+
+   Function                             Description                           
+   jsonb_array_elements(<jsonb>)        Expands a JSONB array to a set of     
+                                        JSONB values.                         
+                                        Builds a JSONB object out of a        
+   jsonb_build_object(<any_element>...) variadic argument list that           
+                                        alternates between keys and values.   
+   jsonb_each(<jsonb>)                  Expands the outermost JSONB object    
+                                        into a set of key-value pairs.        
+   jsonb_object_keys(<jsonb>)           Returns sorted set of keys in the     
+                                        outermost JSONB object.               
+                                        Returns the given JSONB value as a    
+   jsonb_pretty(<jsonb>)                STRING indented and with newlines.    
+                                        See the example below.                
+
+   For the full list of supported JSONB functions, see Functions and
+   Operators.
+
+JSONB Operators
+
+   Operator Description        Example                                        
+            Access a JSONB     SELECT '[{"foo":"bar"}]'::JSONB->0->'foo' =    
+   ->       field, returning a '"bar"'::JSONB;                                
+            JSONB value.       
+            Access a JSONB     SELECT '{"foo":"bar"}'::JSONB->>'foo' =        
+   ->>      field, returning a 'bar'::STRING;                                 
+            string.            
+            Tests whether the                                                 
+   @>       left JSONB field   SELECT ('{"foo": {"baz": 3}, "bar": 2}'::JSONB 
+            contains the right @> '{"foo": {"baz":3}}'::JSONB ) = true;
+            JSONB field.       
+
+   For the full list of supported JSONB operators, see Functions and
+   Operators.
+
+Examples
+
+  Create a Table with a JSONB Column
+
+   copy
+
+ > CREATE TABLE users (
+     profile_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+     last_updated TIMESTAMP DEFAULT now(),
+     user_profile JSONB
+   );
+
+   copy
+
+ > SHOW COLUMNS FROM users;
+
+ +--------------+-----------+-------------+-------------------+-----------------------+-------------+
+ | column_name  | data_type | is_nullable |  column_default   | generation_expression |   indices   |
+ +--------------+-----------+-------------+-------------------+-----------------------+-------------+
+ | profile_id   | UUID      |    false    | gen_random_uuid() |                       | {"primary"} |
+ | last_updated | TIMESTAMP |    true     | now()             |                       | {}          |
+ | user_profile | JSON      |    true     | NULL              |                       | {}          |
+ +--------------+-----------+-------------+-------------------+-----------------------+-------------+
+ (3 rows)
+
+   copy
+
+ > INSERT INTO users (user_profile) VALUES
+     ('{"first_name": "Lola", "last_name": "Dog", "location": "NYC", "online" : true, "friends" : 547}'),
+     ('{"first_name": "Ernie", "status": "Looking for treats", "location" : "Brooklyn"}');
+
+   copy
+
+ > SELECT * FROM users;
+
+ +--------------------------------------+----------------------------------+--------------------------------------------------------------------------+
+ |              profile_id              |           last_updated           |                               user_profile                               |
+ +--------------------------------------+----------------------------------+--------------------------------------------------------------------------+
+ | 33c0a5d8-b93a-4161-a294-6121ee1ade93 | 2018-02-27 16:39:28.155024+00:00 | {"first_name": "Lola", "friends": 547, "last_name": "Dog", "location":   |
+ |                                      |                                  | "NYC", "online": true}                                                   |
+ | 6a7c15c9-462e-4551-9e93-f389cf63918a | 2018-02-27 16:39:28.155024+00:00 | {"first_name": "Ernie", "location": "Brooklyn", "status": "Looking for   |
+ |                                      |                                  | treats"}                                                                 |
+ +--------------------------------------+----------------------------------+--------------------------------------------------------------------------+
+
+  Retrieve formatted JSONB data
+
+   To retrieve JSONB data with easier-to-read formatting, use the
+   jsonb_pretty() function. For example, retrieve data from the table you
+   created in the first example:
+
+   copy
+
+ > SELECT profile_id, last_updated, jsonb_pretty(user_profile) FROM users;
+
+ +--------------------------------------+----------------------------------+------------------------------------+
+ |              profile_id              |           last_updated           |            jsonb_pretty            |
+ +--------------------------------------+----------------------------------+------------------------------------+
+ | 33c0a5d8-b93a-4161-a294-6121ee1ade93 | 2018-02-27 16:39:28.155024+00:00 | {                                  |
+ |                                      |                                  |     "first_name": "Lola",          |
+ |                                      |                                  |     "friends": 547,                |
+ |                                      |                                  |     "last_name": "Dog",            |
+ |                                      |                                  |     "location": "NYC",             |
+ |                                      |                                  |     "online": true                 |
+ |                                      |                                  | }                                  |
+ | 6a7c15c9-462e-4551-9e93-f389cf63918a | 2018-02-27 16:39:28.155024+00:00 | {                                  |
+ |                                      |                                  |     "first_name": "Ernie",         |
+ |                                      |                                  |     "location": "Brooklyn",        |
+ |                                      |                                  |     "status": "Looking for treats" |
+ |                                      |                                  | }                                  |
+ +--------------------------------------+----------------------------------+------------------------------------+
+
+  Retrieve specific fields from a JSONB value
+
+   To retrieve a specific field from a JSONB value, use the -> operator. For
+   example, retrieve a field from the table you created in the first example:
+
+   copy
+
+ > SELECT user_profile->'first_name',user_profile->'location' FROM users;
+
+ +----------------------------+--------------------------+
+ | user_profile->'first_name' | user_profile->'location' |
+ +----------------------------+--------------------------+
+ | "Lola"                     | "NYC"                    |
+ | "Ernie"                    | "Brooklyn"               |
+ +----------------------------+--------------------------+
+
+   You can also use the ->> operator to return JSONB field values as STRING
+   values:
+
+   copy
+
+ > SELECT user_profile->>'first_name', user_profile->>'location' FROM users;
+
+ +-----------------------------+---------------------------+
+ | user_profile->>'first_name' | user_profile->>'location' |
+ +-----------------------------+---------------------------+
+ | Lola                        | NYC                       |
+ | Ernie                       | Brooklyn                  |
+ +-----------------------------+---------------------------+
+
+   For the full list of functions and operators we support, see Functions and
+   Operators.
+
+  Create a table with a JSONB column and a computed column
+
+   In this example, create a table with a JSONB column and a computed column:
+
+   copy
+
+ > CREATE TABLE student_profiles (
+     id STRING PRIMARY KEY AS (profile->>'id') STORED,
+     profile JSONB
+ );
+
+   Then, insert a few rows of data:
+
+   copy
+
+ > INSERT INTO student_profiles (profile) VALUES
+     ('{"id": "d78236", "name": "Arthur Read", "age": "16", "school": "PVPHS", "credits": 120, "sports": "none"}'),
+     ('{"name": "Buster Bunny", "age": "15", "id": "f98112", "school": "THS", "credits": 67, "clubs": "MUN"}'),
+     ('{"name": "Ernie Narayan", "school" : "Brooklyn Tech", "id": "t63512", "sports": "Track and Field", "clubs": "Chess"}');
+
+   copy
+
+ > SELECT * FROM student_profiles;
+
+ +--------+---------------------------------------------------------------------------------------------------------------------+
+ |   id   |                                                       profile                                                       |
+ +--------+---------------------------------------------------------------------------------------------------------------------+
+ | d78236 | {"age": "16", "credits": 120, "id": "d78236", "name": "Arthur Read", "school": "PVPHS", "sports": "none"}           |
+ | f98112 | {"age": "15", "clubs": "MUN", "credits": 67, "id": "f98112", "name": "Buster Bunny", "school": "THS"}               |
+ | t63512 | {"clubs": "Chess", "id": "t63512", "name": "Ernie Narayan", "school": "Brooklyn Tech", "sports": "Track and Field"} |
+ +--------+---------------------------------------------------------------------------------------------------------------------+
+
+   The primary key id is computed as a field from the profile column.
+
+Supported casting and conversion
+
+   JSONB values can be cast to the following data type:
+
+     * STRING
+
+See also
+
+     * JSON tutorial
+     * Inverted Indexes
+     * Computed Columns
+     * Data Types
+     * Functions and Operators
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

@@ -1,0 +1,795 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                          cockroach start-single-node
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   This page explains the cockroach start-single-node command, which you use
+   to start a single-node cluster with replication disabled. A single-node
+   cluster is all you need for quick SQL testing or app development.
+
+   Tip:
+
+   To run a multi-node cluster with replicated data for availability and
+   consistency, use cockroach start and cockroach init.
+
+Synopsis
+
+   Start a single-node cluster:
+
+ $ cockroach start-single-node <flags>
+
+   View help:
+
+ $ cockroach start-single-node --help
+
+Flags
+
+   The cockroach start-single-node command supports the following
+   general-use, networking, security, and logging flags.
+
+   Many flags have useful defaults that can be overridden by specifying the
+   flags explicitly. If you specify flags explicitly, however, be sure to do
+   so each time the node is restarted, as they will not be remembered.
+
+   Note:
+
+   The cockroach start-single-node flags are identical to cockroach start
+   flags. However, many of them are not relevant for single-node clusters but
+   are provided for users who want to test concepts that appear in multi-node
+   clusters. These flags are called out as such. In most cases, accepting
+   most defaults is sufficient (see the examples below).
+
+  General
+
+   Flag                    Description                                        
+                           Not relevant for single-node clusters. Arbitrary   
+                           strings, separated by colons, specifying node      
+                           capability, which might include specialized        
+                           hardware or number of cores, for example:          
+   --attrs                                                                    
+                           --attrs=ram:64gb                                   
+                                                                              
+                           These can be used to influence the location of     
+                           data replicas. See Configure Replication Zones for 
+                           full details.                                      
+                           Set this to start the node in the background. This 
+                           is better than appending & to the command because  
+                           control is returned to the shell only once the     
+                           node is ready to accept requests.                  
+                                                                              
+                           Note: --background is suitable for writing         
+   --background            automated test suites or maintenance procedures    
+                           that need a temporary server process running in    
+                           the background. It is not intended to be used to   
+                           start a long-running server, because it does not   
+                           fully detach from the controlling terminal.        
+                           Consider using a service manager or a tool like    
+                           daemon(8) instead.                                 
+                           The total size for caches, shared evenly if there  
+                           are multiple storage devices. This can be a        
+                           percentage (notated as a decimal or with %) or any 
+                           bytes-based unit, for example:                     
+                                                                              
+                           --cache=.25                                        
+                           --cache=25%                                        
+                           --cache=1000000000 ----> 1000000000 bytes          
+                           --cache=1GB ----> 1000000000 bytes                 
+                           --cache=1GiB ----> 1073741824 bytes                
+                                                                              
+                           Note: If you use the % notation, you might need to 
+   --cache                 escape the % sign, for instance, while configuring 
+                           CockroachDB through systemd service files. For     
+                           this reason, it's recommended to use the decimal   
+                           notation instead.                                  
+                                                                              
+                           Default: 128MiB                                    
+                                                                              
+                           The default cache size is reasonable for local     
+                           development clusters. For production deployments,  
+                           this should be increased to 25% or higher.         
+                           Increasing the cache size will generally improve   
+                           the node's read performance. See Recommended       
+                           Production Settings for more details.              
+                           The path of the external IO directory with which   
+                           the local file access paths are prefixed while     
+                           performing backup and restore operations using     
+                           local node directories or NFS drives. If set to    
+                           disabled, backups and restores using local node    
+                           directories and NFS drives are disabled.           
+   --external-io-dir                                                          
+                           Default: extern subdirectory of the first          
+                           configured store.                                  
+                                                                              
+                           To set the --external-io-dir flag to the locations 
+                           you want to use without needing to restart nodes,  
+                           create symlinks to the desired locations from      
+                           within the extern directory.                       
+                           The file to which the node's SQL connection URL    
+                           will be written on successful startup, in addition 
+                           to being printed to the standard output.           
+   --listening-url-file                                                       
+                           This is particularly helpful in identifying the    
+                           node's port when an unused port is assigned        
+                           automatically (--port=0).                          
+                           Not relevant for single-node clusters. Arbitrary   
+                           key-value pairs that describe the location of the  
+   --locality              node. Locality might include country, region,      
+                           datacenter, rack, etc. For more details, see       
+                           Locality below.                                    
+                           The maximum on-disk storage capacity available to  
+                           store temporary data for SQL queries that exceed   
+                           the memory budget (see --max-sql-memory). This     
+                           ensures that JOINs, sorts, and other               
+                           memory-intensive SQL operations are able to spill  
+                           intermediate results to disk. This can be a        
+                           percentage (notated as a decimal or with %) or any 
+                           bytes-based unit (e.g., .25, 25%, 500GB, 1TB,      
+                           1TiB).                                             
+                                                                              
+                           Note: If you use the % notation, you might need to 
+                           escape the % sign, for instance, while configuring 
+                           CockroachDB through systemd service files. For     
+                           this reason, it's recommended to use the decimal   
+   --max-disk-temp-storage notation instead. Also, if expressed as a          
+                           percentage, this value is interpreted relative to  
+                           the size of the first store. However, the          
+                           temporary space usage is never counted towards any 
+                           store usage; therefore, when setting this value,   
+                           it's important to ensure that the size of this     
+                           temporary storage plus the size of the first store 
+                           doesn't exceed the capacity of the storage device. 
+                                                                              
+                           The temporary files are located in the path        
+                           specified by the --temp-dir flag, or in the        
+                           subdirectory of the first store (see --store) by   
+                           default.                                           
+                                                                              
+                           Default: 32GiB                                     
+                           The maximum in-memory storage capacity available   
+                           to store temporary data for SQL queries, including 
+                           prepared queries and intermediate data rows during 
+                           query execution. This can be a percentage (notated 
+                           as a decimal or with %) or any bytes-based unit,   
+                           for example:                                       
+                                                                              
+                           --max-sql-memory=.25                               
+                           --max-sql-memory=25%                               
+                           --max-sql-memory=10000000000 ----> 1000000000      
+                           bytes                                              
+                           --max-sql-memory=1GB ----> 1000000000 bytes        
+                           --max-sql-memory=1GiB ----> 1073741824 bytes       
+                                                                              
+                           The temporary files are located in the path        
+                           specified by the --temp-dir flag, or in the        
+                           subdirectory of the first store (see --store) by   
+                           default.                                           
+   --max-sql-memory                                                           
+                           Note: If you use the % notation, you might need to 
+                           escape the % sign, for instance, while configuring 
+                           CockroachDB through systemd service files. For     
+                           this reason, it's recommended to use the decimal   
+                           notation instead.                                  
+                                                                              
+                           Default: 25%                                       
+                                                                              
+                           The default SQL memory size is suitable for        
+                           production deployments but can be raised to        
+                           increase the number of simultaneous client         
+                           connections the node allows as well as the node's  
+                           capacity for in-memory processing of rows when     
+                           using ORDER BY, GROUP BY, DISTINCT, joins, and     
+                           window functions. For local development clusters   
+                           with memory-intensive workloads, reduce this value 
+                           to, for example, 128MiB to prevent out of memory   
+                           errors.                                            
+                           The file to which the node's process ID will be    
+   --pid-file              written on successful startup. When this flag is   
+                           not set, the process ID is not written to file.    
+                           The file path to a storage device and, optionally, 
+                           store attributes and maximum size. When using      
+                           multiple storage devices for a node, this flag     
+   --store                 must be specified separately for each device, for  
+   -s                      example:                                           
+                                                                              
+                           --store=/mnt/ssd01 --store=/mnt/ssd02              
+                                                                              
+                           For more details, see Store below.                 
+                           The path of the node's temporary store directory.  
+                           On node start up, the location for the temporary   
+   --temp-dir              files is printed to the standard output.           
+                                                                              
+                           Default: Subdirectory of the first store           
+
+  Networking
+
+   Flag          Description                                                  
+                 The IP address/hostname and port to listen on for            
+                 connections from clients. For IPv6, use the notation [...],  
+   --listen-addr e.g., [::1] or [fe80::f6f2:::].                              
+                                                                              
+                 Default: Listen on all IP addresses on port 26257            
+                 The IP address/hostname and port to listen on for Admin UI   
+                 HTTP requests. For IPv6, use the notation [...], e.g.,       
+   --http-addr   [::1]:8080 or [fe80::f6f2:::]:8080.                          
+                                                                              
+                 Default: Listen on the address part of --listen-addr on port 
+                 8080                                                         
+                 The directory path on which to listen for Unix domain socket 
+   --socket-dir  connections from clients installed on the same Unix-based    
+                 machine. For an example, see Connect to a cluster listening  
+                 for Unix domain socket connections.                          
+
+  Security
+
+   Flag                    Description                                        
+                           The path to the certificate directory. The         
+                           directory must contain valid certificates if       
+   --certs-dir             running in secure mode.                            
+                                                                              
+                           Default: ${HOME}/.cockroach-certs/                 
+                           Run in insecure mode. If this flag is not set, the 
+                           --certs-dir flag must point to valid certificates. 
+                                                                              
+                           Note the following risks: An insecure cluster is   
+                           open to any client that can access any node's IP   
+   --insecure              addresses; any user, even root, can log in without 
+                           providing a password; any user, connecting as      
+                           root, can read or write any data in your cluster;  
+                           and there is no network encryption or              
+                           authentication, and thus no confidentiality.       
+                                                                              
+                           Default: false                                     
+                           A comma-separated list of                          
+                           cert-principal:db-principal mappings used to map   
+                           the certificate principals to IP addresses, DNS    
+   --cert-principal-map    names, and SQL users. This allows the use of       
+                           certificates generated by Certificate Authorities  
+                           that place restrictions on the contents of the     
+                           commonName field. For usage information, see       
+                           Create Security Certificates using Openssl.        
+                           This optional flag specifies the encryption        
+                           options for one of the stores on the node. If      
+                           multiple stores exist, the flag must be specified  
+                           for each store.                                    
+   --enterprise-encryption                                                    
+                           This flag takes a number of options. For a         
+                           complete list of options, and usage instructions,  
+                           see Encryption at Rest.                            
+                                                                              
+                           Note that this is an enterprise feature.           
+
+  Store
+
+   The --store flag supports the following fields. Note that commas are used
+   to separate fields, and so are forbidden in all field values.
+
+   Note:
+
+   In-memory storage is not suitable for production deployments at this time.
+
+   Field Description                                                          
+   type  For in-memory storage, set this field to mem; otherwise, leave this  
+         field out. The path field must not be set when type=mem.             
+         The file path to the storage device. When not setting attr or size,  
+         the path field label can be left out:                                
+                                                                              
+         --store=/mnt/ssd01                                                   
+                                                                              
+   path  When either of those fields are set, however, the path field label   
+         must be used:                                                        
+                                                                              
+         --store=path=/mnt/ssd01,size=20GB                                    
+                                                                              
+         Default: cockroach-data                                              
+         Arbitrary strings, separated by colons, specifying disk type or      
+         capability. These can be used to influence the location of data      
+         replicas. See Configure Replication Zones for full details.          
+                                                                              
+         In most cases, node-level --locality or --attrs are preferable to    
+         store-level attributes, but this field can be used to match          
+   attrs capabilities for storage of individual databases or tables. For      
+         example, an OLTP database would probably want to allocate space for  
+         its tables only on solid state devices, whereas append-only time     
+         series might prefer cheaper spinning drives. Typical attributes      
+         include whether the store is flash (ssd) or spinny disk (hdd), as    
+         well as speeds and other specs, for example:                         
+                                                                              
+         --store=path=/mnt/hda1,attrs=hdd:7200rpm                             
+         The maximum size allocated to the node. When this size is reached,   
+         CockroachDB attempts to rebalance data to other nodes with available 
+         capacity. When there's no capacity elsewhere, this limit will be     
+         exceeded. Also, data may be written to the node faster than the      
+         cluster can rebalance it away; in this case, as long as capacity is  
+         available elsewhere, CockroachDB will gradually rebalance data down  
+         to the store limit.                                                  
+                                                                              
+         The size can be specified either in a bytes-based unit or as a       
+         percentage of hard drive space (notated as a decimal or with %), for 
+         example:                                                             
+                                                                              
+         --store=path=/mnt/ssd01,size=10000000000 ----> 10000000000 bytes     
+         --store=path=/mnt/ssd01,size=20GB ----> 20000000000 bytes            
+         --store=path=/mnt/ssd01,size=20GiB ----> 21474836480 bytes           
+         --store=path=/mnt/ssd01,size=0.02TiB ----> 21474836480 bytes         
+   size  --store=path=/mnt/ssd01,size=20% ----> 20% of available space        
+         --store=path=/mnt/ssd01,size=0.2 ----> 20% of available space        
+         --store=path=/mnt/ssd01,size=.2 ----> 20% of available space         
+                                                                              
+         Default: 100%                                                        
+                                                                              
+         For an in-memory store, the size field is required and must be set   
+         to the true maximum bytes or percentage of available memory, for     
+         example:                                                             
+                                                                              
+         --store=type=mem,size=20GB                                           
+         --store=type=mem,size=90%                                            
+                                                                              
+         Note: If you use the % notation, you might need to escape the %      
+         sign, for instance, while configuring CockroachDB through systemd    
+         service files. For this reason, it's recommended to use the decimal  
+         notation instead.                                                    
+
+  Logging
+
+   By default, cockroach start-single-node writes all messages to log files,
+   and prints nothing to stderr. However, you can control the process's
+   logging behavior with the following flags:
+
+   Flag                 Description                                           
+                        Enable logging to files and write logs to the         
+                        specified directory.                                  
+   --log-dir                                                                  
+                        Setting --log-dir to a blank directory (--log-dir="") 
+                        disables logging to files.                            
+                        After the log directory reaches the specified size,   
+                        delete the oldest log file. The flag's argument takes 
+   --log-dir-max-size   standard file sizes, such as --log-dir-max-size=1GiB. 
+                                                                              
+                        Default: 100MiB                                       
+                        After logs reach the specified size, begin writing    
+                        logs to a new file. The flag's argument takes         
+   --log-file-max-size  standard file sizes, such as                          
+                        --log-file-max-size=2MiB.                             
+                                                                              
+                        Default: 10MiB                                        
+                        Only writes messages to log files if they are at or   
+                        above the specified severity level, such as           
+   --log-file-verbosity --log-file-verbosity=WARNING. Requires logging to     
+                        files.                                                
+                                                                              
+                        Default: INFO                                         
+                        Enable logging to stderr for messages at or above the 
+                        specified severity level, such as --logtostderr=ERROR 
+                                                                              
+                        If you use this flag without specifying the severity  
+   --logtostderr        level (e.g., cockroach start --logtostderr), it       
+                        prints messages of all severities to stderr.          
+                                                                              
+                        Setting --logtostderr=NONE disables logging to        
+                        stderr.                                               
+                        Do not colorize stderr. Possible values: true or      
+                        false.                                                
+                                                                              
+   --no-color           When set to false, messages logged to stderr are      
+                        colorized based on severity level.                    
+                                                                              
+                        Default: false                                        
+                        New in v2.0: If non-empty, create a SQL audit log in  
+                        this directory. By default, SQL audit logs are        
+   --sql-audit-dir      written in the same directory as the other logs       
+                        generated by CockroachDB. For more information, see   
+                        SQL Audit Logging.                                    
+
+    Defaults
+
+   cockroach start-single-node uses the equivalent values for these logging
+   flags by default:
+
+     * --log-dir=<first store dir>/logs
+     * --logtostderr=NONE
+
+   This means, by default, CockroachDB writes all messages to log files, and
+   never prints to stderr.
+
+Standard output
+
+   When you run cockroach start-single-node, some helpful details are printed
+   to the standard output:
+
+ CockroachDB node starting at 2020-07-22 11:01:26.34274101 +0000 UTC
+ build:               CCL v20.2.0-alpha.2 @ 2020/07/22 11:00:26 (go1.13.4) (go1.12.6)
+ webui:               http://localhost:8080
+ sql:                 postgresql://root@localhost:26257?sslmode=disable
+ RPC client flags:    cockroach <client cmd> --host=localhost:26257 --insecure
+ logs:                /Users/<username>/node1/logs
+ temp dir:            /Users/<username>/node1/cockroach-temp242232154
+ external I/O path:   /Users/<username>/node1/extern
+ store[0]:            path=/Users/<username>/node1
+ status:              initialized new cluster
+ clusterID:           8a681a16-9623-4fc1-a537-77e9255daafd
+ nodeID:              1
+
+   Tip:
+
+   These details are also written to the INFO log in the /logs directory. You
+   can retrieve them with a command like grep 'node starting'
+   node1/logs/cockroach.log -A 11.
+
+   Field             Description                                              
+   build             The version of CockroachDB you are running.              
+   webui             The URL for accessing the Admin UI.                      
+   sql               The connection URL for your client.                      
+   RPC client flags  The flags to use when connecting to the node via         
+                     cockroach client commands.                               
+   logs              The directory containing debug log data.                 
+   temp dir          The temporary store directory of the node.               
+                     The external IO directory with which the local file      
+   external I/O path access paths are prefixed while performing backup and    
+                     restore operations using local node directories or NFS   
+                     drives.                                                  
+                     If node-level attributes were specified in the --attrs   
+   attrs             flag, they are listed in this field. These details are   
+                     potentially useful for configuring replication zones.    
+                     If values describing the locality of the node were       
+   locality          specified in the --locality field, they are listed in    
+                     this field. These details are potentially useful for     
+                     configuring replication zones.                           
+                     The directory containing store data, where [n] is the    
+                     index of the store, e.g., store[0] for the first store,  
+                     store[1] for the second store.                           
+   store[n]                                                                   
+                     If store-level attributes were specified in the attrs    
+                     field of the --store flag, they are listed in this field 
+                     as well. These details are potentially useful for        
+                     configuring replication zones.                           
+                     Whether the node is the first in the cluster             
+                     (initialized new cluster), joined an existing cluster    
+   status            for the first time (initialized new node, joined         
+                     pre-existing cluster), or rejoined an existing cluster   
+                     (restarted pre-existing node).                           
+                     The ID of the cluster.                                   
+                                                                              
+                     When trying to join a node to an existing cluster, if    
+   clusterID         this ID is different than the ID of the existing         
+                     cluster, the node has started a new cluster. This may be 
+                     due to conflicting information in the node's data        
+                     directory. For additional guidance, see the              
+                     troubleshooting docs.                                    
+   nodeID            The ID of the node.                                      
+                     If the --socket-dir flag specifies a directory on which  
+   socket            to listen for Unix domain socket connections, this field 
+                     lists the name of the socket file.                       
+
+Examples
+
+  Start a single-node cluster
+
+   Secure Insecure
+    1. Create two directories for certificates:
+
+       copy
+
+ $ mkdir certs my-safe-directory
+
+       Directory         Description                                          
+       certs             You'll generate your CA certificate and all node and 
+                         client certificates and keys in this directory.      
+                         You'll generate your CA key in this directory and    
+       my-safe-directory then reference the key when generating node and      
+                         client certificates.                                 
+
+    2. Create the CA (Certificate Authority) certificate and key pair:
+
+       copy
+
+ $ cockroach cert create-ca \
+ --certs-dir=certs \
+ --ca-key=my-safe-directory/ca.key
+
+    3. Create the certificate and key pair for the node:
+
+       copy
+
+ $ cockroach cert create-node \
+ localhost \
+ $(hostname) \
+ --certs-dir=certs \
+ --ca-key=my-safe-directory/ca.key
+
+    4. Create a client certificate and key pair for the root user:
+
+       copy
+
+ $ cockroach cert create-client \
+ root \
+ --certs-dir=certs \
+ --ca-key=my-safe-directory/ca.key
+
+    5. Start the single-node cluster:
+
+       copy
+
+ $ cockroach start-single-node \
+ --certs-dir=certs \
+ --listen-addr=localhost:26257 \
+ --http-addr=localhost:8080 \
+ --background
+
+   copy
+
+ $ cockroach start-single-node \
+ --insecure \
+ --listen-addr=localhost:26257 \
+ --http-addr=localhost:8080 \
+ --background
+
+  Scale to multiple nodes
+
+   Scaling a cluster started with cockroach start-single-node involves
+   restarting the first node with the cockroach start command instead, and
+   then adding new nodes with that command as well, all using a --join flag
+   that forms them into a single multi-node cluster. Since replication is
+   disabled in clusters started with start-single-node, you also need to
+   enable replication to get CockroachDB's availability and consistency
+   guarantees.
+
+   Secure Insecure
+    1. Stop the single-node cluster:
+
+       copy
+
+ $ cockroach quit \
+ --certs-dir=certs \
+ --host=localhost:26257
+
+    2. Restart the node with the cockroach start command:
+
+       copy
+
+ $ cockroach start \
+ --certs-dir=certs \
+ --listen-addr=localhost:26257 \
+ --http-addr=localhost:8080 \
+ --join=localhost:26257,localhost:26258,localhost:26259 \
+ --background
+
+       The new flag to note is --join, which specifies the addresses and
+       ports of the nodes that will comprise your cluster. You'll use this
+       exact --join flag when starting other nodes as well.
+
+    3. Add two more nodes:
+
+       copy
+
+ $ cockroach start \
+ --certs-dir=certs \
+ --store=node2 \
+ --listen-addr=localhost:26258 \
+ --http-addr=localhost:8081 \
+ --join=localhost:26257,localhost:26258,localhost:26259 \
+ --background
+
+       copy
+
+ $ cockroach start \
+ --certs-dir=certs \
+ --store=node3 \
+ --listen-addr=localhost:26259 \
+ --http-addr=localhost:8082 \
+ --join=localhost:26257,localhost:26258,localhost:26259 \
+ --background
+
+       These commands are the same as before but with unique --store,
+       --listen-addr, and --http-addr flags, since this all nodes are running
+       on the same machine. Also, since all nodes use the same hostname
+       (localhost), you can use the first node's certificate. Note that this
+       is different than running a production cluster, where you would need
+       to generate a certificate and key for each node, issued to all common
+       names and IP addresses you might use to refer to the node as well as
+       to any load balancer instances.
+
+    4. Open the built-in SQL shell:
+
+       copy
+
+ $ cockroach sql --certs-dir=certs --host=localhost:26257
+
+    5. Update preconfigured replication zones to replicate user data 3 times
+       and import internal data 5 times:
+
+       copy
+
+ > ALTER RANGE default CONFIGURE ZONE USING num_replicas = 3;
+
+       copy
+
+ > ALTER RANGE system CONFIGURE ZONE USING num_replicas = 5;
+
+       copy
+
+ > ALTER database system CONFIGURE ZONE USING num_replicas = 5;
+
+       copy
+
+ > ALTER RANGE liveness CONFIGURE ZONE USING num_replicas = 5;
+
+       copy
+
+ > ALTER RANGE meta CONFIGURE ZONE USING num_replicas = 5;
+
+       copy
+
+ > ALTER TABLE system.public.jobs CONFIGURE ZONE USING num_replicas = 5;
+
+       copy
+
+ > ALTER TABLE system.public.replication_constraint_stats CONFIGURE ZONE USING num_replicas = 5;
+
+       copy
+
+ > ALTER TABLE system.public.replication_stats CONFIGURE ZONE USING num_replicas = 5;
+
+    1. Stop the single-node cluster:
+
+       copy
+
+ $ cockroach quit \
+ --insecure \
+ --host=localhost:26257
+
+    2. Restart the node with the cockroach start command:
+
+       copy
+
+ $ cockroach start \
+ --insecure \
+ --listen-addr=localhost:26257 \
+ --http-addr=localhost:8080 \
+ --join=localhost:26257,localhost:26258,localhost:26259 \
+ --background
+
+       The new flag to note is --join, which specifies the addresses and
+       ports of the nodes that will comprise your cluster. You'll use this
+       exact --join flag when starting other nodes as well.
+
+    3. Add two more nodes:
+
+       copy
+
+ $ cockroach start \
+ --insecure \
+ --store=node2 \
+ --listen-addr=localhost:26258 \
+ --http-addr=localhost:8081 \
+ --join=localhost:26257,localhost:26258,localhost:26259 \
+ --background
+
+       copy
+
+ $ cockroach start \
+ --insecure \
+ --store=node3 \
+ --listen-addr=localhost:26259 \
+ --http-addr=localhost:8082 \
+ --join=localhost:26257,localhost:26258,localhost:26259 \
+ --background
+
+       These commands are the same as before but with unique --store,
+       --listen-addr, and --http-addr flags, since this all nodes are running
+       on the same machine.
+
+    4. Open the built-in SQL shell:
+
+       copy
+
+ $ cockroach sql --insecure --host=localhost:26257
+
+    5. Update preconfigured replication zones to replicate user data 3 times
+       and import internal data 5 times:
+
+       copy
+
+ > ALTER RANGE default CONFIGURE ZONE USING num_replicas = 3;
+
+       copy
+
+ > ALTER RANGE system CONFIGURE ZONE USING num_replicas = 5;
+
+       copy
+
+ > ALTER database system CONFIGURE ZONE USING num_replicas = 5;
+
+       copy
+
+ > ALTER RANGE liveness CONFIGURE ZONE USING num_replicas = 5;
+
+       copy
+
+ > ALTER RANGE meta CONFIGURE ZONE USING num_replicas = 5;
+
+       copy
+
+ > ALTER TABLE system.public.jobs CONFIGURE ZONE USING num_replicas = 5;
+
+       copy
+
+ > ALTER TABLE system.public.replication_constraint_stats CONFIGURE ZONE USING num_replicas = 5;
+
+       copy
+
+ > ALTER TABLE system.public.replication_stats CONFIGURE ZONE USING num_replicas = 5;
+
+See also
+
+     * Running a local multi-node cluster:
+          * From Binary
+          * In Kubernetes
+          * In Docker
+     * Running a distributed multi-node cluster:
+          * From Binary
+          * In Kubernetes
+     * Other Cockroach Commands
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

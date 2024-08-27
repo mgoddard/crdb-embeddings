@@ -1,0 +1,143 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                 SHOW LOCALITY
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The SHOW LOCALITY statement returns the locality of the current node.
+
+   If locality was not specified on node startup, the statement returns an
+   empty row.
+
+Required privileges
+
+   No privileges are required to list the locality of the current node.
+
+Synopsis
+
+   SHOW LOCALITY
+
+Example
+
+  Setup
+
+   The following example uses MovR, a fictional vehicle-sharing application,
+   to demonstrate CockroachDB SQL statements. For more information about the
+   MovR example application and dataset, see MovR: A Global Vehicle-sharing
+   App.
+
+   To follow along, run cockroach demo movr with the --nodes and
+   --demo-locality tags. This command opens an interactive SQL shell to a
+   temporary, multi-node in-memory cluster with the movr database preloaded
+   and set as the current database.
+
+   copy
+
+ $ cockroach demo movr --nodes=3 --demo-locality=region=us-east,az=a:region=us-central,az=b:region=us-west1,az=c
+
+  Show locality
+
+   copy
+
+ > SHOW LOCALITY;
+
+        locality
+ +---------------------+
+   region=us-east,az=a
+ (1 row)
+
+  Show locality with a built-in function
+
+   If you know the locality key, you can use the crdb_internal.locality_value
+   built-in function to return the locality value for the current node:
+
+   copy
+
+ > SELECT * FROM crdb_internal.locality_value('region');
+
+   crdb_internal.locality_value
+ +------------------------------+
+   us-east
+ (1 row)
+
+   copy
+
+ > SELECT * FROM crdb_internal.locality_value('az');
+
+   crdb_internal.locality_value
+ +------------------------------+
+   a
+ (1 row)
+
+   For a more extensive example, see Create a table with node locality
+   information.
+
+See also
+
+     * Geo-Partitioning
+     * Locality
+     * Orchestrated Deployment
+     * Manual Deployment
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

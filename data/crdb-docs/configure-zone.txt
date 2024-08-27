@@ -1,0 +1,556 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                 CONFIGURE ZONE
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   CONFIGURE ZONE is a subcommand of the ALTER DATABASE, ALTER TABLE, ALTER
+   INDEX, ALTER PARTITION, and ALTER RANGE statements and is used to add,
+   modify, reset, or remove replication zones for those objects. To view
+   details about existing replication zones, see SHOW ZONE CONFIGURATIONS.
+
+   In CockroachDB, you can use replication zones to control the number and
+   location of replicas for specific sets of data, both when replicas are
+   first added and when they are rebalanced to maintain cluster equilibrium.
+
+   Note:
+
+   Adding replication zones for secondary indexes and partitions is an
+   enterprise-only feature.
+
+Synopsis
+
+   alter_zone_database_stmt ::=
+
+   ALTER DATABASE database_name CONFIGURE ZONE USING variable = COPY FROM
+   PARENT value , variable = value COPY FROM PARENT DISCARD
+
+   alter_zone_table_stmt ::=
+
+   ALTER TABLE table_name CONFIGURE ZONE USING variable = COPY FROM PARENT
+   value , variable = value COPY FROM PARENT DISCARD
+
+   alter_zone_index_stmt ::=
+
+   ALTER INDEX table_name @ index_name CONFIGURE ZONE USING variable = COPY
+   FROM PARENT value , variable = value COPY FROM PARENT DISCARD
+
+   alter_zone_partition_stmt ::=
+
+   ALTER PARTITION partition_name OF TABLE table_name INDEX table_name @
+   index_name * index_name CONFIGURE ZONE USING variable = COPY FROM PARENT
+   value , variable = value COPY FROM PARENT DISCARD
+
+   alter_zone_range_stmt ::=
+
+   ALTER RANGE range_name CONFIGURE ZONE USING variable = COPY FROM PARENT
+   value , variable = value COPY FROM PARENT DISCARD
+
+Required privileges
+
+   If the target is a system range, the system database, or a table in the
+   system database, the user must be an admin. For all other databases and
+   tables, the user must have the CREATE privilege on the target database or
+   table.
+
+Parameters
+
+   Parameter      Description                                                 
+   range_name     The name of the system range for which to show replication  
+                  zone configurations.                                        
+   database_name  The name of the database for which to show replication zone 
+                  configurations.                                             
+   table_name     The name of the table for which to show replication zone    
+                  configurations.                                             
+   partition_name The name of the partition for which to show replication     
+                  zone configurations.                                        
+   index_name     The name of the index for which to show replication zone    
+                  configurations.                                             
+   variable       The name of the variable to change.                         
+   value          The value of the variable to change.                        
+   DISCARD        Remove a replication zone.                                  
+
+  Variables
+
+   Variable          Description                                              
+                     The minimum size, in bytes, for a range of data in the   
+                     zone. When a range is less than this size, CockroachDB   
+   range_min_bytes   will merge it with an adjacent range.                    
+                                                                              
+                     Default: 134217728 (128 MiB)                             
+                     The maximum size, in bytes, for a range of data in the   
+                     zone. When a range reaches this size, CockroachDB will   
+   range_max_bytes   spit it into two ranges.                                 
+                                                                              
+                     Default: 536870912 (512 MiB)                             
+                     The number of seconds overwritten values will be         
+                     retained before garbage collection. Smaller values can   
+                     save disk space if values are frequently overwritten;    
+                     larger values increase the range allowed for AS OF       
+                     SYSTEM TIME queries, also know as Time Travel Queries.   
+                                                                              
+                     It is not recommended to set this below 600 (10          
+   gc.ttlseconds     minutes); doing so will cause problems for long-running  
+                     queries. Also, since all versions of a row are stored in 
+                     a single range that never splits, it is not recommended  
+                     to set this so high that all the changes to a row in     
+                     that time period could add up to more than 512 MiB; such 
+                     oversized ranges could contribute to the server running  
+                     out of memory or other problems.                         
+                                                                              
+                     Default: 90000 (25 hours)                                
+                     The number of replicas in the zone.                      
+                                                                              
+   num_replicas      Default: 3                                               
+                                                                              
+                     For the system database and .meta, .liveness, and        
+                     .system ranges, the default value is 5.                  
+                     An array of required (+) and/or prohibited (-)           
+                     constraints influencing the location of replicas. See    
+                     Types of Constraints and Scope of Constraints for more   
+                     details.                                                 
+                                                                              
+                     To prevent hard-to-detect typos, constraints placed on   
+   constraints       store attributes and node localities must match the      
+                     values passed to at least one node in the cluster. If    
+                     not, an error is signalled.                              
+                                                                              
+                     Default: No constraints, with CockroachDB locating each  
+                     replica on a unique node and attempting to spread        
+                     replicas evenly across localities.                       
+                     An ordered list of required and/or prohibited            
+                     constraints influencing the location of leaseholders.    
+                     Whether each constraint is required or prohibited is     
+                     expressed with a leading + or -, respectively. Note that 
+                     lease preference constraints do not have to be shared    
+                     with the constraints field. For example, it's valid for  
+                     your configuration to define a lease_preferences field   
+                     that does not reference any values from the constraints  
+                     field. It's also valid to define a lease_preferences     
+                     field with no constraints field at all.                  
+                                                                              
+                     If the first preference cannot be satisfied, CockroachDB 
+                     will attempt to satisfy the second preference, and so    
+                     on. If none of the preferences can be met, the lease     
+   lease_preferences will be placed using the default lease placement         
+                     algorithm, which is to base lease placement decisions on 
+                     how many leases each node already has, trying to make    
+                     all the nodes have around the same amount.               
+                                                                              
+                     Each value in the list can include multiple constraints. 
+                     For example, the list [[+zone=us-east-1b, +ssd],         
+                     [+zone=us-east-1a], [+zone=us-east-1c, +ssd]] means      
+                     "prefer nodes with an SSD in us-east-1b, then any nodes  
+                     in us-east-1a, then nodes in us-east-1c with an SSD."    
+                                                                              
+                     For a usage example, see Constrain leaseholders to       
+                     specific datacenters.                                    
+                                                                              
+                     Default: No lease location preferences are applied if    
+                     this field is not specified.                             
+
+   Note:
+
+   If a value is not set, new zone configurations will inherit their values
+   from their parent zone (e.g., a partition zone inherits from the table
+   zone), which is not necessarily default.
+
+   If a variable is set to COPY FROM PARENT (e.g., range_max_bytes = COPY
+   FROM PARENT), the variable will copy its value from its parent replication
+   zone. The COPY FROM PARENT value is a convenient shortcut to use so you do
+   not have to look up the parent's current value. For example, the
+   range_max_bytes and range_min_bytes variables must be set together, so
+   when editing one value, you can use COPY FROM PARENT for the other. Note
+   that if the variable in the parent replication zone is changed after the
+   child replication zone is copied, the change will not be reflected in the
+   child zone.
+
+Viewing schema changes
+
+   This schema change statement is registered as a job. You can view
+   long-running jobs with SHOW JOBS.
+
+Examples
+
+  Setup
+
+   The following examples use MovR, a fictional vehicle-sharing application,
+   to demonstrate CockroachDB SQL statements. For more information about the
+   MovR example application and dataset, see MovR: A Global Vehicle-sharing
+   App.
+
+   To follow along, run cockroach demo with the --geo-partitioned-replicas
+   flag. This command opens an interactive SQL shell to a temporary, 9-node
+   in-memory cluster with the Geo-Partitioned Replicas Topology applied to
+   the movr database.
+
+   copy
+
+ $ cockroach demo --geo-partitioned-replicas
+
+  Edit a replication zone
+
+   copy
+
+ > ALTER TABLE users CONFIGURE ZONE USING range_min_bytes = 0, range_max_bytes = 90000, gc.ttlseconds = 89999, num_replicas = 4;
+
+ CONFIGURE ZONE 1
+
+  Edit the default replication zone
+
+   To edit the default replication zone, use the ALTER RANGE ... CONFIGURE
+   ZONE statement to define the values you want to change (other values will
+   remain the same):
+
+   copy
+
+ > ALTER RANGE default CONFIGURE ZONE USING num_replicas = 5, gc.ttlseconds = 100000;
+
+ CONFIGURE ZONE 1
+
+   copy
+
+ > SHOW ZONE CONFIGURATION FOR RANGE default;
+
+      target     |              raw_config_sql
+ +---------------+------------------------------------------+
+   RANGE default | ALTER RANGE default CONFIGURE ZONE USING
+                 |     range_min_bytes = 134217728,
+                 |     range_max_bytes = 536870912,
+                 |     gc.ttlseconds = 100000,
+                 |     num_replicas = 5,
+                 |     constraints = '[]',
+                 |     lease_preferences = '[]'
+ (1 row)
+
+  Create a replication zone for a database
+
+   To control replication for a specific database, use the ALTER DATABASE ...
+   CONFIGURE ZONE statement to define the relevant values (other values will
+   be inherited from the parent zone):
+
+   copy
+
+ > ALTER DATABASE movr CONFIGURE ZONE USING num_replicas = 5, gc.ttlseconds = 100000;
+
+ CONFIGURE ZONE 1
+
+   copy
+
+ > SHOW ZONE CONFIGURATION FOR DATABASE movr;
+
+      target     |              raw_config_sql
+ +---------------+------------------------------------------+
+   DATABASE movr | ALTER DATABASE movr CONFIGURE ZONE USING
+                 |     range_min_bytes = 134217728,
+                 |     range_max_bytes = 536870912,
+                 |     gc.ttlseconds = 100000,
+                 |     num_replicas = 5,
+                 |     constraints = '[]',
+                 |     lease_preferences = '[]'
+ (1 row)
+
+  Create a replication zone for a table
+
+   To control replication for a specific table, use the ALTER TABLE ...
+   CONFIGURE ZONE statement to define the relevant values (other values will
+   be inherited from the parent zone):
+
+   copy
+
+ > ALTER TABLE users CONFIGURE ZONE USING num_replicas = 5, gc.ttlseconds = 100000;
+
+ CONFIGURE ZONE 1
+
+   copy
+
+ > SHOW ZONE CONFIGURATION FOR TABLE users;
+
+     target    |             raw_config_sql
+ +-------------+----------------------------------------+
+   TABLE users | ALTER TABLE users CONFIGURE ZONE USING
+               |     range_min_bytes = 134217728,
+               |     range_max_bytes = 536870912,
+               |     gc.ttlseconds = 100000,
+               |     num_replicas = 5,
+               |     constraints = '[]',
+               |     lease_preferences = '[]'
+ (1 row)
+
+  Create a replication zone for a secondary index
+
+   Tip:
+
+   The Cost-based Optimizer can take advantage of replication zones for
+   secondary indexes when optimizing queries. For more information, see
+   Cost-based optimizer - preferring the nearest index.
+
+   Note:
+
+   This is an enterprise-only feature.
+
+   The secondary indexes on a table will automatically use the replication
+   zone for the table. However, with an enterprise license, you can add
+   distinct replication zones for secondary indexes.
+
+   To control replication for a specific secondary index, use the ALTER INDEX
+   ... CONFIGURE ZONE statement to define the relevant values (other values
+   will be inherited from the parent zone).
+
+   Tip:
+
+   To get the name of a secondary index, which you need for the CONFIGURE
+   ZONE statement, use the SHOW INDEX or SHOW CREATE TABLE statements.
+
+   copy
+
+ > ALTER INDEX vehicles@vehicles_auto_index_fk_city_ref_users CONFIGURE ZONE USING num_replicas = 5, gc.ttlseconds = 100000;
+
+ CONFIGURE ZONE 1
+
+   copy
+
+ > SHOW ZONE CONFIGURATION FOR INDEX vehicles@vehicles_auto_index_fk_city_ref_users;
+
+                          target                        |                                 raw_config_sql
+ +------------------------------------------------------+---------------------------------------------------------------------------------+
+   INDEX vehicles@vehicles_auto_index_fk_city_ref_users | ALTER INDEX vehicles@vehicles_auto_index_fk_city_ref_users CONFIGURE ZONE USING
+                                                        |     range_min_bytes = 134217728,
+                                                        |     range_max_bytes = 536870912,
+                                                        |     gc.ttlseconds = 100000,
+                                                        |     num_replicas = 5,
+                                                        |     constraints = '[]',
+                                                        |     lease_preferences = '[]'
+ (1 row)
+
+  Create a replication zone for a partition
+
+   Note:
+
+   This is an enterprise-only feature.
+
+   Once partitions have been defined for a table or a secondary index, to
+   control replication for a partition, use ALTER PARTITION <partition> OF
+   INDEX <table@index> CONFIGURE ZONE:
+
+   copy
+
+ > ALTER PARTITION us_west OF INDEX vehicles@primary
+     CONFIGURE ZONE USING
+       num_replicas = 5,
+       constraints = '[+region=us-west1]';
+
+ CONFIGURE ZONE 1
+
+   copy
+
+ > ALTER PARTITION us_west OF INDEX vehicles@vehicles_auto_index_fk_city_ref_users
+     CONFIGURE ZONE USING
+       num_replicas = 5,
+       constraints = '[+region=us-west1]';
+
+ CONFIGURE ZONE 1
+
+   To define replication zones for identically named partitions of a table
+   and its secondary indexes, you can use the <table>@* syntax to save
+   several steps:
+
+   copy
+
+ > ALTER PARTITION us_west OF INDEX vehicles@*
+     CONFIGURE ZONE USING
+       num_replicas = 5,
+       constraints = '[+region=us-west1]';
+
+   To view the zone configuration for a partition, use SHOW ZONE
+   CONFIGURATION FOR PARTITION <partition> OF INDEX <table@index>:
+
+   copy
+
+ > SHOW ZONE CONFIGURATION FOR PARTITION us_west OF INDEX vehicles@primary;
+
+                     target                    |                             raw_config_sql
+ +---------------------------------------------+------------------------------------------------------------------------+
+   PARTITION us_west OF INDEX vehicles@primary | ALTER PARTITION us_west OF INDEX vehicles@primary CONFIGURE ZONE USING
+                                               |     range_min_bytes = 134217728,
+                                               |     range_max_bytes = 536870912,
+                                               |     gc.ttlseconds = 90000,
+                                               |     num_replicas = 5,
+                                               |     constraints = '[+region=us-west1]',
+                                               |     lease_preferences = '[]'
+ (1 row)
+
+   Tip:
+
+   You can also use the SHOW CREATE TABLE statement or SHOW PARTITIONS
+   statements to view details about all of the replication zones defined for
+   the partitions of a table and its secondary indexes.
+
+  Create a replication zone for a system range
+
+   In addition to the databases and tables that are visible via the SQL
+   interface, CockroachDB stores internal data in what are called system
+   ranges. CockroachDB comes with pre-configured replication zones for some
+   of these ranges:
+
+   Target Name Description                                                    
+               The "meta" ranges contain the authoritative information about  
+               the location of all data in the cluster.                       
+                                                                              
+               These ranges must retain a majority of replicas for the        
+               cluster as a whole to remain available and historical queries  
+               are never run on them, so CockroachDB comes with a             
+   meta        pre-configured meta replication zone with num_replicas set to  
+               5 to make these ranges more resilient to node failure and a    
+               lower-than-default gc.ttlseconds to keep these ranges smaller  
+               for reliable performance.                                      
+                                                                              
+               If your cluster is running in multiple datacenters, it's a     
+               best practice to configure the meta ranges to have a copy in   
+               each datacenter.                                               
+               The "liveness" range contains the authoritative information    
+               about which nodes are live at any given time.                  
+                                                                              
+               These ranges must retain a majority of replicas for the        
+   liveness    cluster as a whole to remain available and historical queries  
+               are never run on them, so CockroachDB comes with a             
+               pre-configured liveness replication zone with num_replicas set 
+               to 5 to make these ranges more resilient to node failure and a 
+               lower-than-default gc.ttlseconds to keep these ranges smaller  
+               for reliable performance.                                      
+               There are system ranges for a variety of other important       
+               internal data, including information needed to allocate new    
+               table IDs and track the status of a cluster's nodes.           
+                                                                              
+   system      These ranges must retain a majority of replicas for the        
+               cluster as a whole to remain available, so CockroachDB comes   
+               with a pre-configured system replication zone with             
+               num_replicas set to 5 to make these ranges more resilient to   
+               node failure.                                                  
+               The "timeseries" ranges contain monitoring data about the      
+   timeseries  cluster that powers the graphs in CockroachDB's Admin UI. If   
+               necessary, you can add a timeseries replication zone to        
+               control the replication of this data.                          
+
+   Warning:
+
+   Use caution when editing replication zones for system ranges, as they
+   could cause some (or all) parts of your cluster to stop working.
+
+   To control replication for one of the above sets of system ranges, use the
+   ALTER RANGE ... CONFIGURE ZONE statement to define the relevant values
+   (other values will be inherited from the parent zone):
+
+   copy
+
+ > ALTER RANGE meta CONFIGURE ZONE USING num_replicas = 7;
+
+ CONFIGURE ZONE 1
+
+   copy
+
+ > SHOW ZONE CONFIGURATION FOR RANGE meta;
+
+     target   |            raw_config_sql
+ +------------+---------------------------------------+
+   RANGE meta | ALTER RANGE meta CONFIGURE ZONE USING
+              |     range_min_bytes = 134217728,
+              |     range_max_bytes = 536870912,
+              |     gc.ttlseconds = 3600,
+              |     num_replicas = 7,
+              |     constraints = '[]',
+              |     lease_preferences = '[]'
+ (1 row)
+
+  Reset a replication zone
+
+   copy
+
+ > ALTER TABLE t CONFIGURE ZONE USING DEFAULT;
+
+ CONFIGURE ZONE 1
+
+  Remove a replication zone
+
+   copy
+
+ > ALTER TABLE t CONFIGURE ZONE DISCARD;
+
+ CONFIGURE ZONE 1
+
+See also
+
+     * Configure Replication Zones
+     * PARTITION BY
+     * SHOW ZONE CONFIGURATIONS
+     * ALTER DATABASE
+     * ALTER TABLE
+     * ALTER INDEX
+     * ALTER PARTITION
+     * ALTER RANGE
+     * SHOW JOBS
+     * Table Partitioning
+     * Other SQL Statements
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

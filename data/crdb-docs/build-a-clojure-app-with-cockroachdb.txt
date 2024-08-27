@@ -1,0 +1,535 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+               Build a Clojure App with CockroachDB and java.jdbc
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   This tutorial shows you how build a simple Clojure application with
+   CockroachDB using leiningen and the Closure java.jdbc driver.
+
+   We have tested the Clojure java.jdbc driver in conjunction with the
+   PostgreSQL JDBC driver enough to claim beta-level support. If you
+   encounter problems, please open an issue with details to help us make
+   progress toward full support.
+
+Before you begin
+
+    1. Install CockroachDB.
+    2. Start up a secure or insecure local cluster.
+    3. Choose the instructions that correspond to whether your cluster is
+       secure or insecure:
+   Secure Insecure
+
+Step 1. Install leiningen
+
+   Install the Clojure lein utility as described in its official
+   documentation.
+
+Step 2. Create the maxroach user and bank database
+
+   Start the built-in SQL shell:
+
+   copy
+
+ $ cockroach sql --certs-dir=certs
+
+   In the SQL shell, issue the following statements to create the maxroach
+   user and bank database:
+
+   copy
+
+ > CREATE USER IF NOT EXISTS maxroach;
+
+   copy
+
+ > CREATE DATABASE bank;
+
+   Give the maxroach user the necessary permissions:
+
+   copy
+
+ > GRANT ALL ON DATABASE bank TO maxroach;
+
+   Exit the SQL shell:
+
+   copy
+
+ > \q
+
+Step 3. Generate a certificate for the maxroach user
+
+   Create a certificate and key for the maxroach user by running the
+   following command. The code samples will run as this user.
+
+   New in v19.1: Pass the --also-generate-pkcs8-key flag to generate a key in
+   PKCS#8 format, which is the standard key encoding format in Java. In this
+   case, the generated PKCS8 key will be named client.maxroach.key.pk8.
+
+   copy
+
+ $ cockroach cert create-client maxroach --certs-dir=certs --ca-key=my-safe-directory/ca.key --also-generate-pkcs8-key
+
+Step 4. Create a table in the new database
+
+   As the maxroach user, use the built-in SQL client to create an accounts
+   table in the new database.
+
+   copy
+
+ $ cockroach sql \
+ --certs-dir=certs \
+ --database=bank \
+ --user=maxroach \
+ -e 'CREATE TABLE accounts (id INT PRIMARY KEY, balance INT)'
+
+Step 5. Run the Clojure code
+
+   Now that you have a database and a user, you'll run code to create a table
+   and insert some rows, and then you'll run code to read and update values
+   as an atomic transaction.
+
+  Create a basic Clojure/JDBC project
+
+    1. Create a new directory myapp.
+    2. Create a file myapp/project.clj and populate it with the following
+       code, or download it directly.
+
+       copy
+
+ (defproject test "0.1"
+ :description "CockroachDB test"
+ :url "http://cockroachlabs.com/"
+ :dependencies [[org.clojure/clojure "1.8.0"]
+              [org.clojure/java.jdbc "0.6.1"]
+              [org.postgresql/postgresql "9.4.1211"]]
+ :main test.test)
+
+
+    3. Create a file myapp/src/test/util.clj and populate it with the code
+       from this file. Be sure to place the file in the subdirectory src/test
+       in your project.
+
+  Basic statements
+
+   First, use the following code to connect as the maxroach user and execute
+   some basic SQL statements, inserting rows and reading and printing the
+   rows.
+
+   Create a file myapp/src/test/test.clj and copy the code below to it, or
+   download it directly. Be sure to rename this file to test.clj in the
+   subdirectory src/test in your project.
+
+   copy
+
+ (ns test.test
+   (:require [clojure.java.jdbc :as j]
+             [test.util :as util]))
+
+ ;; Define the connection parameters to the cluster.
+ (def db-spec {:dbtype "postgresql"
+               :dbname "bank"
+               :host "localhost"
+               :port "26257"
+               :ssl true
+               :sslmode "require"
+               :sslcert "certs/client.maxroach.crt"
+               :sslkey "certs/client.maxroach.key.pk8"
+               :user "maxroach"})
+
+ (defn test-basic []
+   ;; Connect to the cluster and run the code below with
+   ;; the connection object bound to 'conn'.
+   (j/with-db-connection [conn db-spec]
+
+     ;; Insert two rows into the "accounts" table.
+     (j/insert! conn :accounts {:id 1 :balance 1000})
+     (j/insert! conn :accounts {:id 2 :balance 250})
+
+     ;; Print out the balances.
+     (println "Initial balances:")
+     (->> (j/query conn ["SELECT id, balance FROM accounts"])
+          (map println)
+          doall)
+
+     ))
+
+
+ (defn -main [& args]
+   (test-basic))
+
+
+   Run with:
+
+   copy
+
+ $ lein run
+
+  Transaction (with retry logic)
+
+   Next, use the following code to again connect as the maxroach user but
+   this time execute a batch of statements as an atomic transaction to
+   transfer funds from one account to another, where all included statements
+   are either committed or aborted.
+
+   Copy the code below to myapp/src/test/test.clj or download it directly.
+   Again, preserve the file name test.clj.
+
+   Note:
+
+   CockroachDB may require the client to retry a transaction in case of
+   read/write contention. CockroachDB provides a generic retry function that
+   runs inside a transaction and retries it as needed. You can copy and paste
+   the retry function from here into your code.
+
+   copy
+
+ (ns test.test
+   (:require [clojure.java.jdbc :as j]
+             [test.util :as util]))
+
+ ;; Define the connection parameters to the cluster.
+ (def db-spec {:dbtype "postgresql"
+               :dbname "bank"
+               :host "localhost"
+               :port "26257"
+               :ssl true
+               :sslmode "require"
+               :sslcert "certs/client.maxroach.crt"
+               :sslkey "certs/client.maxroach.key.pk8"
+               :user "maxroach"})
+
+ ;; The transaction we want to run.
+ (defn transferFunds
+   [txn from to amount]
+
+   ;; Check the current balance.
+   (let [fromBalance (->> (j/query txn ["SELECT balance FROM accounts WHERE id = ?" from])
+                          (mapv :balance)
+                          (first))]
+     (when (< fromBalance amount)
+       (throw (Exception. "Insufficient funds"))))
+
+   ;; Perform the transfer.
+   (j/execute! txn [(str "UPDATE accounts SET balance = balance - " amount " WHERE id = " from)])
+   (j/execute! txn [(str "UPDATE accounts SET balance = balance + " amount " WHERE id = " to)]))
+
+ (defn test-txn []
+   ;; Connect to the cluster and run the code below with
+   ;; the connection object bound to 'conn'.
+   (j/with-db-connection [conn db-spec]
+
+     ;; Execute the transaction within an automatic retry block;
+     ;; the transaction object is bound to 'txn'.
+     (util/with-txn-retry [txn conn]
+       (transferFunds txn 1 2 100))
+
+     ;; Execute a query outside of an automatic retry block.
+     (println "Balances after transfer:")
+     (->> (j/query conn ["SELECT id, balance FROM accounts"])
+          (map println)
+          (doall))))
+
+ (defn -main [& args]
+   (test-txn))
+
+
+   Run with:
+
+   copy
+
+ $ lein run
+
+   After running the code, use the built-in SQL client to verify that funds
+   were transferred from one account to another:
+
+   copy
+
+ $ cockroach sql --certs-dir=certs -e 'SELECT id, balance FROM accounts' --database=bank
+
+ id | balance
+ +----+---------+
+  1 |     900
+  2 |     350
+ (2 rows)
+
+Step 2. Create the maxroach user and bank database
+
+   Start the built-in SQL shell:
+
+   copy
+
+ $ cockroach sql --insecure
+
+   In the SQL shell, issue the following statements to create the maxroach
+   user and bank database:
+
+   copy
+
+ > CREATE USER IF NOT EXISTS maxroach;
+
+   copy
+
+ > CREATE DATABASE bank;
+
+   Give the maxroach user the necessary permissions:
+
+   copy
+
+ > GRANT ALL ON DATABASE bank TO maxroach;
+
+   Exit the SQL shell:
+
+   copy
+
+ > \q
+
+Step 3. Create a table in the new database
+
+   As the maxroach user, use the built-in SQL client to create an accounts
+   table in the new database.
+
+   copy
+
+ $ cockroach sql --insecure \
+ --database=bank \
+ --user=maxroach \
+ -e 'CREATE TABLE accounts (id INT PRIMARY KEY, balance INT)'
+
+Step 4. Run the Clojure code
+
+   Now that you have a database and a user, you'll run code to create a table
+   and insert some rows, and then you'll run code to read and update values
+   as an atomic transaction.
+
+  Create a basic Clojure/JDBC project
+
+    1. Create a new directory myapp.
+    2. Create a file myapp/project.clj and populate it with the following
+       code, or download it directly.
+
+       copy
+
+ (defproject test "0.1"
+ :description "CockroachDB test"
+ :url "http://cockroachlabs.com/"
+ :dependencies [[org.clojure/clojure "1.8.0"]
+              [org.clojure/java.jdbc "0.6.1"]
+              [org.postgresql/postgresql "9.4.1211"]]
+ :main test.test)
+
+
+    3. Create a file myapp/src/test/util.clj and populate it with the code
+       from this file. Be sure to place the file in the subdirectory src/test
+       in your project.
+
+  Basic statements
+
+   First, use the following code to connect as the maxroach user and execute
+   some basic SQL statements, inserting rows and reading and printing the
+   rows.
+
+   Create a file myapp/src/test/test.clj and copy the code below to it, or
+   download it directly. Be sure to rename this file to test.clj in the
+   subdirectory src/test in your project.
+
+   copy
+
+ (ns test.test
+   (:require [clojure.java.jdbc :as j]
+             [test.util :as util]))
+
+ ;; Define the connection parameters to the cluster.
+ (def db-spec {:dbtype "postgresql"
+               :dbname "bank"
+               :host "localhost"
+               :port "26257"
+               :user "maxroach"})
+
+ (defn test-basic []
+   ;; Connect to the cluster and run the code below with
+   ;; the connection object bound to 'conn'.
+   (j/with-db-connection [conn db-spec]
+
+     ;; Insert two rows into the "accounts" table.
+     (j/insert! conn :accounts {:id 1 :balance 1000})
+     (j/insert! conn :accounts {:id 2 :balance 250})
+
+     ;; Print out the balances.
+     (println "Initial balances:")
+     (->> (j/query conn ["SELECT id, balance FROM accounts"])
+          (map println)
+          doall)
+
+     ))
+
+
+ (defn -main [& args]
+   (test-basic))
+
+
+   Run with:
+
+   copy
+
+ $ lein run
+
+  Transaction (with retry logic)
+
+   Next, use the following code to again connect as the maxroach user but
+   this time execute a batch of statements as an atomic transaction to
+   transfer funds from one account to another, where all included statements
+   are either committed or aborted.
+
+   Copy the code below to myapp/src/test/test.clj or download it directly.
+   Again, preserve the file name test.clj.
+
+   Note:
+
+   CockroachDB may require the client to retry a transaction in case of
+   read/write contention. CockroachDB provides a generic retry function that
+   runs inside a transaction and retries it as needed. You can copy and paste
+   the retry function from here into your code.
+
+   copy
+
+ (ns test.test
+   (:require [clojure.java.jdbc :as j]
+             [test.util :as util]))
+
+ ;; Define the connection parameters to the cluster.
+ (def db-spec {:dbtype "postgresql"
+               :dbname "bank"
+               :host "localhost"
+               :port "26257"
+               :user "maxroach"})
+
+ ;; The transaction we want to run.
+ (defn transferFunds
+   [txn from to amount]
+
+   ;; Check the current balance.
+   (let [fromBalance (->> (j/query txn ["SELECT balance FROM accounts WHERE id = ?" from])
+                          (mapv :balance)
+                          (first))]
+     (when (< fromBalance amount)
+       (throw (Exception. "Insufficient funds"))))
+
+   ;; Perform the transfer.
+   (j/execute! txn [(str "UPDATE accounts SET balance = balance - " amount " WHERE id = " from)])
+   (j/execute! txn [(str "UPDATE accounts SET balance = balance + " amount " WHERE id = " to)]))
+
+ (defn test-txn []
+   ;; Connect to the cluster and run the code below with
+   ;; the connection object bound to 'conn'.
+   (j/with-db-connection [conn db-spec]
+
+     ;; Execute the transaction within an automatic retry block;
+     ;; the transaction object is bound to 'txn'.
+     (util/with-txn-retry [txn conn]
+       (transferFunds txn 1 2 100))
+
+     ;; Execute a query outside of an automatic retry block.
+     (println "Balances after transfer:")
+     (->> (j/query conn ["SELECT id, balance FROM accounts"])
+          (map println)
+          (doall))))
+
+ (defn -main [& args]
+   (test-txn))
+
+
+   Run with:
+
+   copy
+
+ $ lein run
+
+   After running the code, use the built-in SQL client to verify that funds
+   were transferred from one account to another:
+
+   copy
+
+ $ cockroach sql --insecure -e 'SELECT id, balance FROM accounts' --database=bank
+
+ id | balance
+ +----+---------+
+  1 |     900
+  2 |     350
+ (2 rows)
+
+What's next?
+
+   Read more about using the Clojure java.jdbc driver.
+
+   You might also be interested in the following pages:
+
+     * Client Connection Parameters
+     * Data Replication
+     * Fault Tolerance & Recovery
+     * Automatic Rebalancing
+     * Cross-Cloud Migration
+     * Follow-the-Workload
+     * Automated Operations
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

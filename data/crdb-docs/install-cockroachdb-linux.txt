@@ -1,0 +1,206 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                          Install CockroachDB on Linux
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+   Mac Linux Windows
+
+   See Release Notes for what's new in the latest release, v20.2.0-alpha.2.
+   To upgrade to this release from an older version, see Cluster Upgrade.
+
+Download the Binary
+
+   The CockroachDB binary for Linux requires glibc, libncurses, and tzdata,
+   which are found by default on nearly all Linux distributions, with Alpine
+   as the notable exception.
+
+    1. Download the CockroachDB archive for Linux, and extract the binary:
+
+       copy
+
+ $ wget -qO- https://binaries.cockroachdb.com/cockroach-v20.2.0-alpha.2.linux-amd64.tgz | tar  xvz
+
+    2. Copy the binary into your PATH so it's easy to execute cockroach
+       commands from any shell:
+
+       copy
+
+ cp -i cockroach-v20.2.0-alpha.2.linux-amd64/cockroach /usr/local/bin/
+
+       If you get a permissions error, prefix the command with sudo.
+
+    3. Keep up-to-date with CockroachDB releases and best practices:
+
+Use Kubernetes
+
+   To orchestrate CockroachDB using Kubernetes, either with configuration
+   files or the Helm package manager, use the following tutorials:
+
+     * Orchestrate CockroachDB Locally with Minikube
+     * Orchestrate CockroachDB in a Single Kubernetes Cluster
+     * Orchestrate CockroachDB Across Multiple Kubernetes Clusters
+
+Use Docker
+
+   Warning:
+   Running a stateful application like CockroachDB in Docker is more complex
+   and error-prone than most uses of Docker. Unless you are very experienced
+   with Docker, we recommend starting with a different installation and
+   deployment method.
+    1. Install Docker for Linux. Please carefully check that you meet all
+       prerequisites.
+
+    2. Confirm that the Docker daemon is running in the background:
+
+       copy
+
+ $ docker version
+
+       If you do not see the server listed, start the Docker daemon.
+
+       Note:
+       On Linux, Docker needs sudo privileges.
+    3. Pull the image for the v20.2.0-alpha.2 release of CockroachDB from
+       Docker Hub:
+
+       copy
+
+ $ sudo docker pull cockroachdb/cockroach-unstable:v20.2.0-alpha.2
+
+    4. Keep up-to-date with CockroachDB releases and best practices:
+
+Build from Source
+
+    1. Install the following prerequisites, as necessary:
+
+       C++ compiler Must support C++ 11. GCC prior to 6.0 does not work due   
+                    to this issue. On macOS, Xcode should suffice.            
+                    Version 1.13.5+ is required, but 1.14 and above is not    
+       Go           recommended. Older versions might work via make build     
+                    IGNORE_GOVERS=1.                                          
+       Bash         Versions 4+ are preferred, but later releases from the    
+                    3.x series are also known to work.                        
+       CMake        Versions 3.8+ are known to work.                          
+       Autoconf     Version 2.68 or higher is required.                       
+
+       A 64-bit system is strongly recommended. Building or running
+       CockroachDB on 32-bit systems has not been tested. You'll also need at
+       least 2GB of RAM. If you plan to run our test suite, you'll need
+       closer to 4GB of RAM.
+
+    2. Download the CockroachDB v20.2.0-alpha.2 source archive, and extract
+       the sources:
+
+       copy
+
+ $ wget -qO- https://binaries.cockroachdb.com/cockroach-v20.2.0-alpha.2.src.tgz | tar  xvz
+
+    3. In the extracted directory, run make build:
+
+       copy
+
+ cd cockroach-v20.2.0-alpha.2
+
+       copy
+
+ make build
+
+       The build process can take 10+ minutes, so please be patient.
+
+    4. Install the cockroach binary into /usr/local/bin/ so it's easy to
+       execute cockroach commands from any directory:
+
+       copy
+
+ make install
+
+       If you get a permissions error, prefix the command with sudo.
+
+       You can also execute the cockroach binary directly from its built
+       location, ./src/github.com/cockroachdb/cockroach/cockroach, but the
+       rest of the documentation assumes you have the binary on your PATH.
+
+    5. Keep up-to-date with CockroachDB releases and best practices:
+
+What's next?
+
+     * If you're just getting started with CockroachDB:
+          * Start a cluster locally and talk to it via the built-in SQL
+            client
+          * Learn more about CockroachDB SQL
+          * Build a simple application with CockroachDB using
+            Postgres-compatible client drivers and ORMs
+          * Explore core CockroachDB features like automatic replication,
+            rebalancing, and fault tolerance
+     * If you're ready to run CockroachDB in production:
+          * Review the Production Checklist
+          * Deploy CockroachDB manually or use an orchestration system like
+            Kubernetes
+   Note:
+   By default, each node of a CockroachDB cluster periodically shares
+   anonymous usage details with Cockroach Labs. For an explanation of the
+   details that get shared and how to opt-out of reporting, see Diagnostics
+   Reporting.
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

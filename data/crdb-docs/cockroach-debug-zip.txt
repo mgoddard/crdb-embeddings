@@ -1,0 +1,224 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                              cockroach debug zip
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The cockroach debug zip command connects to your cluster and gathers
+   information from each active node into a single file (inactive nodes are
+   not included):
+
+     * Log files
+     * Secondary log files (e.g., RocksDB logs, execution logs, slow query
+       logs)
+     * Cluster events
+     * Schema change events
+     * Node liveness
+     * Gossip data
+     * Stack traces
+     * Range lists
+     * A list of databases and tables
+     * Jobs
+     * Cluster Settings
+     * Metrics
+     * Alerts
+     * Heap profiles
+     * Problem ranges
+     * Sessions
+     * Queries
+     * Thread stack traces (Linux only)
+
+   Additionally, you can run the debug merge-logs command to merge the
+   collected logs in one file, making it easier to parse them to locate an
+   issue with your cluster.
+
+   Warning:
+
+   The file produced by cockroach debug zip can contain highly sensitive,
+   unanonymized information, such as usernames, hashed passwords, and
+   possibly your table's data. You should share this data only with Cockroach
+   Labs developers and only after determining the most secure method of
+   delivery.
+
+Details
+
+  Use cases
+
+   There are two scenarios in which debug zip is useful:
+
+     * To collect all of your nodes' logs, which you can then parse to locate
+       issues. It's important to note, though, that debug zip can only access
+       logs from active nodes. See more information on this page.
+
+     * If you experience severe or difficult-to-reproduce issues with your
+       cluster, Cockroach Labs might ask you to send us your cluster's
+       debugging information using cockroach debug zip.
+
+  Collecting log files
+
+   When you issue the debug zip command, the node that receives the request
+   connects to each other node in the cluster. Once it's connected, the node
+   requests the content of all log files stored on the node, the location of
+   which is determined by the --log-dir value when you started the node.
+
+   Because debug zip relies on CockroachDB's distributed architecture, this
+   means that nodes not currently connected to the cluster cannot respond to
+   the request, so their log files are not included. In such situations, we
+   recommend using the --host flag to point debug zip at individual nodes
+   until data has been gathered for the entire cluster.
+
+   After receiving the log files from all of the active nodes, the requesting
+   node aggregates the files and writes them to an archive file you specify.
+
+   You can locate logs in the unarchived file's debug/nodes/[node dir]/logs
+   directories.
+
+Subcommands
+
+   While the cockroach debug command has a few subcommands, users are
+   expected to use only the zip, encryption-active-key, merge-logs, and
+   ballast subcommands.
+
+   The other debug subcommands are useful only to CockroachDB's developers
+   and contributors.
+
+Synopsis
+
+ $ cockroach debug zip [ZIP file destination] [flags]
+
+   It's important to understand that the [flags] here are used to connect to
+   CockroachDB nodes. This means the values you use in those flags must
+   connect to an active node. If no nodes are live, you must start at least
+   one node.
+
+Flags
+
+   The debug zip subcommand supports the following general-use, client
+   connection, and logging flags.
+
+  General
+
+   Flag        Description                                                    
+               The path to the certificate directory. The directory must      
+               contain valid certificates if running in secure mode.          
+   --certs-dir                                                                
+               Env Variable: COCKROACH_CERTS_DIR                              
+               Default: ${HOME}/.cockroach-certs/                             
+               The server host to connect to. This can be the address of any  
+               node in the cluster.                                           
+   --host                                                                     
+               Env Variable: COCKROACH_HOST                                   
+               Default: localhost                                             
+               Run in insecure mode. If this flag is not set, the --certs-dir 
+               flag must point to valid certificates.                         
+   --insecure                                                                 
+               Env Variable: COCKROACH_INSECURE                               
+               Default: false                                                 
+               The server port to connect to.                                 
+   --port                                                                     
+   -p          Env Variable: COCKROACH_PORT                                   
+               Default: 26257                                                 
+
+  Client connection
+
+   Flag  Description                                             
+         A connection URL to use instead of the other arguments. 
+   --url                                                         
+         Env Variable: COCKROACH_URL                             
+         Default: no URL                                         
+
+  Logging
+
+   By default, the debug zip command logs errors it experiences to stderr.
+   Note that these are errors executing debug zip; these are not errors that
+   the logs collected by debug zip contain.
+
+   If you need to troubleshoot this command's behavior, you can also change
+   its logging behavior.
+
+Examples
+
+  Generate a debug zip file
+
+   copy
+
+ # Generate the debug zip file for an insecure cluster:
+ $ cockroach debug zip ./cockroach-data/logs/debug.zip --insecure --host=200.100.50.25
+
+   copy
+
+ # Generate the debug zip file for a secure cluster:
+ $ cockroach debug zip ./cockroach-data/logs/debug.zip --host=200.100.50.25
+
+   Note:
+   Secure examples assume you have the appropriate certificates in the
+   default certificate directory, ${HOME}/.cockroach-certs/.
+
+See also
+
+     * File an Issue
+     * Other Cockroach Commands
+     * Troubleshooting Overview
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

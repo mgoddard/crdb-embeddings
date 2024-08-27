@@ -1,0 +1,314 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                  CREATE USER
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The CREATE USER statement creates SQL users, which let you control
+   privileges on your databases and tables.
+
+   Note:
+
+   Since the keywords ROLE and USER can now be used interchangeably in SQL
+   statements for enhanced Postgres compatibility, CREATE USER is now an
+   alias for CREATE ROLE.
+
+Considerations
+
+     * Usernames:
+          * Are case-insensitive
+          * Must start with a letter, number, or underscore
+          * Must contain only letters, numbers, periods, or underscores
+          * Must be between 1 and 63 characters.
+     * After creating users, you must grant them privileges to databases and
+       tables.
+     * All users belong to the public role, to which you can grant and revoke
+       privileges.
+     * On secure clusters, you must create client certificates for users and
+       users must authenticate their access to the cluster.
+
+Required privileges
+
+   To create other users, the user must have the CREATEROLE parameter set.
+
+Synopsis
+
+   CREATE USER IF NOT EXISTS name WITH PASSWORD password
+
+Parameters
+
+   Parameter               Description                                        
+                           The name of the user you want to create.           
+                                                                              
+   user_name               Usernames are case-insensitive; must start with a  
+                           letter, number, or underscore; must contain only   
+                           letters, numbers, or underscores; and must be      
+                           between 1 and 63 characters.                       
+                           Let the user authenticate their access to a secure 
+                           cluster using this password. Passwords should be   
+                           entered as a string literal. For compatibility     
+                           with PostgreSQL, a password can also be entered as 
+   password                an identifier.                                     
+                                                                              
+                           To prevent a user from using password              
+                           authentication and to mandate certificate-based    
+                           client authentication, set the password as NULL.   
+   VALID UNTIL             The date and time (in the timestamp format) after  
+                           which the password is not valid.                   
+                           The LOGIN parameter allows a user to login with    
+                           one of the user authentication methods. Setting    
+                           the parameter to NOLOGIN prevents the user from    
+   LOGIN/NOLOGIN           logging in using any authentication method.        
+                                                                              
+                           By default, the parameter is set to LOGIN for the  
+                           CREATE USER statement.                             
+                           Allow or disallow the new user to create, alter,   
+                           and drop other users.                              
+   CREATEROLE/NOCREATEROLE                                                    
+                           By default, the parameter is set to NOCREATEROLE   
+                           for all non-admin and non-root users.              
+
+User authentication
+
+   Secure clusters require users to authenticate their access to databases
+   and tables. CockroachDB offers three methods for this:
+
+     * Client certificate and key authentication, which is available to all
+       users. To ensure the highest level of security, we recommend only
+       using client certificate and key authentication.
+
+     * Password authentication, which is available to users and roles who
+       you've created passwords for. To create a user with a password, use
+       the WITH PASSWORD clause of CREATE USER. To add a password to an
+       existing user, use the ALTER USER statement.
+
+       Users can use passwords to authenticate without supplying client
+       certificates and keys; however, we recommend using certificate-based
+       authentication whenever possible.
+
+       Password creation is supported only in secure clusters.
+
+     * GSSAPI authentication, which is available to Enterprise users.
+
+Examples
+
+  Create a user
+
+   Usernames are case-insensitive; must start with a letter, number, or
+   underscore; must contain only letters, numbers, periods, or underscores;
+   and must be between 1 and 63 characters.
+
+   copy
+
+ > CREATE USER carl;
+
+   After creating users, you must:
+
+     * Grant them privileges to databases.
+     * For secure clusters, you must also create their client certificates.
+
+  Allow the user to create other users
+
+   copy
+
+ > CREATE USER carl with CREATEROLE;
+
+  Create a user with a password
+
+   copy
+
+ > CREATE USER carl WITH PASSWORD 'ilov3beefjerky';
+
+ CREATE USER 1
+
+  Create a user with a password using an identifier
+
+   The following statement changes the password to ilov3beefjerky, as above:
+
+   copy
+
+ > CREATE USER carl WITH PASSWORD ilov3beefjerky;
+
+   This is equivalent to the example in the previous section because the
+   password contains only lowercase characters.
+
+   In contrast, the following statement changes the password to
+   thereisnotomorrow, even though the password in the syntax contains
+   capitals, because identifiers are normalized automatically:
+
+   copy
+
+ > CREATE USER carl WITH PASSWORD ThereIsNoTomorrow;
+
+   To preserve case in a password specified using identifier syntax, use
+   double quotes:
+
+   copy
+
+ > CREATE USER carl WITH PASSWORD "ThereIsNoTomorrow";
+
+  Prevent a user from using password authentication
+
+   The following statement prevents the user from using password
+   authentication and mandates certificate-based client authentication:
+
+   copy
+
+ > CREATE USER carl WITH PASSWORD NULL;
+
+  Set password validity
+
+   The following statement sets the date and time after which the password is
+   not valid:
+
+   copy
+
+ > CREATE USER carl VALID UNTIL '2021-01-01';
+
+  Manage users
+
+   After creating a user, you can use the ALTER USER statement to add or
+   change the user's password, update role options, and the DROP USER
+   statement to the remove users.
+
+  Authenticate as a specific user
+
+   Secure Insecure
+
+    Secure clusters with client certificates
+
+   All users can authenticate their access to a secure cluster using a client
+   certificate issued to their username.
+
+   copy
+
+ $ cockroach sql --user=carl
+
+    Secure clusters with passwords
+
+   Users with passwords can authenticate their access by entering their
+   password at the command prompt instead of using their client certificate
+   and key.
+
+   If we cannot find client certificate and key files matching the user, we
+   fall back on password authentication.
+
+   copy
+
+ $ cockroach sql --user=carl
+
+   copy
+
+ $ cockroach sql --insecure --user=carl
+
+  Set login privileges for a user
+
+   The following statement prevents the user from logging in using any user
+   authentication method:
+
+   copy
+
+ > CREATE USER carl NOLOGIN;
+
+   copy
+
+ > SHOW USERS;
+
+   username |  options   | member_of
+ -----------+------------+------------
+   admin    | CREATEROLE | {}
+   carl     | NOLOGIN    | {}
+   root     | CREATEROLE | {admin}
+ (3 rows)
+
+   To allow the user to log in using one of the user authentication methods,
+   use the ALTER USER statement:
+
+   copy
+
+ > ALTER USER carl LOGIN;
+
+   copy
+
+ > SHOW USERS;
+
+   username |  options   | member_of
+ -----------+------------+------------
+   admin    | CREATEROLE | {}
+   carl     |            | {}
+   root     | CREATEROLE | {admin}
+ (3 rows)
+
+See also
+
+     * Authorization
+     * ALTER USER
+     * DROP USER
+     * SHOW USERS
+     * GRANT
+     * SHOW GRANTS
+     * Create Security Certificates
+     * Other SQL Statements
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

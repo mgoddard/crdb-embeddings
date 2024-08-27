@@ -1,0 +1,156 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                               Topology Patterns
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   This section provides recommended topology patterns for running
+   CockroachDB in a cloud environment, each with required configurations and
+   latency and resiliency characteristics.
+
+   Note:
+
+   You can observe latency patterns for your cluster on the Network Latency
+   page of the Admin UI.
+
+Single-region patterns
+
+   When your clients are in a single geographic region, choosing a topology
+   is straightforward.
+
+   Pattern          Latency              Resiliency       Configuration       
+   Development        * Fast reads and     * None           * 1 node          
+                        writes                              * No replication  
+                                                            * 1 region        
+   Basic Production   * Fast reads and     * 1 AZ failure   * 3 AZs           
+                        writes                              * 3+ nodes across 
+                                                              AZs             
+
+Multi-region patterns
+
+   When your clients are in multiple geographic regions, it is important to
+   deploy your cluster across regions properly and then carefully choose the
+   right topology for each of your tables. Not doing so can result in
+   unexpected latency and resiliency.
+
+   Note:
+
+   Multi-region patterns are almost always table-specific. For example, you
+   might use the Geo-Partitioning Replicas pattern for frequently updated
+   tables that are geographically specific and the Duplicate Indexes pattern
+   for reference tables that are not tied to geography and that are read
+   frequently but updated infrequently.
+
+   Pattern             Latency           Resiliency    Configuration          
+                         * Fast regional   * 1 AZ        * Geo-partitioned    
+   Geo-Partitioned         reads and         failure       table              
+   Replicas                writes            per         * Partition replicas 
+                                             partition     pinned to regions  
+                                                         * Geo-partitioned    
+                         * Fast regional                   table              
+                           reads                         * Partition replicas 
+   Geo-Partitioned       * Slower          * 1 region      spread across      
+   Leaseholders            cross-region      failure       regions            
+                           writes                        * Partition          
+                                                           leaseholders       
+                                                           pinned to regions  
+                         * Fast regional                 * Multiple identical 
+                           reads                           indexes            
+                           (current)       * 1 region    * Index replicas     
+   Duplicate Indexes     * Much slower       failure       spread across      
+                           cross-region                    regions            
+                           writes                        * Index leaseholders 
+                                                           pinned to regions  
+                         * Fast regional                                      
+                           reads                                              
+   Follower Reads          (historical)    * 1 region    * App configured to
+                         * Slower            failure       use follower reads
+                           cross-region  
+                           writes        
+                         * Fast regional                                      
+                           reads (active               
+                           region)       
+                         * Slower        
+   Follow-the-Workload     cross-region    * 1 region    * None
+                           reads             failure
+                           (elsewhere)   
+                         * Slower        
+                           cross-region  
+                           writes        
+
+Anti-patterns
+
+   The following anti-patterns are ineffective or risky:
+
+     * Single-region deployments using 2 AZs, or multi-region deployments
+       using 2 regions. In these cases, the cluster would be unable to
+       survive the loss of a single AZ or a single region, respectively.
+     * Broadly distributed multi-region deployments (e.g., us-west, asia, and
+       europe) using only the default Follow-the-Workload pattern. In this
+       case, latency will likely be unacceptably high.
+     * Geo-partitioned tables with non-partitioned secondary indexes. In this
+       case, writes will incur cross-region latency to achieve consensus on
+       the non-partitioned indexes.
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

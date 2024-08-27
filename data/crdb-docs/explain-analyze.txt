@@ -1,0 +1,304 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                EXPLAIN ANALYZE
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The EXPLAIN ANALYZE statement executes a SQL query and generates a URL for
+   a physical query plan with execution statistics, or a URL to download a
+   bundle with more details about the query plan. Query plans provide
+   information around SQL execution, which can be used to troubleshoot slow
+   queries by figuring out where time is being spent, how long a processor
+   (i.e., a component that takes streams of input rows and processes them
+   according to a specification) is not doing work, etc. For more information
+   about distributed SQL queries, see the DistSQL section of our SQL Layer
+   Architecture docs.
+
+   Note:
+
+   The generated physical query plan is encoded into a byte string after the
+   fragment identifier (#) in the generated URL. The fragment is not sent to
+   the web server; instead, the browser waits for the web server to return a
+   decode.html resource, and then JavaScript on the web page decodes the
+   fragment into a physical query plan diagram. The query plan is, therefore,
+   not logged by a server external to the CockroachDB cluster and not exposed
+   to the public internet.
+
+Aliases
+
+   In CockroachDB, the following are aliases for EXPLAIN ANALYZE:
+
+     * EXPLAIN ANALYSE
+
+Synopsis
+
+   EXPLAIN ANALYZE ANALYSE ( DISTSQL DEBUG , ) preparable_stmt
+
+Parameters
+
+   Parameter       Description                                                
+   DISTSQL         (Default) Generate a link to a distributed SQL physical    
+                   query plan tree. For more information, see Default option. 
+                   Generate a ZIP file containing files with detailed         
+   DEBUG           information about the query and the database objects       
+                   referenced in the query. For more information, see DEBUG   
+                   option.                                                    
+   preparable_stmt The statement you want to execute and analyze. All         
+                   preparable statements are explainable.                     
+
+Required privileges
+
+   The user requires the appropriate privileges for the statement being
+   explained.
+
+Success responses
+
+   Successful EXPLAIN ANALYZE (and EXPLAIN ANALYZE (DISTSQL)) statements
+   return a table with the following columns:
+
+   Column    Description                                                      
+             If true, the query is distributed. For more information about    
+   automatic distributed SQL queries, see the DistSQL section of our SQL      
+             Layer Architecture docs.                                         
+             The URL generated for a physical query plan that provides high   
+             level information about how a query will be executed. For        
+             details about reading the physical query plan, see DistSQL Plan  
+             Viewer.                                                          
+                                                                              
+             The generated physical query plan is encoded into a byte string  
+   url       after the fragment identifier (#) in the generated URL. The      
+             fragment is not sent to the web server; instead, the browser     
+             waits for the web server to return a decode.html resource, and   
+             then JavaScript on the web page decodes the fragment into a      
+             physical query plan diagram. The query plan is, therefore, not   
+             logged by a server external to the CockroachDB cluster and not   
+             exposed to the public internet.                                  
+
+   If you use the DEBUG option, the statement will return a single text
+   column with a URL and instructions to download the DEBUG bundle, which
+   includes the physical query plan.
+
+Default option
+
+   By default, EXPLAIN ANALYZE uses the DISTQL option, which generates a
+   physical query plan diagram in the DistSQL Plan Viewer. EXPLAIN ANALYZE
+   and EXPLAIN ANALYZE (DISTSQL) produce the same output.
+
+  DistSQL Plan Viewer
+
+   The DistSQL Plan Viewer displays the physical query plan, as well as
+   execution statistics:
+
+   Field                  Description                                         
+                          The processor and processor ID used to read data    
+                          into the SQL execution engine.                      
+                                                                              
+   <ProcessorName>/<n>    A processor is a component that takes streams of    
+                          input rows, processes them according to a           
+                          specification, and outputs one stream of rows. For  
+                          example, an "aggregator" aggregates input rows.     
+   <index>@<table>        The index used.                                     
+   Out                    The output columns.                                 
+   @<n>                   The index of the column relative to the input.      
+   Render                 The stage that renders the output.                  
+                          (Blue box) A synchronizer that takes one or more    
+                          output streams and merges them to be consumable by  
+   unordered / ordered    a processor. An ordered synchronizer is used to     
+                          merge ordered streams and keeps the rows in sorted  
+                          order.                                              
+   <data type>            If EXPLAIN(DISTSQL, TYPES) is specified, lists the  
+                          data types of the input columns.                    
+   left(@<n>)=right(@<n>) The equality columns used in the join.              
+   rows read              The number of rows read by the processor.           
+                          How long the processor spent not doing work. This   
+   stall time             is aggregated into the stall time numbers as the    
+                          query progresses down the tree (i.e., stall time is 
+                          added up and overlaps with previous time).          
+   stored side            The smaller table that was stored as an in-memory   
+                          hash table.                                         
+   max memory used        How much memory (if any) is used to buffer rows.    
+                          (Orange box) The router, which is a component that  
+                          takes one stream of input rows and sends them to a  
+                          node according to a routing algorithm.              
+   by hash                                                                    
+                          For example, a hash router hashes columns of a row  
+                          and sends the results to the node that is           
+                          aggregating the result rows.                        
+                          How much disk (if any) is used to buffer rows.      
+   max disk used          Routers and processors will spill to disk buffering 
+                          if there is not enough memory to buffer the rows.   
+   rows routed            How many rows were sent by routers, which can be    
+                          used to understand network usage.                   
+                          The number of actual bytes sent (i.e., encoding of  
+   bytes sent             the rows). This is only relevant when doing network 
+                          communication.                                      
+   Response               The response back to the client.                    
+
+   Note:
+
+   Any or all of the above fields may display for a given query plan.
+
+DEBUG option
+
+   EXPLAIN ANALYZE (DEBUG) executes a query and generates a link to a ZIP
+   file that contains the physical query plan, execution statistics,
+   statement tracing, and other information about the query.
+
+   File              Description                                              
+   stats-<table>.sql Contains statistics for a table in the query.            
+   schema.sql        Contains CREATE statements for objects in the query.     
+   env.sql           Contains information about the CockroachDB environment.  
+   trace.json        Contains statement traces.                               
+   distsql.html      The query's physical query plan. This diagram is         
+                     identical to the one generated by EXPLAIN(DISTSQL)       
+   plan.txt          The query execution plan. This is identical to the       
+                     output of EXPLAIN (VERBOSE).                             
+                     The query plan tree generated by the cost-based          
+   opt-vv.txt        optimizer, with cost details and input column data       
+                     types. This is identical to the output of EXPLAIN (OPT,  
+                     TYPES).                                                  
+                     The query plan tree generated by the cost-based          
+   opt-v.txt         optimizer, with cost details. This is identical to the   
+                     output of EXPLAIN (OPT, VERBOSE).                        
+                     The query plan tree generated by the cost-based          
+   opt.txt           optimizer. This is identical to the output of EXPLAIN    
+                     (OPT).                                                   
+   statement.txt     The SQL statement for the query.                         
+
+   You can obtain this ZIP file by following the link provided in the EXPLAIN
+   ANALYZE (DEBUG) output, or by navigating to Advanced Debug -> Statement
+   Diagnostics History in the Admin UI.
+
+Examples
+
+  EXPLAIN ANALYZE
+
+   Use EXPLAIN ANALYZE without an option, or equivalently with the DISTSQL
+   option, to execute a query and generate a link to a physical query plan
+   with execution statistics.
+
+   For example, the following EXPLAIN ANALYZE statement executes a simple
+   query against the TPC-H database loaded to a 3-node CockroachDB cluster,
+   and then generates a link to a physical query plan with execution
+   statistics:
+
+   copy
+
+ > EXPLAIN ANALYZE SELECT l_shipmode, AVG(l_extendedprice) FROM lineitem GROUP BY l_shipmode;
+
+   automatic |                      url                     
+ ------------+-----------------------------------------------
+     true    | https://cockroachdb.github.io/distsqlplan...
+
+   To view the DistSQL Plan Viewer, point your browser to the URL provided:
+
+   EXPLAIN ANALYZE (DISTSQL)
+
+  EXPLAIN ANALYZE (DEBUG)
+
+   Use the DEBUG option to generate a ZIP file containing files with
+   information about the query and the database objects referenced in the
+   query. For example:
+
+   copy
+
+ > EXPLAIN ANALYZE (DEBUG) SELECT l_shipmode, AVG(l_extendedprice) FROM lineitem GROUP BY l_shipmode;
+
+                                       text
+ --------------------------------------------------------------------------------
+   Statement diagnostics bundle generated. Download from the Admin UI (Advanced
+   Debug -> Statement Diagnostics History) or use the direct link below.
+   Admin UI: http://127.0.0.1:12345
+   Direct link: http://127.0.0.1:12345/_admin/v1/stmtbundle/...
+
+   Navigating to the URL will automatically download the ZIP file. As the
+   output suggests, you can also obtain the bundle by navigating to the
+   Statement Diagnostics History page in the Admin UI.
+
+See also
+
+     * ALTER TABLE
+     * ALTER SEQUENCE
+     * BACKUP
+     * CANCEL JOB
+     * CREATE DATABASE
+     * DROP DATABASE
+     * EXPLAIN
+     * EXECUTE
+     * IMPORT
+     * Indexes
+     * INSERT
+     * PAUSE JOB
+     * RESET
+     * RESTORE
+     * RESUME JOB
+     * SELECT
+     * Selection Queries
+     * SET
+     * SET CLUSTER SETTING
+     * SHOW COLUMNS
+     * UPDATE
+     * UPSERT
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

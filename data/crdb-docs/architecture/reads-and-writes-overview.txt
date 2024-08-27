@@ -1,0 +1,220 @@
+   Cockroach Labs
+
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+
+   Customers
+
+   Learn
+   Docs University
+
+   Resources
+   Guides Videos & Webinars Partners Forum
+
+   Blog Get CockroachDB Contact Us
+
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+     * Version: v20.2.0
+
+     * v20.2.0 (Dev) v20.2.0 (Dev)
+     * v20.1.3 (Stable) v20.1.3 (Stable)
+
+       Docs Menu
+     * ____________________
+
+Reads and Writes in CockroachDB
+
+   (BUTTON) Contribute
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   This page explains how reads and writes are affected by the replicated
+   and distributed nature of data in CockroachDB. It starts by summarizing
+   some important CockroachDB architectural concepts and then walks you
+   through a few simple read and write scenarios.
+   Note:
+
+   For a more detailed trace of a query through the layers of
+   CockroachDB's architecture, see Life of a Distributed Transaction.
+
+Important concepts
+
+   Term Definition
+   Cluster Your CockroachDB deployment, which acts as a single logical
+   application.
+   Node An individual machine running CockroachDB. Many nodes join
+   together to create your cluster.
+   Range CockroachDB stores all user data (tables, indexes, etc.) and
+   almost all system data in a giant sorted map of key-value pairs. This
+   keyspace is divided into "ranges", contiguous chunks of the keyspace,
+   so that every key can always be found in a single range.
+   From a SQL perspective, a table and its secondary indexes initially map
+   to a single range, where each key-value pair in the range represents a
+   single row in the table (also called the primary index because the
+   table is sorted by the primary key) or a single row in a secondary
+   index. As soon as that range reaches 512 MiB in size, it splits into
+   two ranges. This process continues for these new ranges as the table
+   and its indexes continue growing.
+   Replica CockroachDB replicates each range (3 times by default) and
+   stores each replica on a different node.
+   Leaseholder For each range, one of the replicas holds the "range
+   lease". This replica, referred to as the "leaseholder", is the one that
+   receives and coordinates all read and write requests for the range.
+   Unlike writes, read requests access the leaseholder and send the
+   results to the client without needing to coordinate with any of the
+   other range replicas. This reduces the network round trips involved and
+   is possible because the leaseholder is guaranteed to be up-to-date due
+   to the fact that all write requests also go to the leaseholder.
+   Raft Leader For each range, one of the replicas is the "leader" for
+   write requests. Via the Raft consensus protocol, this replica ensures
+   that a majority of replicas (the leader and enough followers) agree,
+   based on their Raft logs, before committing the write. The Raft leader
+   is almost always the same replica as the leaseholder.
+   Raft Log For each range, a time-ordered log of writes to the range that
+   its replicas have agreed on. This log exists on-disk with each replica
+   and is the range's source of truth for consistent replication.
+
+   As mentioned above, when a query is executed, the cluster routes the
+   request to the leaseholder for the range containing the relevant data.
+   If the query touches multiple ranges, the request goes to multiple
+   leaseholders. For a read request, only the leaseholder of the relevant
+   range retrieves the data. For a write request, the Raft consensus
+   protocol dictates that a majority of the replicas of the relevant range
+   must agree before the write is committed.
+
+   Let's consider how these mechanics play out in some hypothetical
+   queries.
+
+Read scenario
+
+   First, imagine a simple read scenario where:
+     * There are 3 nodes in the cluster.
+     * There are 3 small tables, each fitting in a single range.
+     * Ranges are replicated 3 times (the default).
+     * A query is executed against node 2 to read from table 3.
+
+   Perf tuning concepts
+
+   In this case:
+    1. Node 2 (the gateway node) receives the request to read from table
+       3.
+    2. The leaseholder for table 3 is on node 3, so the request is routed
+       there.
+    3. Node 3 returns the data to node 2.
+    4. Node 2 responds to the client.
+
+   If the query is received by the node that has the leaseholder for the
+   relevant range, there are fewer network hops:
+
+   Perf tuning concepts
+
+Write scenario
+
+   Now imagine a simple write scenario where a query is executed against
+   node 3 to write to table 1:
+
+   Perf tuning concepts
+
+   In this case:
+    1. Node 3 (the gateway node) receives the request to write to table 1.
+    2. The leaseholder for table 1 is on node 1, so the request is routed
+       there.
+    3. The leaseholder is the same replica as the Raft leader (as is
+       typical), so it simultaneously appends the write to its own Raft
+       log and notifies its follower replicas on nodes 2 and 3.
+    4. As soon as one follower has appended the write to its Raft log (and
+       thus a majority of replicas agree based on identical Raft logs), it
+       notifies the leader and the write is committed to the key-values on
+       the agreeing replicas. In this diagram, the follower on node 2
+       acknowledged the write, but it could just as well have been the
+       follower on node 3. Also note that the follower not involved in the
+       consensus agreement usually commits the write very soon after the
+       others.
+    5. Node 1 returns acknowledgement of the commit to node 3.
+    6. Node 3 responds to the client.
+
+   Just as in the read scenario, if the write request is received by the
+   node that has the leaseholder and Raft leader for the relevant range,
+   there are fewer network hops:
+
+   Perf tuning concepts
+
+Network and I/O bottlenecks
+
+   With the above examples in mind, it's always important to consider
+   network latency and disk I/O as potential performance bottlenecks. In
+   summary:
+     * For reads, hops between the gateway node and the leaseholder add
+       latency.
+     * For writes, hops between the gateway node and the leaseholder/Raft
+       leader, and hops between the leaseholder/Raft leader and Raft
+       followers, add latency. In addition, since Raft log entries are
+       persisted to disk before a write is committed, disk I/O is
+       important.
+
+   Was this page helpful?
+   Yes No
+
+     * Product
+
+     * CockroachDB
+     * CockroachCloud
+     * Compare
+     * Pricing
+     * What's New
+     * Get CockroachDB
+     * Sign In
+
+     * Resources
+
+     * Guides
+     * Videos & Webinars
+     * Architecture Overview
+     * FAQ
+     * Security
+
+     * Learn
+
+     * Docs
+     * University
+
+     Support Channels
+     * Forum
+     * Slack
+     * Support Portal
+     * Contact Us
+
+     * Company
+
+     * About
+     * Blog
+     * Careers
+     * Customers
+     * Events
+     * News
+     * Privacy
+
+   © 2020 Cockroach Labs
+
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   [close_icon.png]
+
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   [close_icon.png]
+
+   IFRAME: https://www.googletagmanager.com/ns.html?id=GTM-NR8LC4

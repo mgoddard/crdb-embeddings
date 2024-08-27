@@ -1,0 +1,4315 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                  SQL Grammar
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+   Tip:
+
+   This page describes the full CockroachDB SQL grammar. However, as a
+   starting point, it's best to reference our SQL statements pages first,
+   which provide detailed explanations and examples.
+
+   stmt_block:
+
+   stmt 
+
+   no references
+
+   stmt:
+
+   HELPTOKEN preparable_stmt copy_from_stmt comment_stmt execute_stmt
+   deallocate_stmt discard_stmt grant_stmt prepare_stmt revoke_stmt
+   savepoint_stmt release_stmt nonpreparable_set_stmt transaction_stmt 
+
+   referenced by:
+
+     * stmt_block
+
+   preparable_stmt:
+
+   alter_stmt backup_stmt cancel_stmt create_stmt delete_stmt drop_stmt
+   explain_stmt import_stmt insert_stmt pause_stmt reset_stmt restore_stmt
+   resume_stmt export_stmt scrub_stmt select_stmt preparable_set_stmt
+   show_stmt truncate_stmt update_stmt upsert_stmt 
+
+   referenced by:
+
+     * common_table_expr
+     * explain_stmt
+     * prepare_stmt
+     * stmt
+
+   copy_from_stmt:
+
+   COPY table_name opt_column_list FROM STDIN opt_with_options 
+
+   referenced by:
+
+     * stmt
+
+   comment_stmt:
+
+   COMMENT ON DATABASE database_name TABLE table_name COLUMN column_path
+   INDEX table_index_name IS comment_text 
+
+   referenced by:
+
+     * stmt
+
+   execute_stmt:
+
+   EXECUTE table_alias_name execute_param_clause 
+
+   referenced by:
+
+     * stmt
+
+   deallocate_stmt:
+
+   DEALLOCATE PREPARE name ALL 
+
+   referenced by:
+
+     * stmt
+
+   discard_stmt:
+
+   DISCARD ALL 
+
+   referenced by:
+
+     * stmt
+
+   grant_stmt:
+
+   GRANT privileges ON targets TO name_list privilege_list TO name_list WITH
+   ADMIN OPTION 
+
+   referenced by:
+
+     * stmt
+
+   prepare_stmt:
+
+   PREPARE table_alias_name prep_type_clause AS preparable_stmt 
+
+   referenced by:
+
+     * stmt
+
+   revoke_stmt:
+
+   REVOKE privileges ON targets ADMIN OPTION FOR privilege_list FROM
+   name_list 
+
+   referenced by:
+
+     * stmt
+
+   savepoint_stmt:
+
+   SAVEPOINT name 
+
+   referenced by:
+
+     * stmt
+
+   release_stmt:
+
+   RELEASE savepoint_name 
+
+   referenced by:
+
+     * stmt
+
+   nonpreparable_set_stmt:
+
+   set_transaction_stmt 
+
+   referenced by:
+
+     * stmt
+
+   transaction_stmt:
+
+   begin_stmt commit_stmt rollback_stmt abort_stmt 
+
+   referenced by:
+
+     * stmt
+
+   alter_stmt:
+
+   alter_ddl_stmt alter_role_stmt 
+
+   referenced by:
+
+     * preparable_stmt
+
+   backup_stmt:
+
+   BACKUP targets TO partitioned_backup opt_as_of_clause opt_incremental
+   opt_with_options 
+
+   referenced by:
+
+     * preparable_stmt
+
+   cancel_stmt:
+
+   cancel_jobs_stmt cancel_queries_stmt cancel_sessions_stmt 
+
+   referenced by:
+
+     * preparable_stmt
+
+   create_stmt:
+
+   create_role_stmt create_ddl_stmt create_stats_stmt 
+
+   referenced by:
+
+     * preparable_stmt
+
+   delete_stmt:
+
+   opt_with_clause DELETE FROM table_expr_opt_alias_idx opt_where_clause
+   opt_sort_clause opt_limit_clause returning_clause 
+
+   referenced by:
+
+     * preparable_stmt
+     * row_source_extension_stmt
+
+   drop_stmt:
+
+   drop_ddl_stmt drop_role_stmt 
+
+   referenced by:
+
+     * preparable_stmt
+
+   explain_stmt:
+
+   EXPLAIN ANALYZE ANALYSE ( explain_option_list ) preparable_stmt 
+
+   referenced by:
+
+     * preparable_stmt
+     * row_source_extension_stmt
+
+   import_stmt:
+
+   IMPORT import_format string_or_placeholder TABLE table_name FROM
+   import_format string_or_placeholder CREATE USING string_or_placeholder (
+   table_elem_list ) import_format DATA ( string_or_placeholder_list ) INTO
+   table_name ( insert_column_list ) import_format DATA (
+   string_or_placeholder_list ) opt_with_options 
+
+   referenced by:
+
+     * preparable_stmt
+
+   insert_stmt:
+
+   opt_with_clause INSERT INTO insert_target insert_rest on_conflict
+   returning_clause 
+
+   referenced by:
+
+     * preparable_stmt
+     * row_source_extension_stmt
+
+   pause_stmt:
+
+   PAUSE JOB a_expr JOBS select_stmt 
+
+   referenced by:
+
+     * preparable_stmt
+
+   reset_stmt:
+
+   reset_session_stmt reset_csetting_stmt 
+
+   referenced by:
+
+     * preparable_stmt
+
+   restore_stmt:
+
+   RESTORE targets FROM partitioned_backup_list opt_as_of_clause
+   opt_with_options 
+
+   referenced by:
+
+     * preparable_stmt
+
+   resume_stmt:
+
+   RESUME JOB a_expr JOBS select_stmt 
+
+   referenced by:
+
+     * preparable_stmt
+
+   export_stmt:
+
+   EXPORT INTO import_format string_or_placeholder opt_with_options FROM
+   select_stmt 
+
+   referenced by:
+
+     * preparable_stmt
+
+   scrub_stmt:
+
+   scrub_table_stmt scrub_database_stmt 
+
+   referenced by:
+
+     * preparable_stmt
+
+   select_stmt:
+
+   select_no_parens select_with_parens 
+
+   referenced by:
+
+     * alter_split_index_stmt
+     * alter_split_stmt
+     * alter_unsplit_index_stmt
+     * alter_unsplit_stmt
+     * cancel_jobs_stmt
+     * cancel_queries_stmt
+     * cancel_sessions_stmt
+     * create_table_as_stmt
+     * create_view_stmt
+     * export_stmt
+     * insert_rest
+     * pause_stmt
+     * preparable_stmt
+     * resume_stmt
+     * row_source_extension_stmt
+     * show_jobs_stmt
+
+   preparable_set_stmt:
+
+   set_session_stmt set_csetting_stmt use_stmt 
+
+   referenced by:
+
+     * preparable_stmt
+
+   show_stmt:
+
+   show_backup_stmt show_columns_stmt show_constraints_stmt show_create_stmt
+   show_csettings_stmt show_databases_stmt show_grants_stmt show_indexes_stmt
+   show_partitions_stmt show_jobs_stmt show_queries_stmt show_ranges_stmt
+   show_range_for_row_stmt show_roles_stmt show_savepoint_stmt
+   show_schemas_stmt show_sequences_stmt show_session_stmt show_sessions_stmt
+   show_stats_stmt show_tables_stmt show_trace_stmt show_users_stmt
+   show_zone_stmt 
+
+   referenced by:
+
+     * preparable_stmt
+     * row_source_extension_stmt
+
+   truncate_stmt:
+
+   TRUNCATE opt_table relation_expr_list opt_drop_behavior 
+
+   referenced by:
+
+     * preparable_stmt
+
+   update_stmt:
+
+   opt_with_clause UPDATE table_expr_opt_alias_idx SET set_clause_list
+   opt_from_list opt_where_clause opt_sort_clause opt_limit_clause
+   returning_clause 
+
+   referenced by:
+
+     * preparable_stmt
+     * row_source_extension_stmt
+
+   upsert_stmt:
+
+   opt_with_clause UPSERT INTO insert_target insert_rest returning_clause 
+
+   referenced by:
+
+     * preparable_stmt
+     * row_source_extension_stmt
+
+   table_name:
+
+   db_object_name 
+
+   referenced by:
+
+     * alter_rename_table_stmt
+     * alter_scatter_stmt
+     * alter_split_stmt
+     * alter_unsplit_stmt
+     * alter_zone_partition_stmt
+     * alter_zone_table_stmt
+     * col_qualification_elem
+     * comment_stmt
+     * constraint_elem
+     * copy_from_stmt
+     * create_index_stmt
+     * create_stats_target
+     * create_table_as_stmt
+     * create_table_stmt
+     * import_stmt
+     * insert_target
+     * opt_interleave
+     * relation_expr
+     * scrub_table_stmt
+     * show_columns_stmt
+     * show_constraints_stmt
+     * show_create_stmt
+     * show_indexes_stmt
+     * show_partitions_stmt
+     * show_range_for_row_stmt
+     * show_ranges_stmt
+     * show_stats_stmt
+     * show_zone_stmt
+     * single_table_pattern_list
+     * sortby
+     * table_index_name
+     * table_name_list
+     * table_name_opt_idx
+     * view_name
+
+   opt_column_list:
+
+   ( name_list ) 
+
+   referenced by:
+
+     * alias_clause
+     * common_table_expr
+     * constraint_elem
+     * copy_from_stmt
+     * create_view_stmt
+
+   opt_with_options:
+
+   WITH kv_option_list OPTIONS ( kv_option_list ) 
+
+   referenced by:
+
+     * backup_stmt
+     * copy_from_stmt
+     * create_changefeed_stmt
+     * export_stmt
+     * import_stmt
+     * restore_stmt
+     * show_backup_stmt
+
+   database_name:
+
+   name 
+
+   referenced by:
+
+     * alter_rename_database_stmt
+     * alter_zone_database_stmt
+     * comment_stmt
+     * create_database_stmt
+     * drop_database_stmt
+     * scrub_database_stmt
+     * show_indexes_stmt
+     * show_partitions_stmt
+     * show_ranges_stmt
+     * show_zone_stmt
+
+   comment_text:
+
+   SCONST NULL 
+
+   referenced by:
+
+     * comment_stmt
+
+   column_path:
+
+   name prefixed_column_path 
+
+   referenced by:
+
+     * column_path_with_star
+     * comment_stmt
+     * sequence_option_elem
+
+   table_index_name:
+
+   table_name @ index_name standalone_index_name 
+
+   referenced by:
+
+     * alter_oneindex_stmt
+     * alter_rename_index_stmt
+     * alter_scatter_index_stmt
+     * alter_split_index_stmt
+     * alter_unsplit_index_stmt
+     * alter_zone_index_stmt
+     * alter_zone_partition_stmt
+     * comment_stmt
+     * show_partitions_stmt
+     * show_range_for_row_stmt
+     * show_ranges_stmt
+     * show_zone_stmt
+     * table_index_name_list
+
+   table_alias_name:
+
+   name 
+
+   referenced by:
+
+     * alias_clause
+     * common_table_expr
+     * execute_stmt
+     * insert_target
+     * prepare_stmt
+     * table_expr_opt_alias_idx
+
+   execute_param_clause:
+
+   ( expr_list ) 
+
+   referenced by:
+
+     * execute_stmt
+
+   name:
+
+   identifier unreserved_keyword col_name_keyword 
+
+   referenced by:
+
+     * column_name
+     * column_path
+     * constraint_name
+     * database_name
+     * db_object_name_component
+     * deallocate_stmt
+     * family_name
+     * import_format
+     * kv_option
+     * name_list
+     * opt_existing_window_name
+     * opt_name
+     * opt_name_parens
+     * opt_using_gin_btree
+     * privilege
+     * savepoint_name
+     * savepoint_stmt
+     * schema_name
+     * show_schemas_stmt
+     * show_sequences_stmt
+     * show_tables_stmt
+     * statistics_name
+     * table_alias_name
+     * var_name
+     * window_name
+
+   privileges:
+
+   ALL privilege_list 
+
+   referenced by:
+
+     * grant_stmt
+     * revoke_stmt
+
+   targets:
+
+   identifier col_name_keyword unreserved_keyword complex_table_pattern
+   table_pattern , TABLE table_pattern_list DATABASE name_list 
+
+   referenced by:
+
+     * backup_stmt
+     * grant_stmt
+     * restore_stmt
+     * revoke_stmt
+     * targets_roles
+
+   name_list:
+
+   name , 
+
+   referenced by:
+
+     * constraint_elem
+     * family_def
+     * for_grantee_clause
+     * grant_stmt
+     * join_qual
+     * labeled_row
+     * opt_column_list
+     * opt_conf_expr
+     * opt_interleave
+     * opt_stats_columns
+     * opt_storing
+     * partition_by
+     * revoke_stmt
+     * scrub_option
+     * targets
+     * targets_roles
+
+   privilege_list:
+
+   privilege , 
+
+   referenced by:
+
+     * grant_stmt
+     * privileges
+     * revoke_stmt
+
+   prep_type_clause:
+
+   ( type_list ) 
+
+   referenced by:
+
+     * prepare_stmt
+
+   savepoint_name:
+
+   SAVEPOINT name 
+
+   referenced by:
+
+     * release_stmt
+     * rollback_stmt
+
+   set_transaction_stmt:
+
+   SET SESSION TRANSACTION transaction_mode_list 
+
+   referenced by:
+
+     * nonpreparable_set_stmt
+
+   begin_stmt:
+
+   BEGIN opt_transaction START TRANSACTION begin_transaction 
+
+   referenced by:
+
+     * transaction_stmt
+
+   commit_stmt:
+
+   COMMIT END opt_transaction 
+
+   referenced by:
+
+     * transaction_stmt
+
+   rollback_stmt:
+
+   ROLLBACK opt_transaction TO savepoint_name 
+
+   referenced by:
+
+     * transaction_stmt
+
+   abort_stmt:
+
+   ABORT opt_abort_mod 
+
+   referenced by:
+
+     * transaction_stmt
+
+   alter_ddl_stmt:
+
+   alter_table_stmt alter_index_stmt alter_view_stmt alter_sequence_stmt
+   alter_database_stmt alter_range_stmt alter_partition_stmt 
+
+   referenced by:
+
+     * alter_stmt
+
+   alter_role_stmt:
+
+   ALTER role_or_group_or_user IF EXISTS string_or_placeholder
+   opt_role_options 
+
+   referenced by:
+
+     * alter_stmt
+
+   partitioned_backup:
+
+   string_or_placeholder ( string_or_placeholder_list ) 
+
+   referenced by:
+
+     * backup_stmt
+     * partitioned_backup_list
+
+   opt_as_of_clause:
+
+   as_of_clause 
+
+   referenced by:
+
+     * backup_stmt
+     * from_clause
+     * restore_stmt
+     * scrub_database_stmt
+     * scrub_table_stmt
+
+   opt_incremental:
+
+   INCREMENTAL FROM string_or_placeholder_list 
+
+   referenced by:
+
+     * backup_stmt
+
+   cancel_jobs_stmt:
+
+   CANCEL JOB a_expr JOBS select_stmt 
+
+   referenced by:
+
+     * cancel_stmt
+
+   cancel_queries_stmt:
+
+   CANCEL QUERY IF EXISTS a_expr QUERIES IF EXISTS select_stmt 
+
+   referenced by:
+
+     * cancel_stmt
+
+   cancel_sessions_stmt:
+
+   CANCEL SESSION IF EXISTS a_expr SESSIONS IF EXISTS select_stmt 
+
+   referenced by:
+
+     * cancel_stmt
+
+   create_role_stmt:
+
+   CREATE role_or_group_or_user IF NOT EXISTS string_or_placeholder
+   opt_role_options 
+
+   referenced by:
+
+     * create_stmt
+
+   create_ddl_stmt:
+
+   create_changefeed_stmt create_database_stmt create_index_stmt
+   create_schema_stmt create_table_stmt create_table_as_stmt create_view_stmt
+   create_sequence_stmt 
+
+   referenced by:
+
+     * create_stmt
+
+   create_stats_stmt:
+
+   CREATE STATISTICS statistics_name opt_stats_columns FROM
+   create_stats_target opt_create_stats_options 
+
+   referenced by:
+
+     * create_stmt
+
+   opt_with_clause:
+
+   with_clause 
+
+   referenced by:
+
+     * delete_stmt
+     * insert_stmt
+     * update_stmt
+     * upsert_stmt
+
+   table_expr_opt_alias_idx:
+
+   table_name_opt_idx AS table_alias_name 
+
+   referenced by:
+
+     * delete_stmt
+     * update_stmt
+
+   opt_where_clause:
+
+   where_clause 
+
+   referenced by:
+
+     * delete_stmt
+     * on_conflict
+     * simple_select_clause
+     * update_stmt
+
+   opt_sort_clause:
+
+   sort_clause 
+
+   referenced by:
+
+     * delete_stmt
+     * func_application
+     * select_no_parens
+     * update_stmt
+     * window_specification
+
+   opt_limit_clause:
+
+   limit_clause 
+
+   referenced by:
+
+     * delete_stmt
+     * update_stmt
+
+   returning_clause:
+
+   RETURNING target_list NOTHING 
+
+   referenced by:
+
+     * delete_stmt
+     * insert_stmt
+     * update_stmt
+     * upsert_stmt
+
+   drop_ddl_stmt:
+
+   drop_database_stmt drop_index_stmt drop_table_stmt drop_view_stmt
+   drop_sequence_stmt 
+
+   referenced by:
+
+     * drop_stmt
+
+   drop_role_stmt:
+
+   DROP role_or_group_or_user IF EXISTS string_or_placeholder_list 
+
+   referenced by:
+
+     * drop_stmt
+
+   explain_option_list:
+
+   explain_option_name , 
+
+   referenced by:
+
+     * explain_stmt
+
+   import_format:
+
+   name 
+
+   referenced by:
+
+     * export_stmt
+     * import_stmt
+
+   string_or_placeholder:
+
+   non_reserved_word_or_sconst PLACEHOLDER 
+
+   referenced by:
+
+     * alter_role_stmt
+     * create_role_stmt
+     * export_stmt
+     * import_stmt
+     * kv_option
+     * opt_changefeed_sink
+     * partitioned_backup
+     * password_clause
+     * show_backup_stmt
+     * string_or_placeholder_list
+     * valid_until_clause
+
+   string_or_placeholder_list:
+
+   string_or_placeholder , 
+
+   referenced by:
+
+     * drop_role_stmt
+     * import_stmt
+     * opt_incremental
+     * partitioned_backup
+
+   table_elem_list:
+
+   table_elem , 
+
+   referenced by:
+
+     * import_stmt
+     * opt_table_elem_list
+
+   insert_column_list:
+
+   insert_column_item , 
+
+   referenced by:
+
+     * import_stmt
+     * insert_rest
+     * multiple_set_clause
+
+   insert_target:
+
+   table_name AS table_alias_name 
+
+   referenced by:
+
+     * insert_stmt
+     * upsert_stmt
+
+   insert_rest:
+
+   ( insert_column_list ) select_stmt DEFAULT VALUES 
+
+   referenced by:
+
+     * insert_stmt
+     * upsert_stmt
+
+   on_conflict:
+
+   ON CONFLICT opt_conf_expr DO UPDATE SET set_clause_list opt_where_clause
+   NOTHING 
+
+   referenced by:
+
+     * insert_stmt
+
+   a_expr:
+
+   c_expr + - ~ NOT a_expr DEFAULT TYPECAST cast_target TYPEANNOTATE typename
+   COLLATE collation_name AT TIME ZONE a_expr + a_expr - a_expr * a_expr /
+   a_expr FLOORDIV a_expr % a_expr ^ a_expr # a_expr & a_expr | a_expr <
+   a_expr > a_expr ? a_expr JSON_SOME_EXISTS a_expr JSON_ALL_EXISTS a_expr
+   CONTAINS a_expr CONTAINED_BY a_expr = a_expr CONCAT a_expr LSHIFT a_expr
+   RSHIFT a_expr FETCHVAL a_expr FETCHTEXT a_expr FETCHVAL_PATH a_expr
+   FETCHTEXT_PATH a_expr REMOVE_PATH a_expr INET_CONTAINED_BY_OR_EQUALS
+   a_expr AND_AND a_expr INET_CONTAINS_OR_EQUALS a_expr LESS_EQUALS a_expr
+   GREATER_EQUALS a_expr NOT_EQUALS a_expr AND a_expr OR a_expr LIKE a_expr
+   LIKE a_expr ESCAPE a_expr NOT LIKE a_expr NOT LIKE a_expr ESCAPE a_expr
+   ILIKE a_expr ILIKE a_expr ESCAPE a_expr NOT ILIKE a_expr NOT ILIKE a_expr
+   ESCAPE a_expr SIMILAR TO a_expr SIMILAR TO a_expr ESCAPE a_expr NOT
+   SIMILAR TO a_expr NOT SIMILAR TO a_expr ESCAPE a_expr ~ a_expr
+   NOT_REGMATCH a_expr REGIMATCH a_expr NOT_REGIMATCH a_expr IS NAN IS NOT
+   NAN IS NULL ISNULL IS NOT NULL NOTNULL IS TRUE IS NOT TRUE IS FALSE IS NOT
+   FALSE IS UNKNOWN IS NOT UNKNOWN IS DISTINCT FROM a_expr IS NOT DISTINCT
+   FROM a_expr IS OF ( type_list ) IS NOT OF ( type_list ) BETWEEN
+   opt_asymmetric b_expr AND a_expr NOT BETWEEN opt_asymmetric b_expr AND
+   a_expr BETWEEN SYMMETRIC b_expr AND a_expr NOT BETWEEN SYMMETRIC b_expr
+   AND a_expr IN in_expr NOT IN in_expr subquery_op sub_type a_expr 
+
+   referenced by:
+
+     * a_expr
+     * alter_column_default
+     * alter_split_index_stmt
+     * alter_split_stmt
+     * array_subscript
+     * as_of_clause
+     * cancel_jobs_stmt
+     * cancel_queries_stmt
+     * cancel_sessions_stmt
+     * case_arg
+     * case_default
+     * col_qualification_elem
+     * constraint_elem
+     * d_expr
+     * expr_list
+     * extract_list
+     * filter_clause
+     * frame_bound
+     * func_expr_common_subexpr
+     * having_clause
+     * index_elem
+     * join_qual
+     * limit_clause
+     * offset_clause
+     * opt_alter_column_using
+     * opt_hash_sharded
+     * opt_slice_bound
+     * overlay_list
+     * overlay_placing
+     * pause_stmt
+     * resume_stmt
+     * show_jobs_stmt
+     * single_set_clause
+     * sortby
+     * special_function
+     * substr_for
+     * substr_from
+     * substr_list
+     * target_elem
+     * trim_list
+     * tuple1_ambiguous_values
+     * tuple1_unambiguous_values
+     * var_value
+     * when_clause
+     * where_clause
+
+   reset_session_stmt:
+
+   RESET SESSION session_var 
+
+   referenced by:
+
+     * reset_stmt
+
+   reset_csetting_stmt:
+
+   RESET CLUSTER SETTING var_name 
+
+   referenced by:
+
+     * reset_stmt
+
+   partitioned_backup_list:
+
+   partitioned_backup , 
+
+   referenced by:
+
+     * restore_stmt
+
+   scrub_table_stmt:
+
+   EXPERIMENTAL SCRUB TABLE table_name opt_as_of_clause
+   opt_scrub_options_clause 
+
+   referenced by:
+
+     * scrub_stmt
+
+   scrub_database_stmt:
+
+   EXPERIMENTAL SCRUB DATABASE database_name opt_as_of_clause 
+
+   referenced by:
+
+     * scrub_stmt
+
+   select_no_parens:
+
+   simple_select select_clause sort_clause opt_sort_clause for_locking_clause
+   opt_select_limit select_limit opt_for_locking_clause with_clause
+   select_clause sort_clause opt_sort_clause for_locking_clause
+   opt_select_limit select_limit opt_for_locking_clause 
+
+   referenced by:
+
+     * select_stmt
+     * select_with_parens
+
+   select_with_parens:
+
+   ( select_no_parens select_with_parens ) 
+
+   referenced by:
+
+     * c_expr
+     * d_expr
+     * in_expr
+     * select_clause
+     * select_stmt
+     * select_with_parens
+     * table_ref
+
+   set_session_stmt:
+
+   SET SESSION set_rest_more CHARACTERISTICS AS TRANSACTION
+   transaction_mode_list set_rest_more 
+
+   referenced by:
+
+     * preparable_set_stmt
+
+   set_csetting_stmt:
+
+   SET CLUSTER SETTING var_name to_or_eq var_value 
+
+   referenced by:
+
+     * preparable_set_stmt
+
+   use_stmt:
+
+   USE var_value 
+
+   referenced by:
+
+     * preparable_set_stmt
+
+   show_backup_stmt:
+
+   SHOW BACKUP SCHEMAS string_or_placeholder opt_with_options 
+
+   referenced by:
+
+     * show_stmt
+
+   show_columns_stmt:
+
+   SHOW COLUMNS FROM table_name with_comment 
+
+   referenced by:
+
+     * show_stmt
+
+   show_constraints_stmt:
+
+   SHOW CONSTRAINT CONSTRAINTS FROM table_name 
+
+   referenced by:
+
+     * show_stmt
+
+   show_create_stmt:
+
+   SHOW CREATE table_name 
+
+   referenced by:
+
+     * show_stmt
+
+   show_csettings_stmt:
+
+   SHOW CLUSTER SETTING var_name ALL SETTINGS ALL PUBLIC CLUSTER SETTINGS 
+
+   referenced by:
+
+     * show_stmt
+
+   show_databases_stmt:
+
+   SHOW DATABASES with_comment 
+
+   referenced by:
+
+     * show_stmt
+
+   show_grants_stmt:
+
+   SHOW GRANTS opt_on_targets_roles for_grantee_clause 
+
+   referenced by:
+
+     * show_stmt
+
+   show_indexes_stmt:
+
+   SHOW INDEX INDEXES KEYS FROM table_name DATABASE database_name
+   with_comment 
+
+   referenced by:
+
+     * show_stmt
+
+   show_partitions_stmt:
+
+   SHOW PARTITIONS FROM TABLE table_name DATABASE database_name INDEX
+   table_index_name table_name @ * 
+
+   referenced by:
+
+     * show_stmt
+
+   show_jobs_stmt:
+
+   SHOW AUTOMATIC JOBS JOBS WHEN COMPLETE select_stmt JOB WHEN COMPLETE
+   a_expr 
+
+   referenced by:
+
+     * show_stmt
+
+   show_queries_stmt:
+
+   SHOW ALL opt_cluster QUERIES 
+
+   referenced by:
+
+     * show_stmt
+
+   show_ranges_stmt:
+
+   SHOW RANGES FROM TABLE table_name INDEX table_index_name DATABASE
+   database_name 
+
+   referenced by:
+
+     * show_stmt
+
+   show_range_for_row_stmt:
+
+   SHOW RANGE FROM TABLE table_name INDEX table_index_name FOR ROW (
+   expr_list ) 
+
+   referenced by:
+
+     * show_stmt
+
+   show_roles_stmt:
+
+   SHOW ROLES 
+
+   referenced by:
+
+     * show_stmt
+
+   show_savepoint_stmt:
+
+   SHOW SAVEPOINT STATUS 
+
+   referenced by:
+
+     * show_stmt
+
+   show_schemas_stmt:
+
+   SHOW SCHEMAS FROM name 
+
+   referenced by:
+
+     * show_stmt
+
+   show_sequences_stmt:
+
+   SHOW SEQUENCES FROM name 
+
+   referenced by:
+
+     * show_stmt
+
+   show_session_stmt:
+
+   SHOW SESSION session_var 
+
+   referenced by:
+
+     * show_stmt
+
+   show_sessions_stmt:
+
+   SHOW ALL opt_cluster SESSIONS 
+
+   referenced by:
+
+     * show_stmt
+
+   show_stats_stmt:
+
+   SHOW STATISTICS FOR TABLE table_name 
+
+   referenced by:
+
+     * show_stmt
+
+   show_tables_stmt:
+
+   SHOW TABLES FROM name . name with_comment 
+
+   referenced by:
+
+     * show_stmt
+
+   show_trace_stmt:
+
+   SHOW opt_compact KV TRACE FOR SESSION 
+
+   referenced by:
+
+     * show_stmt
+
+   show_users_stmt:
+
+   SHOW USERS 
+
+   referenced by:
+
+     * show_stmt
+
+   show_zone_stmt:
+
+   SHOW ZONE CONFIGURATION FOR RANGE zone_name DATABASE database_name TABLE
+   table_name INDEX table_index_name opt_partition PARTITION partition_name
+   OF TABLE table_name INDEX table_index_name CONFIGURATIONS ALL ZONE
+   CONFIGURATIONS 
+
+   referenced by:
+
+     * show_stmt
+
+   opt_table:
+
+   TABLE 
+
+   referenced by:
+
+     * truncate_stmt
+
+   relation_expr_list:
+
+   relation_expr , 
+
+   referenced by:
+
+     * truncate_stmt
+
+   opt_drop_behavior:
+
+   CASCADE RESTRICT 
+
+   referenced by:
+
+     * alter_table_cmd
+     * drop_database_stmt
+     * drop_index_stmt
+     * drop_sequence_stmt
+     * drop_table_stmt
+     * drop_view_stmt
+     * truncate_stmt
+
+   set_clause_list:
+
+   set_clause , 
+
+   referenced by:
+
+     * on_conflict
+     * update_stmt
+
+   opt_from_list:
+
+   FROM from_list 
+
+   referenced by:
+
+     * update_stmt
+
+   db_object_name:
+
+   simple_db_object_name complex_db_object_name 
+
+   referenced by:
+
+     * sequence_name
+     * standalone_index_name
+     * table_name
+
+   kv_option_list:
+
+   kv_option , 
+
+   referenced by:
+
+     * opt_with_options
+
+   prefixed_column_path:
+
+   db_object_name_component . unrestricted_name . unrestricted_name .
+   unrestricted_name 
+
+   referenced by:
+
+     * column_path
+     * func_name
+
+   index_name:
+
+   unrestricted_name 
+
+   referenced by:
+
+     * alter_rename_index_stmt
+     * create_index_stmt
+     * index_flags_param
+     * opt_index_flags
+     * sortby
+     * table_index_name
+
+   standalone_index_name:
+
+   db_object_name 
+
+   referenced by:
+
+     * table_index_name
+
+   expr_list:
+
+   a_expr , 
+
+   referenced by:
+
+     * alter_scatter_index_stmt
+     * alter_scatter_stmt
+     * distinct_on_clause
+     * execute_param_clause
+     * extract_list
+     * func_application
+     * func_expr_common_subexpr
+     * group_clause
+     * list_partition
+     * opt_expr_list
+     * opt_partition_clause
+     * overlay_list
+     * range_partition
+     * show_range_for_row_stmt
+     * special_function
+     * trim_list
+     * tuple1_ambiguous_values
+     * tuple1_unambiguous_values
+     * values_clause
+
+   unreserved_keyword:
+
+   ABORT ACTION ADD ADMIN AGGREGATE ALTER AT AUTOMATIC AUTHORIZATION BACKUP
+   BEGIN BIGSERIAL BLOB BOOL BUCKET_COUNT BUNDLE BY BYTEA BYTES CACHE CANCEL
+   CASCADE CHANGEFEED CLUSTER COLUMNS COMMENT COMMIT COMMITTED COMPACT
+   COMPLETE CONFLICT CONFIGURATION CONFIGURATIONS CONFIGURE CONSTRAINTS
+   CONVERSION COPY COVERING CREATEROLE CUBE CURRENT CYCLE DATA DATABASE
+   DATABASES DATE DAY DEALLOCATE DELETE DEFERRED DISCARD DOMAIN DOUBLE DROP
+   ENCODING ENUM ESCAPE EXCLUDE EXECUTE EXPERIMENTAL EXPERIMENTAL_AUDIT
+   EXPERIMENTAL_FINGERPRINTS EXPERIMENTAL_RELOCATE EXPERIMENTAL_REPLICA
+   EXPIRATION EXPLAIN EXPORT EXTENSION FILES FILTER FIRST FLOAT4 FLOAT8
+   FOLLOWING FORCE_INDEX FUNCTION GLOBAL GRANTS GROUPS HASH HIGH HISTOGRAM
+   HOUR IMMEDIATE IMPORT INCLUDE INCREMENT INCREMENTAL INDEXES INET INJECT
+   INSERT INT2 INT2VECTOR INT4 INT8 INT64 INTERLEAVE INVERTED ISOLATION JOB
+   JOBS JSON JSONB KEY KEYS KV LANGUAGE LAST LC_COLLATE LC_CTYPE LEASE LESS
+   LEVEL LIST LOCAL LOCKED LOGIN LOOKUP LOW MATCH MATERIALIZED MAXVALUE MERGE
+   MINUTE MINVALUE MONTH NAMES NAN NAME NEXT NO NORMAL NO_INDEX_JOIN
+   NOCREATEROLE NOLOGIN NOWAIT NULLS IGNORE_FOREIGN_KEYS OF OFF OID OIDS
+   OIDVECTOR OPERATOR OPT OPTION OPTIONS ORDINALITY OTHERS OVER OWNED PARENT
+   PARTIAL PARTITION PARTITIONS PASSWORD PAUSE PHYSICAL PLAN PLANS PRECEDING
+   PREPARE PRESERVE PRIORITY PUBLIC PUBLICATION QUERIES QUERY RANGE RANGES
+   READ RECURSIVE REF REGCLASS REGPROC REGPROCEDURE REGNAMESPACE REGTYPE
+   REINDEX RELEASE RENAME REPEATABLE REPLACE RESET RESTORE RESTRICT RESUME
+   REVOKE ROLE ROLES ROLLBACK ROLLUP ROWS RULE SETTING SETTINGS STATUS
+   SAVEPOINT SCATTER SCHEMA SCHEMAS SCRUB SEARCH SECOND SERIAL SERIALIZABLE
+   SERIAL2 SERIAL4 SERIAL8 SEQUENCE SEQUENCES SERVER SESSION SESSIONS SET
+   SHARE SHOW SIMPLE SKIP SMALLSERIAL SNAPSHOT SPLIT SQL START STATISTICS
+   STDIN STORE STORED STORING STRICT STRING SUBSCRIPTION SYNTAX SYSTEM TABLES
+   TEMP TEMPLATE TEMPORARY TESTING_RELOCATE TEXT TIES TRACE TRANSACTION
+   TRIGGER TRUNCATE TRUSTED TYPE THROTTLING UNBOUNDED UNCOMMITTED UNKNOWN
+   UNLOGGED UNSPLIT UNTIL UPDATE UPSERT UUID USE USERS VALID VALIDATE VALUE
+   VARYING VIEW WITHIN WITHOUT WRITE YEAR ZONE 
+
+   referenced by:
+
+     * name
+     * non_reserved_word
+     * targets
+     * type_function_name
+     * unrestricted_name
+
+   col_name_keyword:
+
+   ANNOTATE_TYPE BETWEEN BIGINT BIT BOOLEAN CHAR CHARACTER CHARACTERISTICS
+   COALESCE DEC DECIMAL EXISTS EXTRACT EXTRACT_DURATION FLOAT GREATEST
+   GROUPING IF IFERROR IFNULL INT INTEGER INTERVAL ISERROR LEAST NULLIF
+   NUMERIC OUT OVERLAY POSITION PRECISION REAL ROW SMALLINT SUBSTRING TIME
+   TIMETZ TIMESTAMP TIMESTAMPTZ TREAT TRIM VALUES VARBIT VARCHAR VIRTUAL WORK
+
+   referenced by:
+
+     * name
+     * non_reserved_word
+     * targets
+     * unrestricted_name
+
+   complex_table_pattern:
+
+   complex_db_object_name db_object_name_component . unrestricted_name . * 
+
+   referenced by:
+
+     * table_pattern
+     * targets
+
+   table_pattern:
+
+   simple_db_object_name complex_table_pattern 
+
+   referenced by:
+
+     * table_pattern_list
+     * targets
+
+   table_pattern_list:
+
+   table_pattern , 
+
+   referenced by:
+
+     * targets
+
+   privilege:
+
+   name CREATE GRANT SELECT 
+
+   referenced by:
+
+     * privilege_list
+
+   type_list:
+
+   typename , 
+
+   referenced by:
+
+     * a_expr
+     * b_expr
+     * prep_type_clause
+
+   transaction_mode_list:
+
+   transaction_mode opt_comma 
+
+   referenced by:
+
+     * begin_transaction
+     * set_session_stmt
+     * set_transaction_stmt
+
+   opt_transaction:
+
+   TRANSACTION 
+
+   referenced by:
+
+     * begin_stmt
+     * commit_stmt
+     * rollback_stmt
+
+   begin_transaction:
+
+   transaction_mode_list 
+
+   referenced by:
+
+     * begin_stmt
+
+   opt_abort_mod:
+
+   TRANSACTION WORK 
+
+   referenced by:
+
+     * abort_stmt
+
+   alter_table_stmt:
+
+   alter_onetable_stmt alter_split_stmt alter_unsplit_stmt alter_scatter_stmt
+   alter_zone_table_stmt alter_rename_table_stmt 
+
+   referenced by:
+
+     * alter_ddl_stmt
+
+   alter_index_stmt:
+
+   alter_oneindex_stmt alter_split_index_stmt alter_unsplit_index_stmt
+   alter_scatter_index_stmt alter_rename_index_stmt alter_zone_index_stmt 
+
+   referenced by:
+
+     * alter_ddl_stmt
+
+   alter_view_stmt:
+
+   alter_rename_view_stmt 
+
+   referenced by:
+
+     * alter_ddl_stmt
+
+   alter_sequence_stmt:
+
+   alter_rename_sequence_stmt alter_sequence_options_stmt 
+
+   referenced by:
+
+     * alter_ddl_stmt
+
+   alter_database_stmt:
+
+   alter_rename_database_stmt alter_zone_database_stmt 
+
+   referenced by:
+
+     * alter_ddl_stmt
+
+   alter_range_stmt:
+
+   alter_zone_range_stmt 
+
+   referenced by:
+
+     * alter_ddl_stmt
+
+   alter_partition_stmt:
+
+   alter_zone_partition_stmt 
+
+   referenced by:
+
+     * alter_ddl_stmt
+
+   role_or_group_or_user:
+
+   ROLE USER 
+
+   referenced by:
+
+     * alter_role_stmt
+     * create_role_stmt
+     * drop_role_stmt
+
+   opt_role_options:
+
+   opt_with role_options 
+
+   referenced by:
+
+     * alter_role_stmt
+     * create_role_stmt
+
+   as_of_clause:
+
+   AS OF SYSTEM TIME a_expr 
+
+   referenced by:
+
+     * opt_as_of_clause
+     * opt_create_stats_options
+     * transaction_mode
+
+   create_changefeed_stmt:
+
+   CREATE CHANGEFEED FOR changefeed_targets opt_changefeed_sink
+   opt_with_options 
+
+   referenced by:
+
+     * create_ddl_stmt
+
+   create_database_stmt:
+
+   CREATE DATABASE IF NOT EXISTS database_name opt_with opt_template_clause
+   opt_encoding_clause opt_lc_collate_clause opt_lc_ctype_clause 
+
+   referenced by:
+
+     * create_ddl_stmt
+
+   create_index_stmt:
+
+   CREATE opt_unique INDEX opt_concurrently opt_index_name IF NOT EXISTS
+   index_name ON table_name opt_using_gin_btree ( index_params )
+   opt_hash_sharded INVERTED INDEX opt_concurrently opt_index_name IF NOT
+   EXISTS index_name ON table_name ( index_params ) opt_storing
+   opt_interleave opt_partition_by 
+
+   referenced by:
+
+     * create_ddl_stmt
+
+   create_schema_stmt:
+
+   CREATE SCHEMA IF NOT EXISTS schema_name 
+
+   referenced by:
+
+     * create_ddl_stmt
+
+   create_table_stmt:
+
+   CREATE opt_temp_create_table TABLE IF NOT EXISTS table_name (
+   opt_table_elem_list ) opt_interleave opt_partition_by 
+
+   referenced by:
+
+     * create_ddl_stmt
+
+   create_table_as_stmt:
+
+   CREATE opt_temp_create_table TABLE IF NOT EXISTS table_name
+   create_as_opt_col_list AS select_stmt 
+
+   referenced by:
+
+     * create_ddl_stmt
+
+   create_view_stmt:
+
+   CREATE opt_temp VIEW IF NOT EXISTS view_name opt_column_list AS
+   select_stmt 
+
+   referenced by:
+
+     * create_ddl_stmt
+
+   create_sequence_stmt:
+
+   CREATE opt_temp SEQUENCE IF NOT EXISTS sequence_name
+   opt_sequence_option_list 
+
+   referenced by:
+
+     * create_ddl_stmt
+
+   statistics_name:
+
+   name 
+
+   referenced by:
+
+     * create_stats_stmt
+
+   opt_stats_columns:
+
+   ON name_list 
+
+   referenced by:
+
+     * create_stats_stmt
+
+   create_stats_target:
+
+   table_name 
+
+   referenced by:
+
+     * create_stats_stmt
+
+   opt_create_stats_options:
+
+   as_of_clause 
+
+   referenced by:
+
+     * create_stats_stmt
+
+   with_clause:
+
+   WITH RECURSIVE cte_list 
+
+   referenced by:
+
+     * opt_with_clause
+     * select_no_parens
+
+   table_name_opt_idx:
+
+   table_name opt_index_flags 
+
+   referenced by:
+
+     * table_expr_opt_alias_idx
+
+   where_clause:
+
+   WHERE a_expr 
+
+   referenced by:
+
+     * opt_where_clause
+
+   sort_clause:
+
+   ORDER BY sortby_list 
+
+   referenced by:
+
+     * opt_sort_clause
+     * select_no_parens
+
+   limit_clause:
+
+   LIMIT ALL a_expr FETCH first_or_next select_fetch_first_value row_or_rows
+   ONLY 
+
+   referenced by:
+
+     * opt_limit_clause
+     * select_limit
+
+   target_list:
+
+   target_elem , 
+
+   referenced by:
+
+     * returning_clause
+     * simple_select_clause
+
+   drop_database_stmt:
+
+   DROP DATABASE IF EXISTS database_name opt_drop_behavior 
+
+   referenced by:
+
+     * drop_ddl_stmt
+
+   drop_index_stmt:
+
+   DROP INDEX opt_concurrently IF EXISTS table_index_name_list
+   opt_drop_behavior 
+
+   referenced by:
+
+     * drop_ddl_stmt
+
+   drop_table_stmt:
+
+   DROP TABLE IF EXISTS table_name_list opt_drop_behavior 
+
+   referenced by:
+
+     * drop_ddl_stmt
+
+   drop_view_stmt:
+
+   DROP VIEW IF EXISTS table_name_list opt_drop_behavior 
+
+   referenced by:
+
+     * drop_ddl_stmt
+
+   drop_sequence_stmt:
+
+   DROP SEQUENCE IF EXISTS table_name_list opt_drop_behavior 
+
+   referenced by:
+
+     * drop_ddl_stmt
+
+   explain_option_name:
+
+   non_reserved_word 
+
+   referenced by:
+
+     * explain_option_list
+
+   non_reserved_word_or_sconst:
+
+   non_reserved_word SCONST 
+
+   referenced by:
+
+     * opt_encoding_clause
+     * opt_lc_collate_clause
+     * opt_lc_ctype_clause
+     * opt_template_clause
+     * string_or_placeholder
+
+   table_elem:
+
+   column_def index_def family_def table_constraint 
+
+   referenced by:
+
+     * table_elem_list
+
+   insert_column_item:
+
+   column_name 
+
+   referenced by:
+
+     * insert_column_list
+
+   opt_conf_expr:
+
+   ( name_list ) 
+
+   referenced by:
+
+     * on_conflict
+
+   c_expr:
+
+   d_expr array_subscripts case_expr EXISTS select_with_parens 
+
+   referenced by:
+
+     * a_expr
+     * b_expr
+     * select_fetch_first_value
+
+   cast_target:
+
+   typename 
+
+   referenced by:
+
+     * a_expr
+     * b_expr
+     * func_expr_common_subexpr
+
+   typename:
+
+   simple_typename opt_array_bounds ARRAY 
+
+   referenced by:
+
+     * a_expr
+     * alter_table_cmd
+     * b_expr
+     * cast_target
+     * column_def
+     * func_expr_common_subexpr
+     * type_list
+
+   collation_name:
+
+   unrestricted_name 
+
+   referenced by:
+
+     * a_expr
+     * col_qualification
+     * opt_collate
+
+   opt_asymmetric:
+
+   ASYMMETRIC 
+
+   referenced by:
+
+     * a_expr
+
+   b_expr:
+
+   c_expr + - ~ b_expr TYPECAST cast_target TYPEANNOTATE typename + - * /
+   FLOORDIV % ^ # & | < > = CONCAT LSHIFT RSHIFT LESS_EQUALS GREATER_EQUALS
+   NOT_EQUALS b_expr IS NOT DISTINCT FROM b_expr OF ( type_list ) 
+
+   referenced by:
+
+     * a_expr
+     * b_expr
+     * col_qualification_elem
+     * position_list
+
+   in_expr:
+
+   select_with_parens expr_tuple1_ambiguous 
+
+   referenced by:
+
+     * a_expr
+     * multiple_set_clause
+
+   subquery_op:
+
+   math_op NOT LIKE ILIKE 
+
+   referenced by:
+
+     * a_expr
+
+   sub_type:
+
+   ANY SOME ALL 
+
+   referenced by:
+
+     * a_expr
+
+   session_var:
+
+   identifier ALL DATABASE NAMES SESSION_USER TIME ZONE 
+
+   referenced by:
+
+     * reset_session_stmt
+     * show_session_stmt
+
+   var_name:
+
+   name attrs 
+
+   referenced by:
+
+     * generic_set
+     * reset_csetting_stmt
+     * set_csetting_stmt
+     * show_csettings_stmt
+     * var_set_list
+
+   opt_scrub_options_clause:
+
+   WITH OPTIONS scrub_option_list 
+
+   referenced by:
+
+     * scrub_table_stmt
+
+   simple_select:
+
+   simple_select_clause values_clause table_clause set_operation 
+
+   referenced by:
+
+     * select_clause
+     * select_no_parens
+
+   select_clause:
+
+   simple_select select_with_parens 
+
+   referenced by:
+
+     * select_no_parens
+     * set_operation
+
+   for_locking_clause:
+
+   for_locking_items FOR READ ONLY 
+
+   referenced by:
+
+     * opt_for_locking_clause
+     * select_no_parens
+
+   opt_select_limit:
+
+   select_limit 
+
+   referenced by:
+
+     * select_no_parens
+
+   select_limit:
+
+   limit_clause offset_clause offset_clause limit_clause 
+
+   referenced by:
+
+     * opt_select_limit
+     * select_no_parens
+
+   opt_for_locking_clause:
+
+   for_locking_clause 
+
+   referenced by:
+
+     * select_no_parens
+
+   set_rest_more:
+
+   generic_set 
+
+   referenced by:
+
+     * set_session_stmt
+
+   to_or_eq:
+
+   = TO 
+
+   referenced by:
+
+     * generic_set
+     * set_csetting_stmt
+
+   var_value:
+
+   a_expr extra_var_value 
+
+   referenced by:
+
+     * set_csetting_stmt
+     * use_stmt
+     * var_list
+     * var_set_list
+
+   with_comment:
+
+   WITH COMMENT 
+
+   referenced by:
+
+     * show_columns_stmt
+     * show_databases_stmt
+     * show_indexes_stmt
+     * show_tables_stmt
+
+   opt_on_targets_roles:
+
+   ON targets_roles 
+
+   referenced by:
+
+     * show_grants_stmt
+
+   for_grantee_clause:
+
+   FOR name_list 
+
+   referenced by:
+
+     * show_grants_stmt
+
+   opt_cluster:
+
+   CLUSTER LOCAL 
+
+   referenced by:
+
+     * show_queries_stmt
+     * show_sessions_stmt
+
+   opt_compact:
+
+   COMPACT 
+
+   referenced by:
+
+     * show_trace_stmt
+
+   zone_name:
+
+   unrestricted_name 
+
+   referenced by:
+
+     * alter_zone_range_stmt
+     * show_zone_stmt
+
+   opt_partition:
+
+   partition 
+
+   referenced by:
+
+     * show_zone_stmt
+
+   partition_name:
+
+   unrestricted_name 
+
+   referenced by:
+
+     * alter_zone_partition_stmt
+     * partition
+     * show_zone_stmt
+
+   relation_expr:
+
+   table_name * ONLY table_name ( table_name ) 
+
+   referenced by:
+
+     * alter_onetable_stmt
+     * alter_rename_sequence_stmt
+     * alter_rename_table_stmt
+     * alter_rename_view_stmt
+     * relation_expr_list
+     * table_ref
+
+   set_clause:
+
+   single_set_clause multiple_set_clause 
+
+   referenced by:
+
+     * set_clause_list
+
+   from_list:
+
+   table_ref , 
+
+   referenced by:
+
+     * from_clause
+     * opt_from_list
+
+   simple_db_object_name:
+
+   db_object_name_component 
+
+   referenced by:
+
+     * db_object_name
+     * table_pattern
+
+   complex_db_object_name:
+
+   db_object_name_component . unrestricted_name . unrestricted_name 
+
+   referenced by:
+
+     * complex_table_pattern
+     * db_object_name
+
+   kv_option:
+
+   name SCONST = string_or_placeholder 
+
+   referenced by:
+
+     * kv_option_list
+
+   db_object_name_component:
+
+   name FAMILY cockroachdb_extra_reserved_keyword 
+
+   referenced by:
+
+     * column_path_with_star
+     * complex_db_object_name
+     * complex_table_pattern
+     * prefixed_column_path
+     * simple_db_object_name
+
+   unrestricted_name:
+
+   identifier unreserved_keyword col_name_keyword type_func_name_keyword
+   reserved_keyword 
+
+   referenced by:
+
+     * attrs
+     * collation_name
+     * column_path_with_star
+     * complex_db_object_name
+     * complex_table_pattern
+     * d_expr
+     * index_name
+     * partition_name
+     * prefixed_column_path
+     * target_name
+     * zone_name
+
+   transaction_mode:
+
+   transaction_user_priority transaction_read_mode as_of_clause 
+
+   referenced by:
+
+     * transaction_mode_list
+
+   opt_comma:
+
+   , 
+
+   referenced by:
+
+     * transaction_mode_list
+
+   alter_onetable_stmt:
+
+   ALTER TABLE IF EXISTS relation_expr alter_table_cmds 
+
+   referenced by:
+
+     * alter_table_stmt
+
+   alter_split_stmt:
+
+   ALTER TABLE table_name SPLIT AT select_stmt WITH EXPIRATION a_expr 
+
+   referenced by:
+
+     * alter_table_stmt
+
+   alter_unsplit_stmt:
+
+   ALTER TABLE table_name UNSPLIT AT select_stmt ALL 
+
+   referenced by:
+
+     * alter_table_stmt
+
+   alter_scatter_stmt:
+
+   ALTER TABLE table_name SCATTER FROM ( expr_list ) TO ( expr_list ) 
+
+   referenced by:
+
+     * alter_table_stmt
+
+   alter_zone_table_stmt:
+
+   ALTER TABLE table_name set_zone_config 
+
+   referenced by:
+
+     * alter_table_stmt
+
+   alter_rename_table_stmt:
+
+   ALTER TABLE IF EXISTS relation_expr RENAME TO table_name 
+
+   referenced by:
+
+     * alter_table_stmt
+
+   alter_oneindex_stmt:
+
+   ALTER INDEX IF EXISTS table_index_name alter_index_cmds 
+
+   referenced by:
+
+     * alter_index_stmt
+
+   alter_split_index_stmt:
+
+   ALTER INDEX table_index_name SPLIT AT select_stmt WITH EXPIRATION a_expr 
+
+   referenced by:
+
+     * alter_index_stmt
+
+   alter_unsplit_index_stmt:
+
+   ALTER INDEX table_index_name UNSPLIT AT select_stmt ALL 
+
+   referenced by:
+
+     * alter_index_stmt
+
+   alter_scatter_index_stmt:
+
+   ALTER INDEX table_index_name SCATTER FROM ( expr_list ) TO ( expr_list ) 
+
+   referenced by:
+
+     * alter_index_stmt
+
+   alter_rename_index_stmt:
+
+   ALTER INDEX IF EXISTS table_index_name RENAME TO index_name 
+
+   referenced by:
+
+     * alter_index_stmt
+
+   alter_zone_index_stmt:
+
+   ALTER INDEX table_index_name set_zone_config 
+
+   referenced by:
+
+     * alter_index_stmt
+
+   alter_rename_view_stmt:
+
+   ALTER VIEW IF EXISTS relation_expr RENAME TO view_name 
+
+   referenced by:
+
+     * alter_view_stmt
+
+   alter_rename_sequence_stmt:
+
+   ALTER SEQUENCE IF EXISTS relation_expr RENAME TO sequence_name 
+
+   referenced by:
+
+     * alter_sequence_stmt
+
+   alter_sequence_options_stmt:
+
+   ALTER SEQUENCE IF EXISTS sequence_name sequence_option_list 
+
+   referenced by:
+
+     * alter_sequence_stmt
+
+   alter_rename_database_stmt:
+
+   ALTER DATABASE database_name RENAME TO database_name 
+
+   referenced by:
+
+     * alter_database_stmt
+
+   alter_zone_database_stmt:
+
+   ALTER DATABASE database_name set_zone_config 
+
+   referenced by:
+
+     * alter_database_stmt
+
+   alter_zone_range_stmt:
+
+   ALTER RANGE zone_name set_zone_config 
+
+   referenced by:
+
+     * alter_range_stmt
+
+   alter_zone_partition_stmt:
+
+   ALTER PARTITION partition_name OF TABLE table_name INDEX table_index_name
+   table_name @ * set_zone_config 
+
+   referenced by:
+
+     * alter_partition_stmt
+
+   opt_with:
+
+   WITH 
+
+   referenced by:
+
+     * create_database_stmt
+     * opt_role_options
+
+   role_options:
+
+   role_option 
+
+   referenced by:
+
+     * opt_role_options
+
+   changefeed_targets:
+
+   TABLE single_table_pattern_list 
+
+   referenced by:
+
+     * create_changefeed_stmt
+
+   opt_changefeed_sink:
+
+   INTO string_or_placeholder 
+
+   referenced by:
+
+     * create_changefeed_stmt
+
+   opt_template_clause:
+
+   TEMPLATE opt_equal non_reserved_word_or_sconst 
+
+   referenced by:
+
+     * create_database_stmt
+
+   opt_encoding_clause:
+
+   ENCODING opt_equal non_reserved_word_or_sconst 
+
+   referenced by:
+
+     * create_database_stmt
+
+   opt_lc_collate_clause:
+
+   LC_COLLATE opt_equal non_reserved_word_or_sconst 
+
+   referenced by:
+
+     * create_database_stmt
+
+   opt_lc_ctype_clause:
+
+   LC_CTYPE opt_equal non_reserved_word_or_sconst 
+
+   referenced by:
+
+     * create_database_stmt
+
+   opt_unique:
+
+   UNIQUE 
+
+   referenced by:
+
+     * create_index_stmt
+
+   opt_concurrently:
+
+   CONCURRENTLY 
+
+   referenced by:
+
+     * create_index_stmt
+     * drop_index_stmt
+
+   opt_index_name:
+
+   opt_name 
+
+   referenced by:
+
+     * create_index_stmt
+     * index_def
+
+   opt_using_gin_btree:
+
+   USING name 
+
+   referenced by:
+
+     * create_index_stmt
+
+   index_params:
+
+   index_elem , 
+
+   referenced by:
+
+     * alter_table_cmd
+     * constraint_elem
+     * create_index_stmt
+     * index_def
+
+   opt_hash_sharded:
+
+   USING HASH WITH BUCKET_COUNT = a_expr 
+
+   referenced by:
+
+     * alter_table_cmd
+     * constraint_elem
+     * create_index_stmt
+     * index_def
+
+   opt_storing:
+
+   storing ( name_list ) 
+
+   referenced by:
+
+     * constraint_elem
+     * create_index_stmt
+     * index_def
+
+   opt_interleave:
+
+   INTERLEAVE IN PARENT table_name ( name_list ) 
+
+   referenced by:
+
+     * alter_table_cmd
+     * constraint_elem
+     * create_index_stmt
+     * create_table_stmt
+     * index_def
+
+   opt_partition_by:
+
+   partition_by 
+
+   referenced by:
+
+     * constraint_elem
+     * create_index_stmt
+     * create_table_stmt
+     * index_def
+     * list_partition
+     * range_partition
+
+   schema_name:
+
+   name 
+
+   referenced by:
+
+     * create_schema_stmt
+
+   opt_temp_create_table:
+
+   opt_temp LOCAL GLOBAL TEMPORARY TEMP 
+
+   referenced by:
+
+     * create_table_as_stmt
+     * create_table_stmt
+
+   opt_table_elem_list:
+
+   table_elem_list 
+
+   referenced by:
+
+     * create_table_stmt
+
+   create_as_opt_col_list:
+
+   ( create_as_table_defs ) 
+
+   referenced by:
+
+     * create_table_as_stmt
+
+   opt_temp:
+
+   TEMPORARY TEMP 
+
+   referenced by:
+
+     * create_sequence_stmt
+     * create_view_stmt
+     * opt_temp_create_table
+
+   view_name:
+
+   table_name 
+
+   referenced by:
+
+     * alter_rename_view_stmt
+     * create_view_stmt
+
+   sequence_name:
+
+   db_object_name 
+
+   referenced by:
+
+     * alter_rename_sequence_stmt
+     * alter_sequence_options_stmt
+     * create_sequence_stmt
+
+   opt_sequence_option_list:
+
+   sequence_option_list 
+
+   referenced by:
+
+     * create_sequence_stmt
+
+   cte_list:
+
+   common_table_expr , 
+
+   referenced by:
+
+     * with_clause
+
+   opt_index_flags:
+
+   @ index_name [ ICONST ] { index_flags_param_list } 
+
+   referenced by:
+
+     * table_name_opt_idx
+     * table_ref
+
+   sortby_list:
+
+   sortby , 
+
+   referenced by:
+
+     * sort_clause
+
+   first_or_next:
+
+   FIRST NEXT 
+
+   referenced by:
+
+     * limit_clause
+
+   select_fetch_first_value:
+
+   c_expr only_signed_iconst only_signed_fconst 
+
+   referenced by:
+
+     * limit_clause
+     * offset_clause
+
+   row_or_rows:
+
+   ROW ROWS 
+
+   referenced by:
+
+     * limit_clause
+     * offset_clause
+
+   target_elem:
+
+   a_expr AS target_name identifier * 
+
+   referenced by:
+
+     * target_list
+
+   table_index_name_list:
+
+   table_index_name , 
+
+   referenced by:
+
+     * drop_index_stmt
+
+   table_name_list:
+
+   table_name , 
+
+   referenced by:
+
+     * drop_sequence_stmt
+     * drop_table_stmt
+     * drop_view_stmt
+     * opt_locked_rels
+
+   non_reserved_word:
+
+   identifier unreserved_keyword col_name_keyword type_func_name_keyword 
+
+   referenced by:
+
+     * explain_option_name
+     * non_reserved_word_or_sconst
+
+   column_def:
+
+   column_name typename col_qual_list 
+
+   referenced by:
+
+     * alter_table_cmd
+     * table_elem
+
+   index_def:
+
+   UNIQUE INDEX opt_index_name ( index_params ) opt_hash_sharded opt_storing
+   opt_interleave opt_partition_by INVERTED INDEX opt_name ( index_params ) 
+
+   referenced by:
+
+     * table_elem
+
+   family_def:
+
+   FAMILY opt_family_name ( name_list ) 
+
+   referenced by:
+
+     * create_as_table_defs
+     * table_elem
+
+   table_constraint:
+
+   CONSTRAINT constraint_name constraint_elem 
+
+   referenced by:
+
+     * alter_table_cmd
+     * table_elem
+
+   column_name:
+
+   name 
+
+   referenced by:
+
+     * alter_table_cmd
+     * column_def
+     * create_as_param
+     * create_as_table_defs
+     * insert_column_item
+     * single_set_clause
+
+   d_expr:
+
+   @ ICONST FCONST const_typename SCONST BCONST BITCONST interval_value TRUE
+   FALSE NULL column_path_with_star PLACEHOLDER ( a_expr ) . *
+   unrestricted_name @ ICONST func_expr select_with_parens labeled_row ARRAY
+   select_with_parens row array_expr 
+
+   referenced by:
+
+     * c_expr
+
+   array_subscripts:
+
+   array_subscript 
+
+   referenced by:
+
+     * c_expr
+
+   case_expr:
+
+   CASE case_arg when_clause_list case_default END 
+
+   referenced by:
+
+     * c_expr
+
+   simple_typename:
+
+   const_typename bit_with_length character_with_length interval_type
+   postgres_oid 
+
+   referenced by:
+
+     * typename
+
+   opt_array_bounds:
+
+   [ ] 
+
+   referenced by:
+
+     * typename
+
+   expr_tuple1_ambiguous:
+
+   ( tuple1_ambiguous_values ) 
+
+   referenced by:
+
+     * in_expr
+
+   math_op:
+
+   + - * / FLOORDIV % & | ^ # < > = LESS_EQUALS GREATER_EQUALS NOT_EQUALS 
+
+   referenced by:
+
+     * subquery_op
+
+   attrs:
+
+   . unrestricted_name 
+
+   referenced by:
+
+     * var_name
+
+   scrub_option_list:
+
+   scrub_option , 
+
+   referenced by:
+
+     * opt_scrub_options_clause
+
+   simple_select_clause:
+
+   SELECT opt_all_clause DISTINCT distinct_on_clause target_list from_clause
+   opt_where_clause group_clause having_clause window_clause 
+
+   referenced by:
+
+     * simple_select
+
+   values_clause:
+
+   VALUES ( expr_list ) , 
+
+   referenced by:
+
+     * simple_select
+
+   table_clause:
+
+   TABLE table_ref 
+
+   referenced by:
+
+     * simple_select
+
+   set_operation:
+
+   select_clause UNION INTERSECT EXCEPT all_or_distinct select_clause 
+
+   referenced by:
+
+     * simple_select
+
+   for_locking_items:
+
+   for_locking_item 
+
+   referenced by:
+
+     * for_locking_clause
+
+   offset_clause:
+
+   OFFSET a_expr select_fetch_first_value row_or_rows 
+
+   referenced by:
+
+     * select_limit
+
+   generic_set:
+
+   var_name to_or_eq var_list 
+
+   referenced by:
+
+     * set_rest_more
+
+   extra_var_value:
+
+   ON cockroachdb_extra_reserved_keyword 
+
+   referenced by:
+
+     * var_value
+
+   targets_roles:
+
+   ROLE name_list targets 
+
+   referenced by:
+
+     * opt_on_targets_roles
+
+   partition:
+
+   PARTITION partition_name 
+
+   referenced by:
+
+     * list_partition
+     * opt_partition
+     * range_partition
+
+   single_set_clause:
+
+   column_name = a_expr 
+
+   referenced by:
+
+     * set_clause
+
+   multiple_set_clause:
+
+   ( insert_column_list ) = in_expr 
+
+   referenced by:
+
+     * set_clause
+
+   table_ref:
+
+   relation_expr opt_index_flags LATERAL select_with_parens func_table [
+   row_source_extension_stmt ] opt_ordinality opt_alias_clause joined_table (
+   joined_table ) opt_ordinality alias_clause 
+
+   referenced by:
+
+     * from_list
+     * joined_table
+     * table_clause
+
+   cockroachdb_extra_reserved_keyword:
+
+   INDEX NOTHING 
+
+   referenced by:
+
+     * db_object_name_component
+     * extra_var_value
+     * reserved_keyword
+
+   type_func_name_keyword:
+
+   COLLATION CROSS FULL INNER ILIKE IS ISNULL JOIN LEFT LIKE NATURAL NONE
+   NOTNULL OUTER OVERLAPS RIGHT SIMILAR FAMILY 
+
+   referenced by:
+
+     * non_reserved_word
+     * type_function_name
+     * unrestricted_name
+
+   reserved_keyword:
+
+   ALL ANALYSE ANALYZE AND ANY ARRAY AS ASC ASYMMETRIC BOTH CASE CAST CHECK
+   COLLATE COLUMN CONCURRENTLY CONSTRAINT CREATE CURRENT_CATALOG CURRENT_DATE
+   CURRENT_ROLE CURRENT_SCHEMA CURRENT_TIME CURRENT_TIMESTAMP CURRENT_USER
+   DEFAULT DEFERRABLE DESC DISTINCT DO ELSE END EXCEPT FALSE FETCH FOR
+   FOREIGN FROM GRANT GROUP HAVING IN INITIALLY INTERSECT INTO LATERAL
+   LEADING LIMIT LOCALTIME LOCALTIMESTAMP NOT NULL OFFSET ON ONLY OR ORDER
+   PLACING PRIMARY REFERENCES RETURNING SELECT SESSION_USER SOME SYMMETRIC
+   TABLE THEN TO TRAILING TRUE UNION UNIQUE USER USING VARIADIC WHEN WHERE
+   WINDOW WITH cockroachdb_extra_reserved_keyword 
+
+   referenced by:
+
+     * unrestricted_name
+
+   transaction_user_priority:
+
+   PRIORITY user_priority 
+
+   referenced by:
+
+     * transaction_mode
+
+   transaction_read_mode:
+
+   READ ONLY WRITE 
+
+   referenced by:
+
+     * transaction_mode
+
+   alter_table_cmds:
+
+   alter_table_cmd , 
+
+   referenced by:
+
+     * alter_onetable_stmt
+
+   set_zone_config:
+
+   CONFIGURE ZONE USING var_set_list DISCARD 
+
+   referenced by:
+
+     * alter_zone_database_stmt
+     * alter_zone_index_stmt
+     * alter_zone_partition_stmt
+     * alter_zone_range_stmt
+     * alter_zone_table_stmt
+
+   alter_index_cmds:
+
+   alter_index_cmd , 
+
+   referenced by:
+
+     * alter_oneindex_stmt
+
+   sequence_option_list:
+
+   sequence_option_elem 
+
+   referenced by:
+
+     * alter_sequence_options_stmt
+     * opt_sequence_option_list
+
+   role_option:
+
+   CREATEROLE NOCREATEROLE LOGIN NOLOGIN password_clause valid_until_clause 
+
+   referenced by:
+
+     * role_options
+
+   single_table_pattern_list:
+
+   table_name , 
+
+   referenced by:
+
+     * changefeed_targets
+
+   opt_equal:
+
+   = 
+
+   referenced by:
+
+     * opt_encoding_clause
+     * opt_lc_collate_clause
+     * opt_lc_ctype_clause
+     * opt_template_clause
+
+   opt_name:
+
+   name 
+
+   referenced by:
+
+     * index_def
+     * opt_family_name
+     * opt_index_name
+
+   index_elem:
+
+   a_expr opt_asc_desc opt_nulls_order 
+
+   referenced by:
+
+     * index_params
+
+   storing:
+
+   COVERING STORING INCLUDE 
+
+   referenced by:
+
+     * opt_storing
+
+   partition_by:
+
+   PARTITION BY LIST ( name_list ) ( list_partitions RANGE ( name_list ) (
+   range_partitions ) NOTHING 
+
+   referenced by:
+
+     * alter_index_cmd
+     * alter_table_cmd
+     * opt_partition_by
+
+   create_as_table_defs:
+
+   column_name create_as_col_qual_list , column_name create_as_col_qual_list
+   family_def create_as_constraint_def 
+
+   referenced by:
+
+     * create_as_opt_col_list
+
+   common_table_expr:
+
+   table_alias_name opt_column_list AS ( preparable_stmt ) 
+
+   referenced by:
+
+     * cte_list
+
+   index_flags_param_list:
+
+   index_flags_param , 
+
+   referenced by:
+
+     * opt_index_flags
+
+   sortby:
+
+   a_expr opt_asc_desc opt_nulls_order PRIMARY KEY table_name INDEX
+   table_name @ index_name opt_asc_desc 
+
+   referenced by:
+
+     * sortby_list
+
+   only_signed_iconst:
+
+   + - ICONST 
+
+   referenced by:
+
+     * select_fetch_first_value
+     * signed_iconst
+
+   only_signed_fconst:
+
+   + - FCONST 
+
+   referenced by:
+
+     * select_fetch_first_value
+
+   target_name:
+
+   unrestricted_name 
+
+   referenced by:
+
+     * target_elem
+
+   col_qual_list:
+
+   col_qualification 
+
+   referenced by:
+
+     * column_def
+
+   opt_family_name:
+
+   opt_name 
+
+   referenced by:
+
+     * family_def
+
+   constraint_name:
+
+   name 
+
+   referenced by:
+
+     * alter_table_cmd
+     * col_qualification
+     * table_constraint
+
+   constraint_elem:
+
+   CHECK ( a_expr ) UNIQUE ( index_params ) opt_storing opt_interleave
+   opt_partition_by PRIMARY KEY ( index_params ) opt_hash_sharded
+   opt_interleave FOREIGN KEY ( name_list ) REFERENCES table_name
+   opt_column_list key_match reference_actions 
+
+   referenced by:
+
+     * table_constraint
+
+   const_typename:
+
+   numeric bit_without_length character_without_length const_datetime
+   const_json BLOB BYTES BYTEA TEXT NAME SERIAL SERIAL2 SMALLSERIAL SERIAL4
+   SERIAL8 BIGSERIAL UUID INET OID OIDVECTOR INT2VECTOR identifier 
+
+   referenced by:
+
+     * d_expr
+     * simple_typename
+
+   interval_value:
+
+   INTERVAL SCONST opt_interval_qualifier ( ICONST ) SCONST 
+
+   referenced by:
+
+     * d_expr
+
+   column_path_with_star:
+
+   column_path db_object_name_component . unrestricted_name .
+   unrestricted_name . * 
+
+   referenced by:
+
+     * d_expr
+
+   func_expr:
+
+   func_application filter_clause over_clause func_expr_common_subexpr 
+
+   referenced by:
+
+     * d_expr
+
+   labeled_row:
+
+   row ( row AS name_list ) 
+
+   referenced by:
+
+     * d_expr
+
+   row:
+
+   ROW ( opt_expr_list ) expr_tuple_unambiguous 
+
+   referenced by:
+
+     * d_expr
+     * labeled_row
+
+   array_expr:
+
+   [ opt_expr_list array_expr_list ] 
+
+   referenced by:
+
+     * array_expr_list
+     * d_expr
+
+   array_subscript:
+
+   [ a_expr opt_slice_bound : opt_slice_bound ] 
+
+   referenced by:
+
+     * array_subscripts
+
+   case_arg:
+
+   a_expr 
+
+   referenced by:
+
+     * case_expr
+
+   when_clause_list:
+
+   when_clause 
+
+   referenced by:
+
+     * case_expr
+
+   case_default:
+
+   ELSE a_expr 
+
+   referenced by:
+
+     * case_expr
+
+   bit_with_length:
+
+   BIT opt_varying VARBIT ( ICONST ) 
+
+   referenced by:
+
+     * simple_typename
+
+   character_with_length:
+
+   character_base ( ICONST ) 
+
+   referenced by:
+
+     * simple_typename
+
+   interval_type:
+
+   INTERVAL interval_qualifier ( ICONST ) 
+
+   referenced by:
+
+     * simple_typename
+
+   postgres_oid:
+
+   REGPROC REGPROCEDURE REGCLASS REGTYPE REGNAMESPACE 
+
+   referenced by:
+
+     * simple_typename
+
+   tuple1_ambiguous_values:
+
+   a_expr , expr_list 
+
+   referenced by:
+
+     * expr_tuple1_ambiguous
+
+   scrub_option:
+
+   INDEX CONSTRAINT ALL ( name_list ) PHYSICAL 
+
+   referenced by:
+
+     * scrub_option_list
+
+   opt_all_clause:
+
+   ALL 
+
+   referenced by:
+
+     * simple_select_clause
+
+   from_clause:
+
+   FROM from_list opt_as_of_clause 
+
+   referenced by:
+
+     * simple_select_clause
+
+   group_clause:
+
+   GROUP BY expr_list 
+
+   referenced by:
+
+     * simple_select_clause
+
+   having_clause:
+
+   HAVING a_expr 
+
+   referenced by:
+
+     * simple_select_clause
+
+   window_clause:
+
+   WINDOW window_definition_list 
+
+   referenced by:
+
+     * simple_select_clause
+
+   distinct_on_clause:
+
+   DISTINCT ON ( expr_list ) 
+
+   referenced by:
+
+     * simple_select_clause
+
+   all_or_distinct:
+
+   ALL DISTINCT 
+
+   referenced by:
+
+     * set_operation
+
+   for_locking_item:
+
+   for_locking_strength opt_locked_rels opt_nowait_or_skip 
+
+   referenced by:
+
+     * for_locking_items
+
+   var_list:
+
+   var_value , 
+
+   referenced by:
+
+     * generic_set
+
+   opt_ordinality:
+
+   WITH ORDINALITY 
+
+   referenced by:
+
+     * table_ref
+
+   opt_alias_clause:
+
+   alias_clause 
+
+   referenced by:
+
+     * table_ref
+
+   joined_table:
+
+   ( joined_table ) table_ref CROSS opt_join_hint NATURAL join_type
+   opt_join_hint JOIN table_ref join_type opt_join_hint JOIN table_ref
+   join_qual 
+
+   referenced by:
+
+     * joined_table
+     * table_ref
+
+   alias_clause:
+
+   AS table_alias_name opt_column_list 
+
+   referenced by:
+
+     * opt_alias_clause
+     * table_ref
+
+   func_table:
+
+   func_expr_windowless ROWS FROM ( rowsfrom_list ) 
+
+   referenced by:
+
+     * table_ref
+
+   row_source_extension_stmt:
+
+   delete_stmt explain_stmt insert_stmt select_stmt show_stmt update_stmt
+   upsert_stmt 
+
+   referenced by:
+
+     * table_ref
+
+   user_priority:
+
+   LOW NORMAL HIGH 
+
+   referenced by:
+
+     * transaction_user_priority
+
+   alter_table_cmd:
+
+   RENAME opt_column CONSTRAINT column_name TO column_name ADD COLUMN IF NOT
+   EXISTS column_def table_constraint opt_validate_behavior ALTER opt_column
+   column_name alter_column_default DROP NOT NULL STORED SET NOT NULL
+   opt_set_data TYPE typename opt_collate opt_alter_column_using PRIMARY KEY
+   USING COLUMNS ( index_params ) opt_hash_sharded opt_interleave DROP
+   opt_column IF EXISTS column_name CONSTRAINT IF EXISTS constraint_name
+   opt_drop_behavior VALIDATE CONSTRAINT constraint_name EXPERIMENTAL_AUDIT
+   SET audit_mode partition_by 
+
+   referenced by:
+
+     * alter_table_cmds
+
+   var_set_list:
+
+   var_name = COPY FROM PARENT var_value , var_name = var_value COPY FROM
+   PARENT 
+
+   referenced by:
+
+     * set_zone_config
+
+   alter_index_cmd:
+
+   partition_by 
+
+   referenced by:
+
+     * alter_index_cmds
+
+   sequence_option_elem:
+
+   NO CYCLE MINVALUE MAXVALUE OWNED BY NONE column_path INCREMENT BY MINVALUE
+   MAXVALUE START WITH signed_iconst64 VIRTUAL 
+
+   referenced by:
+
+     * sequence_option_list
+
+   password_clause:
+
+   PASSWORD string_or_placeholder NULL 
+
+   referenced by:
+
+     * role_option
+
+   valid_until_clause:
+
+   VALID UNTIL string_or_placeholder NULL 
+
+   referenced by:
+
+     * role_option
+
+   opt_asc_desc:
+
+   ASC DESC 
+
+   referenced by:
+
+     * index_elem
+     * sortby
+
+   opt_nulls_order:
+
+   NULLS FIRST LAST 
+
+   referenced by:
+
+     * index_elem
+     * sortby
+
+   list_partitions:
+
+   list_partition , 
+
+   referenced by:
+
+     * partition_by
+
+   range_partitions:
+
+   range_partition , 
+
+   referenced by:
+
+     * partition_by
+
+   create_as_col_qual_list:
+
+   create_as_col_qualification 
+
+   referenced by:
+
+     * create_as_table_defs
+
+   create_as_constraint_def:
+
+   create_as_constraint_elem 
+
+   referenced by:
+
+     * create_as_table_defs
+
+   index_flags_param:
+
+   FORCE_INDEX = index_name NO_INDEX_JOIN 
+
+   referenced by:
+
+     * index_flags_param_list
+
+   col_qualification:
+
+   CONSTRAINT constraint_name col_qualification_elem COLLATE collation_name
+   FAMILY family_name CREATE FAMILY family_name IF NOT EXISTS FAMILY
+   family_name 
+
+   referenced by:
+
+     * col_qual_list
+
+   key_match:
+
+   MATCH SIMPLE FULL 
+
+   referenced by:
+
+     * col_qualification_elem
+     * constraint_elem
+
+   reference_actions:
+
+   reference_on_update reference_on_delete reference_on_delete
+   reference_on_update 
+
+   referenced by:
+
+     * col_qualification_elem
+     * constraint_elem
+
+   numeric:
+
+   INT INTEGER INT2 SMALLINT INT4 INT8 INT64 BIGINT REAL FLOAT4 FLOAT8 FLOAT
+   opt_float DOUBLE PRECISION DECIMAL DEC NUMERIC opt_numeric_modifiers
+   BOOLEAN BOOL 
+
+   referenced by:
+
+     * const_typename
+
+   bit_without_length:
+
+   BIT VARYING VARBIT 
+
+   referenced by:
+
+     * const_typename
+
+   character_without_length:
+
+   character_base 
+
+   referenced by:
+
+     * const_typename
+
+   const_datetime:
+
+   DATE TIME TIMESTAMP ( ICONST ) opt_timezone TIMETZ TIMESTAMPTZ ( ICONST ) 
+
+   referenced by:
+
+     * const_typename
+
+   const_json:
+
+   JSON JSONB 
+
+   referenced by:
+
+     * const_typename
+
+   opt_interval_qualifier:
+
+   interval_qualifier 
+
+   referenced by:
+
+     * interval_value
+
+   func_application:
+
+   func_name ( ALL expr_list opt_sort_clause DISTINCT expr_list * ) 
+
+   referenced by:
+
+     * func_expr
+     * func_expr_windowless
+
+   filter_clause:
+
+   FILTER ( WHERE a_expr ) 
+
+   referenced by:
+
+     * func_expr
+
+   over_clause:
+
+   OVER window_specification window_name 
+
+   referenced by:
+
+     * func_expr
+
+   func_expr_common_subexpr:
+
+   COLLATION FOR ( IF ( a_expr , NULLIF IFNULL ( IFERROR ( a_expr , a_expr ,
+   ISERROR ( a_expr , a_expr CAST ( a_expr AS cast_target ANNOTATE_TYPE (
+   a_expr , typename COALESCE ( expr_list ) CURRENT_DATE CURRENT_SCHEMA
+   CURRENT_CATALOG CURRENT_TIMESTAMP CURRENT_TIME LOCALTIMESTAMP LOCALTIME
+   CURRENT_USER CURRENT_ROLE SESSION_USER USER special_function 
+
+   referenced by:
+
+     * func_expr
+     * func_expr_windowless
+
+   opt_expr_list:
+
+   expr_list 
+
+   referenced by:
+
+     * array_expr
+     * row
+     * substr_list
+
+   expr_tuple_unambiguous:
+
+   ( tuple1_unambiguous_values ) 
+
+   referenced by:
+
+     * row
+
+   array_expr_list:
+
+   array_expr , 
+
+   referenced by:
+
+     * array_expr
+
+   opt_slice_bound:
+
+   a_expr 
+
+   referenced by:
+
+     * array_subscript
+
+   when_clause:
+
+   WHEN a_expr THEN a_expr 
+
+   referenced by:
+
+     * when_clause_list
+
+   opt_varying:
+
+   VARYING 
+
+   referenced by:
+
+     * bit_with_length
+
+   character_base:
+
+   char_aliases VARYING VARCHAR STRING 
+
+   referenced by:
+
+     * character_with_length
+     * character_without_length
+
+   interval_qualifier:
+
+   YEAR TO MONTH MONTH DAY TO HOUR MINUTE interval_second HOUR TO MINUTE
+   interval_second MINUTE TO interval_second interval_second 
+
+   referenced by:
+
+     * interval_type
+     * opt_interval_qualifier
+
+   window_definition_list:
+
+   window_definition , 
+
+   referenced by:
+
+     * window_clause
+
+   for_locking_strength:
+
+   FOR NO KEY UPDATE KEY SHARE 
+
+   referenced by:
+
+     * for_locking_item
+
+   opt_locked_rels:
+
+   OF table_name_list 
+
+   referenced by:
+
+     * for_locking_item
+
+   opt_nowait_or_skip:
+
+   SKIP LOCKED NOWAIT 
+
+   referenced by:
+
+     * for_locking_item
+
+   opt_join_hint:
+
+   HASH MERGE LOOKUP 
+
+   referenced by:
+
+     * joined_table
+
+   join_type:
+
+   FULL LEFT RIGHT join_outer INNER 
+
+   referenced by:
+
+     * joined_table
+
+   join_qual:
+
+   USING ( name_list ) ON a_expr 
+
+   referenced by:
+
+     * joined_table
+
+   func_expr_windowless:
+
+   func_application func_expr_common_subexpr 
+
+   referenced by:
+
+     * func_table
+     * rowsfrom_item
+
+   rowsfrom_list:
+
+   rowsfrom_item , 
+
+   referenced by:
+
+     * func_table
+
+   opt_column:
+
+   COLUMN 
+
+   referenced by:
+
+     * alter_table_cmd
+
+   alter_column_default:
+
+   SET DEFAULT a_expr DROP DEFAULT 
+
+   referenced by:
+
+     * alter_table_cmd
+
+   opt_set_data:
+
+   SET DATA 
+
+   referenced by:
+
+     * alter_table_cmd
+
+   opt_collate:
+
+   COLLATE collation_name 
+
+   referenced by:
+
+     * alter_table_cmd
+
+   opt_alter_column_using:
+
+   USING a_expr 
+
+   referenced by:
+
+     * alter_table_cmd
+
+   opt_validate_behavior:
+
+   NOT VALID 
+
+   referenced by:
+
+     * alter_table_cmd
+
+   audit_mode:
+
+   READ WRITE OFF 
+
+   referenced by:
+
+     * alter_table_cmd
+
+   signed_iconst64:
+
+   signed_iconst 
+
+   referenced by:
+
+     * sequence_option_elem
+
+   list_partition:
+
+   partition VALUES IN ( expr_list ) opt_partition_by 
+
+   referenced by:
+
+     * list_partitions
+
+   range_partition:
+
+   partition VALUES FROM ( expr_list ) TO ( expr_list ) opt_partition_by 
+
+   referenced by:
+
+     * range_partitions
+
+   create_as_col_qualification:
+
+   create_as_col_qualification_elem FAMILY family_name 
+
+   referenced by:
+
+     * create_as_col_qual_list
+
+   create_as_constraint_elem:
+
+   PRIMARY KEY ( create_as_params ) 
+
+   referenced by:
+
+     * create_as_constraint_def
+
+   col_qualification_elem:
+
+   NOT NULL UNIQUE PRIMARY KEY USING HASH WITH BUCKET_COUNT = a_expr CHECK (
+   a_expr ) DEFAULT b_expr REFERENCES table_name opt_name_parens key_match
+   reference_actions AS ( a_expr ) STORED 
+
+   referenced by:
+
+     * col_qualification
+
+   family_name:
+
+   name 
+
+   referenced by:
+
+     * col_qualification
+     * create_as_col_qualification
+
+   reference_on_update:
+
+   ON UPDATE reference_action 
+
+   referenced by:
+
+     * reference_actions
+
+   reference_on_delete:
+
+   ON DELETE reference_action 
+
+   referenced by:
+
+     * reference_actions
+
+   opt_float:
+
+   ( ICONST ) 
+
+   referenced by:
+
+     * numeric
+
+   opt_numeric_modifiers:
+
+   ( ICONST , ICONST ) 
+
+   referenced by:
+
+     * numeric
+
+   opt_timezone:
+
+   WITH WITHOUT TIME ZONE 
+
+   referenced by:
+
+     * const_datetime
+
+   func_name:
+
+   type_function_name prefixed_column_path 
+
+   referenced by:
+
+     * func_application
+
+   window_specification:
+
+   ( opt_existing_window_name opt_partition_clause opt_sort_clause
+   opt_frame_clause ) 
+
+   referenced by:
+
+     * over_clause
+     * window_definition
+
+   window_name:
+
+   name 
+
+   referenced by:
+
+     * over_clause
+     * window_definition
+
+   special_function:
+
+   CURRENT_DATE CURRENT_SCHEMA CURRENT_USER ( EXTRACT EXTRACT_DURATION (
+   extract_list OVERLAY ( overlay_list POSITION ( position_list SUBSTRING (
+   substr_list GREATEST LEAST ( expr_list CURRENT_TIMESTAMP CURRENT_TIME
+   LOCALTIMESTAMP LOCALTIME ( a_expr TRIM ( BOTH LEADING TRAILING trim_list )
+
+   referenced by:
+
+     * func_expr_common_subexpr
+
+   tuple1_unambiguous_values:
+
+   a_expr , expr_list 
+
+   referenced by:
+
+     * expr_tuple_unambiguous
+
+   char_aliases:
+
+   CHAR CHARACTER 
+
+   referenced by:
+
+     * character_base
+
+   interval_second:
+
+   SECOND ( ICONST ) 
+
+   referenced by:
+
+     * interval_qualifier
+
+   window_definition:
+
+   window_name AS window_specification 
+
+   referenced by:
+
+     * window_definition_list
+
+   join_outer:
+
+   OUTER 
+
+   referenced by:
+
+     * join_type
+
+   rowsfrom_item:
+
+   func_expr_windowless 
+
+   referenced by:
+
+     * rowsfrom_list
+
+   signed_iconst:
+
+   ICONST only_signed_iconst 
+
+   referenced by:
+
+     * signed_iconst64
+
+   create_as_col_qualification_elem:
+
+   PRIMARY KEY 
+
+   referenced by:
+
+     * create_as_col_qualification
+
+   create_as_params:
+
+   create_as_param , 
+
+   referenced by:
+
+     * create_as_constraint_elem
+
+   opt_name_parens:
+
+   ( name ) 
+
+   referenced by:
+
+     * col_qualification_elem
+
+   reference_action:
+
+   NO ACTION RESTRICT CASCADE SET NULL DEFAULT 
+
+   referenced by:
+
+     * reference_on_delete
+     * reference_on_update
+
+   type_function_name:
+
+   identifier unreserved_keyword type_func_name_keyword 
+
+   referenced by:
+
+     * func_name
+
+   opt_existing_window_name:
+
+   name 
+
+   referenced by:
+
+     * window_specification
+
+   opt_partition_clause:
+
+   PARTITION BY expr_list 
+
+   referenced by:
+
+     * window_specification
+
+   opt_frame_clause:
+
+   RANGE ROWS GROUPS frame_extent opt_frame_exclusion 
+
+   referenced by:
+
+     * window_specification
+
+   extract_list:
+
+   extract_arg FROM a_expr expr_list 
+
+   referenced by:
+
+     * special_function
+
+   overlay_list:
+
+   a_expr overlay_placing substr_from substr_for expr_list 
+
+   referenced by:
+
+     * special_function
+
+   position_list:
+
+   b_expr IN b_expr 
+
+   referenced by:
+
+     * special_function
+
+   substr_list:
+
+   a_expr substr_from substr_for substr_for substr_from opt_expr_list 
+
+   referenced by:
+
+     * special_function
+
+   trim_list:
+
+   a_expr FROM expr_list 
+
+   referenced by:
+
+     * special_function
+
+   create_as_param:
+
+   column_name 
+
+   referenced by:
+
+     * create_as_params
+
+   frame_extent:
+
+   BETWEEN frame_bound AND frame_bound 
+
+   referenced by:
+
+     * opt_frame_clause
+
+   opt_frame_exclusion:
+
+   EXCLUDE CURRENT ROW GROUP TIES NO OTHERS 
+
+   referenced by:
+
+     * opt_frame_clause
+
+   extract_arg:
+
+   identifier YEAR MONTH DAY HOUR MINUTE SECOND SCONST 
+
+   referenced by:
+
+     * extract_list
+
+   overlay_placing:
+
+   PLACING a_expr 
+
+   referenced by:
+
+     * overlay_list
+
+   substr_from:
+
+   FROM a_expr 
+
+   referenced by:
+
+     * overlay_list
+     * substr_list
+
+   substr_for:
+
+   FOR a_expr 
+
+   referenced by:
+
+     * overlay_list
+     * substr_list
+
+   frame_bound:
+
+   UNBOUNDED a_expr PRECEDING FOLLOWING CURRENT ROW 
+
+   referenced by:
+
+     * frame_extent
+
+   generated by Railroad Diagram Generator
+
+   Was this page helpful?
+
+   Yes No
+   Scroll back to top
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

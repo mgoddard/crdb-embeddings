@@ -1,0 +1,188 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                   DROP VIEW
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The DROP VIEW statement removes a view from a database.
+
+   Note:
+
+   This statement performs a schema change. For more information about how
+   online schema changes work in CockroachDB, see Online Schema Changes.
+
+Required privileges
+
+   The user must have the DROP privilege on the specified view(s). If CASCADE
+   is used to drop dependent views, the user must have the DROP privilege on
+   each dependent view as well.
+
+Synopsis
+
+   DROP VIEW IF EXISTS table_name , CASCADE RESTRICT
+
+Parameters
+
+   Parameter  Description                                                     
+   IF EXISTS  Drop the view if it exists; if it does not exist, do not return 
+              an error.                                                       
+              A comma-separated list of view names. To find view names, use:  
+   table_name                                                                 
+              SELECT * FROM information_schema.tables WHERE table_type =      
+              'VIEW';                                                         
+              Drop other views that depend on the view being dropped.         
+   CASCADE                                                                    
+              CASCADE does not list views it drops, so should be used         
+              cautiously.                                                     
+   RESTRICT   (Default) Do not drop the view if other views depend on it.     
+
+Examples
+
+  Remove a view (no dependencies)
+
+   In this example, other views do not depend on the view being dropped.
+
+   copy
+
+ > SELECT * FROM information_schema.tables WHERE table_type = 'VIEW';
+
+ +---------------+-------------------+--------------------+------------+---------+
+ | TABLE_CATALOG |   TABLE_SCHEMA    |     TABLE_NAME     | TABLE_TYPE | VERSION |
+ +---------------+-------------------+--------------------+------------+---------+
+ | def           | bank              | user_accounts      | VIEW       |       1 |
+ | def           | bank              | user_emails        | VIEW       |       1 |
+ +---------------+-------------------+--------------------+------------+---------+
+ (2 rows)
+
+   copy
+
+ > DROP VIEW bank.user_emails;
+
+ DROP VIEW
+
+   copy
+
+ > SELECT * FROM information_schema.tables WHERE table_type = 'VIEW';
+
+ +---------------+-------------------+--------------------+------------+---------+
+ | TABLE_CATALOG |   TABLE_SCHEMA    |     TABLE_NAME     | TABLE_TYPE | VERSION |
+ +---------------+-------------------+--------------------+------------+---------+
+ | def           | bank              | user_accounts      | VIEW       |       1 |
+ +---------------+-------------------+--------------------+------------+---------+
+ (1 row)
+
+  Remove a view (with dependencies)
+
+   In this example, another view depends on the view being dropped.
+   Therefore, it's only possible to drop the view while simultaneously
+   dropping the dependent view using CASCADE.
+
+   Warning:
+   CASCADE drops all dependent views without listing them, which can lead to
+   inadvertent and difficult-to-recover losses. To avoid potential harm, we
+   recommend dropping objects individually in most cases.
+   copy
+
+ > SELECT * FROM information_schema.tables WHERE table_type = 'VIEW';
+
+ +---------------+-------------------+--------------------+------------+---------+
+ | TABLE_CATALOG |   TABLE_SCHEMA    |     TABLE_NAME     | TABLE_TYPE | VERSION |
+ +---------------+-------------------+--------------------+------------+---------+
+ | def           | bank              | user_accounts      | VIEW       |       1 |
+ | def           | bank              | user_emails        | VIEW       |       1 |
+ +---------------+-------------------+--------------------+------------+---------+
+ (2 rows)
+
+   copy
+
+ > DROP VIEW bank.user_accounts;
+
+ pq: cannot drop view "user_accounts" because view "user_emails" depends on it
+
+   copy
+
+ > DROP VIEW bank.user_accounts CASCADE;
+
+ DROP VIEW
+
+   copy
+
+ > SELECT * FROM information_schema.tables WHERE table_type = 'VIEW';
+
+ +---------------+-------------------+--------------------+------------+---------+
+ | TABLE_CATALOG |   TABLE_SCHEMA    |     TABLE_NAME     | TABLE_TYPE | VERSION |
+ +---------------+-------------------+--------------------+------------+---------+
+ | def           | bank              | create_test        | VIEW       |       1 |
+ +---------------+-------------------+--------------------+------------+---------+
+ (1 row)
+
+See also
+
+     * Views
+     * CREATE VIEW
+     * SHOW CREATE
+     * ALTER VIEW
+     * Online Schema Changes
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

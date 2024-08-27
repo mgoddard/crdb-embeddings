@@ -1,0 +1,106 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                             Limiting Query Results
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The LIMIT and OFFSET clauses restrict the operation of:
+
+     * A selection query, including when it occurs as part of INSERT or
+       UPSERT.
+     * UPDATE and DELETE statements.
+
+Synopsis
+
+   LIMIT count FETCH FIRST NEXT count ROW ROWS ONLY
+   OFFSET a_expr c_expr ROW ROWS
+
+   LIMIT restricts the operation to only retrieve limit_val number of rows.
+
+   OFFSET restricts the operation to skip the first offset_value number of
+   rows. It is often used in conjunction with LIMIT to "paginate" through
+   retrieved rows.
+
+   Warning:
+
+   Using LIMIT/OFFSET to implement pagination can be very slow for large
+   tables. We recommend using keyset pagination instead.
+
+   For PostgreSQL compatibility, CockroachDB also supports FETCH FIRST
+   limit_val ROWS ONLY and FETCH NEXT limit_val ROWS ONLY as aliases for
+   LIMIT. If limit_val is omitted, then one row is fetched.
+
+Examples
+
+   For example uses with SELECT, see Limiting Row Count and Pagination.
+
+See also
+
+     * DELETE
+     * UPDATE
+     * INSERT
+     * UPSERT
+     * Selection Queries
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

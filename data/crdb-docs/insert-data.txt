@@ -1,0 +1,181 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                  Insert Data
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   This page has instructions for getting data into CockroachDB with various
+   programming languages, using the INSERT SQL statement.
+
+Before you begin
+
+   Make sure you have already:
+
+     * Set up a local cluster.
+     * Installed a Postgres client.
+     * Connected to the database.
+   Note:
+
+   Your application should use a retry loop to handle transaction errors that
+   can occur under contention.
+
+Insert rows
+
+   When inserting multiple rows, a single multi-row insert statement is
+   faster than multiple single-row statements.
+
+   SQL Go Java Python
+   copy
+
+ CREATE TABLE IF NOT EXISTS accounts (id INT PRIMARY KEY, balance INT);
+ INSERT INTO accounts (id, balance) VALUES (1, 1000), (2, 250);
+
+   For more information about how to use the built-in SQL client, see the
+   cockroach sql reference docs.
+
+   copy
+
+ // 'db' is an open database connection
+
+ // Insert two rows into the "accounts" table.
+ if _, err := db.Exec(
+     "INSERT INTO accounts (id, balance) VALUES (1, 1000), (2, 250)"); err != nil {
+     log.Fatal(err)
+ }
+
+   For complete examples, see:
+
+     * Build a Go App with CockroachDB (pq)
+     * Build a Go App with CockroachDB and GORM
+   copy
+
+ // ds is an org.postgresql.ds.PGSimpleDataSource
+
+ try (Connection connection = ds.getConnection()) {
+     connection.setAutoCommit(false);
+     PreparedStatement pstmt = connection.prepareStatement("INSERT INTO accounts (id, balance) VALUES (?, ?)");
+
+     pstmt.setInt(1, 1);
+     pstmt.setInt(2, 1000);
+     pstmt.addBatch();
+
+     pstmt.executeBatch();
+     connection.commit();
+ } catch (SQLException e) {
+     System.out.printf("sql state = [%s]\ncause = [%s]\nmessage = [%s]\n",
+                       e.getSQLState(), e.getCause(), e.getMessage());
+ }
+
+   For complete examples, see:
+
+     * Build a Java App with CockroachDB (JDBC)
+     * Build a Java App with CockroachDB and Hibernate
+   copy
+
+ # conn is a psycopg2 connection
+ with conn.cursor() as cur:
+     cur.execute('INSERT INTO accounts (id, balance) VALUES (1, 1000), (2, 250)')
+
+ conn.commit()
+
+   For complete examples, see:
+
+     * Build a Python App with CockroachDB (psycopg2)
+     * Build a Python App with CockroachDB and SQLAlchemy
+     * Build a Python App with CockroachDB and Django
+     * Build a Python App with CockroachDB and PonyORM
+
+Bulk insert
+
+   If you need to get a lot of data into a CockroachDB cluster quickly, use
+   the IMPORT statement instead of sending SQL INSERTs from application code.
+   It will be much faster because it bypasses the SQL layer altogether and
+   writes directly to the data store using low-level commands. For
+   instructions, see the Migration Overview.
+
+See also
+
+   Reference information related to this task:
+
+     * Migration Overview
+     * IMPORT
+     * Import performance
+     * INSERT
+     * UPSERT
+     * Understanding and Avoiding Transaction Contention
+     * Multi-row DML best practices
+     * Insert Multiple Rows
+
+   Other common tasks:
+
+     * Connect to the Database
+     * Query Data
+     * Update Data
+     * Delete Data
+     * Run Multi-Statement Transactions
+     * Error Handling and Troubleshooting
+     * Make Queries Fast
+     * Hello World Example apps
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

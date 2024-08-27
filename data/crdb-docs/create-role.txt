@@ -1,0 +1,213 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                  CREATE ROLE
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The CREATE ROLE statement creates SQL roles, which are groups containing
+   any number of roles and users as members. You can assign privileges to
+   roles, and all members of the role (regardless of whether if they are
+   direct or indirect members) will inherit the role's privileges.
+
+   Note:
+
+   CREATE ROLE is no longer an enterprise feature and is now freely available
+   in the core version of CockroachDB. Also, since the keywords ROLE and USER
+   can now be used interchangeably in SQL statements for enhanced Postgres
+   compatibility, CREATE ROLE is now an alias for CREATE USER.
+
+Considerations
+
+     * Role names:
+          * Are case-insensitive
+          * Must start with either a letter or underscore
+          * Must contain only letters, numbers, periods, or underscores
+          * Must be between 1 and 63 characters.
+     * After creating roles, you must grant them privileges to databases and
+       tables.
+     * Roles and users can be members of roles.
+     * Roles and users share the same namespace and must be unique.
+     * All privileges of a role are inherited by all of its members.
+     * There is no limit to the number of members in a role.
+     * Roles cannot log in. They do not have a password and cannot use
+       certificates.
+     * Membership loops are not allowed (direct: A is a member of B is a
+       member of A or indirect: A is a member of B is a member of C ... is a
+       member of A).
+
+Required privileges
+
+   To create other roles, the role must have the CREATEROLE parameter set.
+
+Synopsis
+
+   CREATE ROLE IF NOT EXISTS name
+
+Parameters
+
+   Parameter               Description                                        
+                           The name of the role you want to create. Role      
+                           names are case-insensitive; must start with either 
+                           a letter or underscore; must contain only letters, 
+   name                    numbers, periods, or underscores; and must be      
+                           between 1 and 63 characters.                       
+                                                                              
+                           Note that roles and users share the same namespace 
+                           and must be unique.                                
+                           Let the role authenticate their access to a secure 
+                           cluster using this password. Passwords should be   
+                           entered as a string literal. For compatibility     
+                           with PostgreSQL, a password can also be entered as 
+   password                an identifier.                                     
+                                                                              
+                           To prevent a role from using password              
+                           authentication and to mandate certificate-based    
+                           client authentication, set the password as NULL.   
+   VALID UNTIL             The date and time (in the timestamp format) after  
+                           which the password is not valid.                   
+                           Allow or disallow a role to login with one of the  
+                           client authentication methods.                     
+   LOGIN/NOLOGIN                                                              
+                           By default, the parameter is set to NOLOGIN for    
+                           the CREATE ROLE statement.                         
+                           Allow or disallow the new role to create, alter,   
+                           and drop other roles.                              
+   CREATEROLE/NOCREATEROLE                                                    
+                           By default, the parameter is set to NOCREATEROLE   
+                           for all non-admin and non-root users.              
+
+Examples
+
+   copy
+
+ > CREATE ROLE dev_ops;
+
+ CREATE ROLE 1
+
+   After creating roles, you can add users to the role and grant the role
+   privileges.
+
+  Allow the role to create other roles
+
+   copy
+
+ > CREATE ROLE dev with CREATEROLE;
+
+  Create a role with a password using a string literal
+
+   copy
+
+ > CREATE ROLE carl WITH PASSWORD 'ilov3beefjerky';
+
+ CREATE ROLE 1
+
+  Create a role with a password using an identifier
+
+   The following statement sets the password to ilov3beefjerky, as above:
+
+   copy
+
+ > CREATE ROLE carl WITH PASSWORD ilov3beefjerky;
+
+   This is equivalent to the example in the previous section because the
+   password contains only lowercase characters.
+
+   In contrast, the following statement sets the password to
+   thereisnotomorrow, even though the password in the syntax contains
+   capitals, because identifiers are normalized automatically:
+
+   copy
+
+ > CREATE ROLE carl WITH PASSWORD ThereIsNoTomorrow;
+
+   To preserve case in a password specified using identifier syntax, use
+   double quotes:
+
+   copy
+
+ > CREATE ROLE carl WITH PASSWORD "ThereIsNoTomorrow";
+
+  Prevent a role from using password authentication
+
+   The following statement prevents the role from using password
+   authentication and mandates certificate-based client authentication:
+
+   copy
+
+ > CREATE ROLE carl WITH PASSWORD NULL;
+
+See also
+
+     * Authorization
+     * DROP ROLE
+     * GRANT <privileges>
+     * REVOKE <privileges>
+     * GRANT <roles>
+     * REVOKE <roles>
+     * SHOW ROLES
+     * SHOW USERS
+     * SHOW GRANTS
+     * Other SQL Statements
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

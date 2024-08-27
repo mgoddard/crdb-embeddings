@@ -1,0 +1,480 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                           Install a Postgres Client
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   CockroachDB supports the PostgreSQL wire protocol, so most available
+   PostgreSQL client drivers and ORMs should work with CockroachDB. Choose a
+   language for supported clients and installation steps.
+
+   Note:
+
+   Applications may encounter incompatibilities when using advanced or
+   obscure features of a driver or ORM with beta-level support. If you
+   encounter problems, please open an issue with details to help us make
+   progress toward full support.
+
+   Python Java Go Ruby Node.js C C++ C# (.NET) Clojure PHP TypeScript
+
+Drivers
+
+  psycopg2
+
+   Support level: Full
+
+   To install the Python psycopg2 driver:
+
+   copy
+
+ $ pip install psycopg2
+
+   For other ways to install psycopg2, see the official documentation.
+
+   For a simple but complete "Hello World" example app, see Build a Python
+   App with CockroachDB and psycopg2.
+
+ORMs
+
+  SQLAlchemy
+
+   Support level: Full
+
+   To install SQLAlchemy and a CockroachDB Python package that accounts for
+   some differences between CockroachDB and PostgreSQL:
+
+   copy
+
+ $ pip install sqlalchemy sqlalchemy-cockroachdb psycopg2
+
+   Tip:
+
+   You can substitute psycopg2 for other alternatives that include the
+   psycopg python package.
+
+   For other ways to install SQLAlchemy, see the official documentation.
+
+   For a simple but complete "Hello World" example app, see Build a Python
+   App with CockroachDB and SQLAlchemy.
+
+  Django
+
+   Support level: Full
+
+   CockroachDB supports Django versions 2.2 and 3.0.
+
+   To install Django:
+
+   copy
+
+ $ python -m pip install django==3.0.*
+
+   Before installing the CockroachDB backend for Django, you must install one
+   of the following psycopg2 prerequisites:
+
+     * psycopg2, which has some prerequisites of its own. This package is
+       recommended for production environments.
+
+     * psycopg2-binary. This package is recommended for development and
+       testing.
+
+   After you install the psycopg2 prerequisite, you can install the
+   CockroachDB Django backend:
+
+   copy
+
+ $ python -m pip install django-cockroachdb==3.0.*
+
+   Note:
+
+   The major version of django-cockroachdb must correspond to the major
+   version of django. The minor release numbers do not need to match.
+
+   For a simple but complete "Hello World" example app, see Build a Python
+   App with CockroachDB and Django.
+
+  PonyORM
+
+   Support level: Full
+
+   To install PonyORM:
+
+   copy
+
+ $ python -m pip install pony
+
+   For a simple but complete "Hello World" example app, see Build a Python
+   App with CockroachDB and PonyORM.
+
+  peewee
+
+   Support level: Full
+
+   To install peewee:
+
+   copy
+
+ $ python -m pip install peewee
+
+   For instructions on using peewee with CockroachDB, see the
+   CockroachDatabase peewee extension documentation.
+
+Drivers
+
+  JDBC
+
+   Support level: Full
+
+   Download and set up the Java JDBC driver as described in the official
+   documentation.
+
+   For a simple but complete "Hello World" example app, see Build a Java App
+   with CockroachDB and JDBC.
+
+ORMs
+
+  Hibernate
+
+   Support level: Full
+
+   You can use the Gradle build tool to get all dependencies for your
+   application, including Hibernate.
+
+   To install Gradle on Mac:
+
+   copy
+
+ $ brew install gradle
+
+   To install Gradle on a Debian-based Linux distribution like Ubuntu:
+
+   copy
+
+ $ apt-get install gradle
+
+   To install Gradle on a Red Hat-based Linux distribution like Fedora:
+
+   copy
+
+ $ dnf install gradle
+
+   For other ways to install Gradle, see its official documentation.
+
+   For a simple but complete "Hello World" example app, see Build a Java App
+   with CockroachDB and Hibernate.
+
+  jOOQ
+
+   Support level: Full
+
+   You can use the Maven build tool to manage application dependencies.
+
+   To install Maven on Mac:
+
+   copy
+
+ $ brew install maven
+
+   To install Maven on a Debian-based Linux distribution like Ubuntu:
+
+   copy
+
+ $ apt-get install maven
+
+   For other ways to install Maven, see its official documentation.
+
+   For a simple but complete "Hello World" example app, see Build a Java App
+   with CockroachDB and jOOQ.
+
+Drivers
+
+  pgx
+
+   Support level: Full
+
+   To install the Go pgx driver:
+
+   copy
+
+ $ go get -u github.com/jackc/pgx
+
+   For a simple but complete "Hello World" example app, see Build a Go App
+   with CockroachDB and the Go pgx Driver.
+
+  pq
+
+   Support level: Full
+
+   To install the Go pq driver:
+
+   copy
+
+ $ go get -u github.com/lib/pq
+
+   For a simple but complete "Hello World" example app, see Build a Go App
+   with CockroachDB and the Go pq Driver.
+
+ORMs
+
+  GORM
+
+   Support level: Full
+
+   To install GORM:
+
+   copy
+
+ $ go get -u github.com/lib/pq # dependency
+
+   copy
+
+ $ go get -u github.com/jinzhu/gorm
+
+   For a simple but complete "Hello World" example app, see Build a Go App
+   with CockroachDB and GORM.
+
+Drivers
+
+  pg
+
+   Support level: Beta
+
+   To install the Ruby pg driver:
+
+   copy
+
+ $ gem install pg
+
+   For a simple but complete "Hello World" example app, see Build a Ruby App
+   with CockroachDB and the Ruby pg Driver.
+
+ORMs
+
+  ActiveRecord
+
+   Support level: Full
+
+   To install ActiveRecord, the pg driver, and a CockroachDB Ruby package
+   that accounts for some minor differences between CockroachDB and
+   PostgreSQL:
+
+   copy
+
+ $ gem install activerecord pg activerecord-cockroachdb-adapter
+
+   Note:
+
+   The exact command above will vary depending on the desired version of
+   ActiveRecord. Specifically, version 4.2.x of ActiveRecord requires version
+   0.1.x of the adapter; version 5.1.x of ActiveRecord requires version 0.2.x
+   of the adapter; version 5.2.x of ActiveRecord requires version 5.2.x of
+   the adapter.
+
+   For a simple but complete "Hello World" example app, see Build a Ruby App
+   with CockroachDB and ActiveRecord.
+
+Drivers
+
+  pg
+
+   Support level: Beta
+
+   To install the Node.js pg driver:
+
+   copy
+
+ $ npm install pg
+
+   Some apps might also requires async:
+
+   copy
+
+ $ npm install async
+
+   For a simple but complete "Hello World" example app, see Build a Node.js
+   App with CockroachDB and the Node.js pg Driver.
+
+ORMs
+
+  Sequelize
+
+   Support level: Beta
+
+   To install Sequelize and a CockroachDB Node.js package that accounts for
+   some minor differences between CockroachDB and PostgreSQL:
+
+   copy
+
+ $ npm install sequelize sequelize-cockroachdb
+
+   For a simple but complete "Hello World" example app, see Build a Node.js
+   App with CockroachDB and Sequelize.
+
+Drivers
+
+  libpq
+
+   Support level: Beta
+
+   Install the C libpq driver as described in the official documentation.
+
+Drivers
+
+  libpqxx
+
+   Support level: Beta
+
+   Install the C++ libpqxx driver as described in the official documentation.
+
+   Note:
+
+   If you are running macOS, you need to install version 4.0.1 or higher of
+   the libpqxx driver.
+
+   For a simple but complete "Hello World" example app, see Build a C++ App
+   with CockroachDB and libpqxx.
+
+Drivers
+
+  Npgsql
+
+   Support level: Beta
+
+    1. Create a .NET project:
+
+       copy
+
+ $ dotnet new console -o cockroachdb-test-app
+
+       copy
+
+ $ cd cockroachdb-test-app
+
+       The dotnet command creates a new app of type console. The -o parameter
+       creates a directory named cockroachdb-test-app where your app will be
+       stored and populates it with the required files. The cd
+       cockroachdb-test-app command puts you into the newly created app
+       directory.
+
+    2. Install the latest version of the Npgsql driver into the .NET project
+       using the built-in nuget package manager:
+
+       copy
+
+ $ dotnet add package Npgsql
+
+   For a simple but complete "Hello World" example app, see Build a C# App
+   with CockroachDB and the .NET Npgsql Driver.
+
+Drivers
+
+  leiningen
+
+   Support level: Beta
+
+   Install the Clojure lein utility as described in its official
+   documentation.
+
+   For a simple but complete "Hello World" example app, see Build a Closure
+   App with CockroachDB and java.jdbc.
+
+Drivers
+
+  php-pgsql
+
+   Support level: Beta
+
+   Install the php-pgsql driver as described in the official documentation.
+
+   For a simple but complete "Hello World" example app, see Build a PHP App
+   with CockroachDB and the PHP pgsql Driver.
+
+Drivers
+
+  postgres
+
+   Support level: Beta
+
+   Install the Rust Postgres driver as described in the official
+   documentation.
+
+   For a simple but complete "Hello World" example app, see Build a Rust App
+   with CockroachDB and the Rust Postgres Driver.
+
+ORMs
+
+  TypeORM
+
+   Support level: Beta
+
+   Install TypeORM as described in the official documentation.
+
+See also
+
+     * Third party database tools
+     * Connection parameters
+     * Transactions
+     * Performance best practices
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

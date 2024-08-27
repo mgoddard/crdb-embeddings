@@ -1,0 +1,180 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                     MovR: An Example Multi-Region Use-Case
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   This page walks you through an example use case for multi-region
+   application development and deployment. It is the first section of the
+   Develop and Deploy a Multi-Region Web Application tutorial.
+
+Overview
+
+   MovR is a fictional company that offers users a platform for sharing
+   vehicles, like scooters, bicycles, and skateboards, in select cities
+   across the United States and Europe. To serve users in two continents,
+   they need an application that is globally available, resilient to system
+   failures, and optimized for latency. To meet these requirements, the
+   application is built on CockroachDB, and designed and deployed to consider
+   resiliency and latency across different geographic locations.
+
+Resiliency and distributed deployments
+
+   For an application to be resilient to system failures, the application
+   server and database need to be deployed on multiple machines (i.e., part
+   of a distributed deployment). In distributed CockroachDB deployments, all
+   data is replicated and distributed across the instances of the database
+   that make up the deployment. For more information about data replication
+   and distribution in CockroachDB, see The Raft Protocol in CockroachDB.
+
+   The replication and distribution of data across multiple machines in a
+   single region makes the deployment resilient to individual node failures
+   within the region. Replication and distribution across multiple regions
+   makes the deployment resilient to regional failures. To make the database
+   resilient to regional failures, use a multi-region deployment.
+
+   Note:
+
+   In the example deployment, the application and the database deployments
+   are separate and not co-located on the same machine.
+
+Latency in global applications
+
+   If the MovR application and database are deployed in a single region,
+   latency can be a serious problem for users located in cities outside the
+   deployment region. However, deploying the application and database in
+   multiple regions will not improve latency if client requests are sent to
+   any server in the deployment, without consideration for the client's
+   location.
+
+   Limiting latency improves the user experience, and it can also help avoid
+   problems with data integrity, like transaction contention. For the purpose
+   of this tutorial, we'll focus on two types of latency:
+
+     * Database latency, which we define as the time required to complete
+       database operations.
+     * Application latency, which we define as the time required to make
+       requests to an application server.
+
+  Database latency
+
+   To reduce database latency in a distributed CockroachDB deployment, data
+   can be geo-partitioned. Geo-partitioning enables you to control where
+   specific rows of data are stored. Limiting database operations to specific
+   partitions can reduce the distance requests need to travel between the
+   client and the database.
+
+   Note:
+
+   Geo-partitioned replicas can dramatically improve latency in multi-region
+   deployments, but at the cost of resiliency. Geo-partitioned replicas are
+   resilient to availability zone failures, but not regional failures.
+
+   If you are building an application, it's likely that the end user will not
+   be making requests to the database directly. Instead, the user makes
+   requests to the application, and the application makes requests to the
+   database on behalf of the user. To limit the latency between the
+   application and the database, you need to design and deploy your
+   application such that:
+
+     * Each instance of the application communicates with the closest
+       database instance. This can be configured during the deployment. Later
+       in the tutorial, in the multi-region deployment steps, we walk you
+       through configuring the application to communicate with the database
+       closest to it.
+     * The application's database operations query relevant, geo-partitioned
+       data. To do this, the application must be aware of the client's
+       location. This requires the load balancer to pass client location
+       information to the application. We cover configuring custom HTTP
+       headers for client location in the application deployment steps. We
+       also discuss handling client location server-side in Developing a
+       Multi-Region Web Application.
+
+  Application latency
+
+   To limit the latency between client and application server requests, you
+   need to deploy your application such that requests are routed to the
+   application deployment closest to the client. This requires a global load
+   balancer that can redirect traffic to application deployments, based on
+   client location. We cover setting up a multi-cluster ingress in the
+   multi-region application deployment steps.
+
+   In the sections that follow, we cover some best practices in database
+   schema creation with an example database. We also cover some basics for
+   developing a locality-aware, global application.
+
+Next steps
+
+   You should now be ready to start creating a multi-region database schema.
+
+See also
+
+     * movr-flask on GitHub
+     * CockroachDB terminology
+     * Configure Replication Zones
+     * Define Table Partitions
+     * Topology Patterns
+     * Geo-Partitioned Replicas Topology
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

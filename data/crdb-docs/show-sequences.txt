@@ -1,0 +1,106 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                 SHOW SEQUENCES
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The SHOW SEQUENCES statement lists all sequences in a database.
+
+Required privileges
+
+   No privileges are required to list the sequences in a database.
+
+Synopsis
+
+   SHOW SEQUENCES FROM name
+
+Parameters
+
+   Parameter Description                                                      
+   name      The name of the database for which to list sequences. When       
+             omitted, the sequences in the current database are listed.       
+
+Example
+
+   copy
+
+ > CREATE SEQUENCE sequence_test;
+
+   copy
+
+ > SHOW SEQUENCES;
+
+  sequence_name
+ ---------------
+  sequence_test
+ (1 row)
+
+See also
+
+     * RENAME SEQUENCE
+     * CREATE SEQUENCE
+     * DROP SEQUENCE
+     * ALTER SEQUENCE
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

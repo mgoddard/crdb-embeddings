@@ -1,0 +1,313 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                     ARRAY
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The ARRAY data type stores one-dimensional, 1-indexed, homogeneous arrays
+   of any non-array data type.
+
+   The ARRAY data type is useful for ensuring compatibility with ORMs and
+   other tools. However, if such compatibility is not a concern, it's more
+   flexible to design your schema with normalized tables.
+
+   CockroachDB supports indexing array columns with inverted indexes. This
+   permits accelerating containment queries (@> and <@) on array columns by
+   adding an index to them.
+
+   Note:
+
+   CockroachDB does not support nested arrays or ordering by arrays.
+
+   Note:
+
+   Vectorized execution is currently not supported for this data type.
+
+Syntax
+
+   A value of data type ARRAY can be expressed in the following ways:
+
+     * Appending square brackets ([]) to any non-array data type.
+     * Adding the term ARRAY to any non-array data type.
+
+Size
+
+   The size of an ARRAY value is variable, but it's recommended to keep
+   values under 1 MB to ensure performance. Above that threshold, write
+   amplification and other considerations may cause significant performance
+   degradation.
+
+Examples
+
+   Tip:
+
+   For a complete list of array functions built into CockroachDB, see the
+   documentation on array functions.
+
+  Creating an array column by appending square brackets
+
+   copy
+
+ > CREATE TABLE a (b STRING[]);
+
+   copy
+
+ > INSERT INTO a VALUES (ARRAY['sky', 'road', 'car']);
+
+   copy
+
+ > SELECT * FROM a;
+
+ +----------------------+
+ |          b           |
+ +----------------------+
+ | {"sky","road","car"} |
+ +----------------------+
+ (1 row)
+
+  Creating an array column by adding the term ARRAY
+
+   copy
+
+ > CREATE TABLE c (d INT ARRAY);
+
+   copy
+
+ > INSERT INTO c VALUES (ARRAY[10,20,30]);
+
+   copy
+
+ > SELECT * FROM c;
+
+ +------------+
+ |     d      |
+ +------------+
+ | {10,20,30} |
+ +------------+
+ (1 row)
+
+  Accessing an array element using array index
+
+   Note:
+
+   Arrays in CockroachDB are 1-indexed.
+
+   copy
+
+ > SELECT * FROM c;
+
+ +------------+
+ |     d      |
+ +------------+
+ | {10,20,30} |
+ +------------+
+ (1 row)
+
+   copy
+
+ > SELECT d[2] FROM c;
+
+ +------+
+ | d[2] |
+ +------+
+ |   20 |
+ +------+
+ (1 row)
+
+  Appending an element to an array
+
+    Using the array_append function
+
+   copy
+
+ > SELECT * FROM c;
+
+ +------------+
+ |     d      |
+ +------------+
+ | {10,20,30} |
+ +------------+
+ (1 row)
+
+   copy
+
+ > UPDATE c SET d = array_append(d, 40) WHERE d[3] = 30;
+
+   copy
+
+ > SELECT * FROM c;
+
+ +---------------+
+ |       d       |
+ +---------------+
+ | {10,20,30,40} |
+ +---------------+
+ (1 row)
+
+    Using the append (||) operator
+
+   copy
+
+ > SELECT * FROM c;
+
+ +---------------+
+ |       d       |
+ +---------------+
+ | {10,20,30,40} |
+ +---------------+
+ (1 row)
+
+   copy
+
+ > UPDATE c SET d = d || 50 WHERE d[4] = 40;
+
+   copy
+
+ > SELECT * FROM c;
+
+ +------------------+
+ |        d         |
+ +------------------+
+ | {10,20,30,40,50} |
+ +------------------+
+ (1 row)
+
+Supported casting and conversion
+
+   Casting between ARRAY values is supported when the data types of the
+   arrays support casting. For example, it is possible to cast from a BOOL
+   array to an INT array but not from a BOOL array to a TIMESTAMP array:
+
+   copy
+
+ > SELECT ARRAY[true,false,true]::INT[];
+
+    array
+ +---------+
+   {1,0,1}
+ (1 row)
+
+   copy
+
+ > SELECT ARRAY[true,false,true]::TIMESTAMP[];
+
+ pq: invalid cast: bool[] -> TIMESTAMP[]
+
+   You can cast an array to a STRING value, for compatibility with
+   PostgreSQL:
+
+   copy
+
+ > SELECT ARRAY[1,NULL,3]::string;
+
+     array
+ +------------+
+   {1,NULL,3}
+ (1 row)
+
+   copy
+
+ > SELECT ARRAY[(1,'a b'),(2,'c"d')]::string;
+
+                array
+ +----------------------------------+
+   {"(1,\"a b\")","(2,\"c\"\"d\")"}
+ (1 row)
+
+  Implicit casting to INT and DECIMAL ARRAYs
+
+   CockroachDB supports implicit casting from string literals to INT and
+   DECIMAL ARRAYs, where appropriate.
+
+   For example, if you create a table with a column of type INT[]:
+
+   copy
+
+ > CREATE TABLE x (a UUID DEFAULT gen_random_uuid() PRIMARY KEY, b INT[]);
+
+   And then insert a string containing a comma-delimited set of integers
+   contained in brackets:
+
+   copy
+
+ > INSERT INTO x(b) VALUES ('{1,2,3}'), (ARRAY[4,5,6]);
+
+   CockroachDB implicitly casts the string literal as an INT[]:
+
+   copy
+
+ > SELECT * FROM x;
+
+                    a                   |    b
+ ---------------------------------------+----------
+   2ec0ed91-8a82-4f2e-888e-ae86ece4fc60 | {4,5,6}
+   a521d6e9-3a2a-490d-968c-1365cace038a | {1,2,3}
+ (2 rows)
+
+See also
+
+     * Data Types
+     * Inverted Indexes
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

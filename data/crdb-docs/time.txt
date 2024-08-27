@@ -1,0 +1,312 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                 TIME / TIMETZ
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The TIME data type stores the time of day in UTC.
+
+   The TIMETZ data type stores a time of day with a time zone offset from
+   UTC.
+
+   Note:
+
+   Vectorized execution is currently not supported for this data type.
+
+Variants
+
+   TIME has two variants:
+
+     * TIME, which presents all TIME values in UTC.
+
+     * TIMETZ, which converts TIME values with a specified time zone offset
+       from UTC.
+
+       Ordering for TIMETZ is done in terms of epoch. Time zones with lesser
+       values are ranked higher if times are equal. For example, '2:00-1' >
+       '2:00+0' and '12:00-1' > '1:00+0'.
+
+       Like Postgres, we implement the TIMETZ variant for SQL standards
+       compliance. We also implement the TIMETZ variant for compatibility
+       with ORMs, like Hibernate.
+
+   You can use the timezone() and AT TIME ZONE functions to convert a TIMETZ
+   into a TIME at a specified timezone, or to convert a TIME into a TIMETZ at
+   a specified timezone.
+
+   Tip:
+
+   We recommend always using TIME instead of TIMETZ. Convert UTC values to
+   the appropriate time zone on the client side.
+
+Aliases
+
+   In CockroachDB, the following are aliases:
+
+   Alias  Long Version           
+   TIME   TIME WITHOUT TIME ZONE 
+   TIMETZ TIME WITH TIME ZONE    
+
+Syntax
+
+  TIME
+
+   A constant value of type TIME can be expressed using an interpreted
+   literal, or a string literal annotated with type TIME or coerced to type
+   TIME. When it is unambiguous, a simple unannotated string literal can also
+   be automatically interpreted as type TIME.
+
+   The string format for TIME is HH:MM:SS.SSSSSS. For example: TIME
+   '05:40:00.000001'. The fractional portion is optional and is rounded to
+   microseconds (i.e., six digits after the decimal) for compatibility with
+   the PostgreSQL wire protocol.
+
+   Note:
+
+   A date of 0000-01-01 is displayed for all TIME/TIMETZ values, but is not
+   stored in the database. To print without a date, you can cast the type to
+   a STRING.
+
+   A time zone offset of +00:00 is also displayed for all TIME and TIMESTAMP
+   values, but is not stored in the database.
+
+  TIMETZ
+
+   To express a TIMETZ value with a time zone offset from UTC, you can add an
+   offset to a TIME value. For example, TIMETZ '10:10:10.555555-05:00'
+   offsets from UTC by -5.
+
+   If no time zone is specified for a TIMETZ value, the timezone session
+   variable is used. For example, if you set the timezone for a session using
+   SET TIME ZONE -2, and you define the TIMETZ as TIMETZ '10:10:10.55', the
+   value will be displayed with an offset of -2 from UTC.
+
+   TIMETZ is not affected by session-scoped offsets (unlike TIMESTAMPTZ).
+   Time zone offsets only apply to values inserted after the offset has been
+   set, and do not affect existing TIMETZ values, or TIMETZ values with a
+   time zone offset specified.
+
+Size
+
+   A TIME column supports values up to 8 bytes in width, but the total
+   storage size is likely to be larger due to CockroachDB metadata.
+
+   A TIMETZ column supports values up to 12 bytes in width, but the total
+   storage size is likely to be larger due to CockroachDB metadata.
+
+Precision
+
+   CockroachDB supports precision levels from 0 (seconds) to 6 (microseconds)
+   for TIME/TIMETZ values. Precision in time values specifies the number of
+   fractional digits retained in the seconds field. For example, specifying a
+   TIME value as TIME(3) truncates the time precision to milliseconds. By
+   default, TIME/TIMETZ values have a precision of 6 (microseconds).
+
+   You can use an ALTER COLUMN ... SET DATA TYPE statement to change the
+   precision level of a TIME-typed column. If there is already a non-default
+   precision level specified for the column, the precision level can only be
+   changed to an equal or greater precision level. For an example, see Create
+   a table with a TIME-typed column, with precision.
+
+   Note:
+
+   If you downgrade to a version of CockroachDB that does not support
+   precision for TIME/TIMETZ values, all TIME/TIMETZ values previously
+   specified with precision will be stored with full precision.
+
+Examples
+
+  Create a table with a TIME-typed column
+
+   copy
+
+ > CREATE TABLE time (time_id INT PRIMARY KEY, time_val TIME);
+
+   copy
+
+ > SHOW COLUMNS FROM time;
+
+   column_name | data_type | is_nullable | column_default | generation_expression |  indices  | is_hidden
+ +-------------+-----------+-------------+----------------+-----------------------+-----------+-----------+
+   time_id     | INT8      |    false    | NULL           |                       | {primary} |   false
+   time_val    | TIME      |    true     | NULL           |                       | {}        |   false
+ (2 rows)
+
+   copy
+
+ > INSERT INTO time VALUES (1, TIME '05:40:00'), (2, TIME '05:41:39');
+
+   copy
+
+ > SELECT * FROM time;
+
+   time_id |         time_val
+ +---------+---------------------------+
+         1 | 0000-01-01 05:40:00+00:00
+         2 | 0000-01-01 05:41:39+00:00
+ (2 rows)
+
+   Note:
+
+   The SQL shell displays the date and time zone due to the Go SQL driver it
+   uses. Other client drivers may behave similarly. In such cases, however,
+   the date and time zone are not relevant and are not stored in the
+   database.
+
+   Comparing TIME values:
+
+   copy
+
+ > SELECT (SELECT time_val FROM time WHERE time_id = 1) < (SELECT time_val FROM time WHERE time_id = 2);
+
+ < (SELECT time_val FROM time WHERE time_id = 2);
+   ?column?
+ +----------+
+     true
+ (1 row)
+
+  Create a table with a TIME-typed column, with precision
+
+   copy
+
+ > CREATE TABLE time (time_id INT PRIMARY KEY, time_val TIME(4));
+
+   copy
+
+ > SHOW COLUMNS FROM time;
+
+   column_name | data_type | is_nullable | column_default | generation_expression |  indices  | is_hidden
+ --------------+-----------+-------------+----------------+-----------------------+-----------+------------
+   time_id     | INT8      |    false    | NULL           |                       | {primary} |   false
+   time_val    | TIME(4)   |    true     | NULL           |                       | {}        |   false
+ (2 rows)
+
+   copy
+
+ > INSERT INTO time VALUES (1, TIME '05:40:00.123456'), (2, TIME '05:41:39.12345');
+
+   copy
+
+ > SELECT * FROM time;
+
+   time_id |            time_val
+ ----------+---------------------------------
+         1 | 0000-01-01 05:40:00.1235+00:00
+         2 | 0000-01-01 05:41:39.1235+00:00
+ (2 rows)
+
+   To change the precision level of a column, you can use an ALTER COLUMN ...
+   SET DATA TYPE statement:
+
+   copy
+
+ > ALTER TABLE time ALTER COLUMN time_val SET DATA TYPE TIME(5);
+
+ ALTER TABLE
+
+   copy
+
+ > SHOW COLUMNS FROM time;
+
+   column_name | data_type | is_nullable | column_default | generation_expression |  indices  | is_hidden
+ --------------+-----------+-------------+----------------+-----------------------+-----------+------------
+   time_id     | INT8      |    false    | NULL           |                       | {primary} |   false
+   time_val    | TIME(5)   |    true     | NULL           |                       | {}        |   false
+ (2 rows)
+
+   Note:
+
+   If a non-default precision level has already been specified, you cannot
+   change the precision to a lower level.
+
+   In this case, the time_val column, which is of type TIME(5), cannot be
+   changed to a precision level below 5:
+
+   copy
+
+ > ALTER TABLE time ALTER COLUMN time_val SET DATA TYPE TIME(3);
+
+ ERROR: unimplemented: type conversion from TIME(5) to TIME(3) requires overwriting existing values which is not yet implemented
+ SQLSTATE: 0A000
+
+Supported casting & conversion
+
+   TIME/TIMETZ values can be cast to any of the following data types:
+
+   Type     Details                                                      
+   INTERVAL Converts to the span of time since midnight (00:00)          
+   STRING   Converts to format 'HH:MM:SS.SSSSSS' (microsecond precision) 
+
+   Note:
+
+   CockroachDB displays TIME '24:00:00' and TIMETZ '24:00:00' as 0000-01-01
+   00:00:00. To display the proper stored value (24:00:00), you can cast the
+   data type to a STRING.
+
+See also
+
+     * Data Types
+     * SQL Feature Support
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

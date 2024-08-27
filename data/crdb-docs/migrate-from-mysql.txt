@@ -1,0 +1,272 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                               Migrate from MySQL
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   This page has instructions for migrating data from MySQL to CockroachDB
+   using IMPORT's support for reading mysqldump files.
+
+   The examples below use the employees data set that is also used in the
+   MySQL docs.
+
+Considerations
+
+   In addition to the general considerations listed in the Migration
+   Overview, there is also the following MySQL-specific information to
+   consider as you prepare your migration.
+
+  String case sensitivity
+
+   MySQL strings are case-insensitive by default, but strings in CockroachDB
+   are case-sensitive. This means that you may need to edit your MySQL dump
+   file to get the results you expect from CockroachDB. For example, you may
+   have been doing string comparisons in MySQL that will need to be changed
+   to work with CockroachDB.
+
+   For more information about the case sensitivity of strings in MySQL, see
+   Case Sensitivity in String Searches from the MySQL documentation. For more
+   information about CockroachDB strings, see STRING.
+
+Step 1. Dump the MySQL database
+
+   There are several ways to dump data from MySQL to be imported into
+   CockroachDB:
+
+     * Dump the entire database
+     * Dump one table at a time
+
+  Dump the entire database
+
+   Most users will want to import their entire MySQL database all at once, as
+   shown below in Import a full database dump. To dump the entire database,
+   run the mysqldump command shown below:
+
+   copy
+
+ $ mysqldump -uroot employees > /tmp/employees-full.sql
+
+   If you only want to import one table from a database dump, see Import a
+   table from a full database dump below.
+
+  Dump one table at a time
+
+   To dump the employees table from a MySQL database also named employees,
+   run the mysqldump command shown below. You can import this table using the
+   instructions in Import a table from a table dump below.
+
+   copy
+
+ $ mysqldump -uroot employees employees > employees.sql
+
+Step 2. Host the files where the cluster can access them
+
+   Each node in the CockroachDB cluster needs to have access to the files
+   being imported. There are several ways for the cluster to access the data;
+   for a complete list of the types of storage IMPORT can pull from, see
+   Import File URLs.
+
+   Tip:
+
+   We strongly recommend using cloud storage such as Amazon S3 or Google
+   Cloud to host the data files you want to import.
+
+Step 3. Import the MySQL dump file
+
+   You can choose from several variants of the IMPORT statement, depending on
+   whether you want to import an entire database or just one table:
+
+     * Import a full database dump
+     * Import a table from a full database dump
+     * Import a table from a table dump
+
+   All of the IMPORT statements in this section pull real data from Amazon S3
+   and will kick off background import jobs that you can monitor with SHOW
+   JOBS.
+
+   Note:
+
+   To import data into an existing table, use IMPORT INTO.
+
+  Import a full database dump
+
+   This example assumes you dumped the entire database.
+
+   The IMPORT statement below reads the data and DDL statements (including
+   CREATE TABLE and foreign key constraints) from the full database dump.
+
+   copy
+
+ > CREATE DATABASE IF NOT EXISTS employees;
+ > USE employees;
+ > IMPORT MYSQLDUMP 'https://s3-us-west-1.amazonaws.com/cockroachdb-movr/datasets/employees-db/mysqldump/employees-full.sql.gz';
+
+        job_id       |  status   | fraction_completed |  rows   | index_entries | system_records |   bytes
+ --------------------+-----------+--------------------+---------+---------------+----------------+-----------
+  382716507639906305 | succeeded |                  1 | 3919015 |        331636 |              0 | 110104816
+ (1 row)
+
+  Import a table from a full database dump
+
+   This example assumes you dumped the entire database.
+
+   IMPORT can import one table's data from a full database dump. It reads the
+   data and applies any CREATE TABLE statements from the dump file.
+
+   copy
+
+ > CREATE DATABASE IF NOT EXISTS employees;
+ > USE employees;
+ > IMPORT MYSQLDUMP 'https://s3-us-west-1.amazonaws.com/cockroachdb-movr/datasets/employees-db/mysqldump/employees.sql.gz';
+
+        job_id       |  status   | fraction_completed |  rows  | index_entries | system_records |  bytes
+ --------------------+-----------+--------------------+--------+---------------+----------------+----------
+  383839294913871873 | succeeded |                  1 | 300024 |             0 |              0 | 11534293
+ (1 row)
+
+  Import a table from a table dump
+
+   The examples below assume you dumped one table.
+
+   The simplest way to import a table dump is to run IMPORT TABLE as shown
+   below. It reads the table data and any CREATE TABLE statements from the
+   dump file.
+
+   copy
+
+ > CREATE DATABASE IF NOT EXISTS employees;
+ > USE employees;
+ > IMPORT TABLE employees FROM MYSQLDUMP 'https://s3-us-west-1.amazonaws.com/cockroachdb-movr/datasets/employees-db/mysqldump/employees.sql.gz';
+
+        job_id       |  status   | fraction_completed |  rows  | index_entries | system_records |  bytes  
+ --------------------+-----------+--------------------+--------+---------------+----------------+----------
+  383855569817436161 | succeeded |                  1 | 300024 |             0 |              0 | 11534293
+ (1 row)
+
+   If you need to specify the table's columns for some reason, you can use an
+   IMPORT TABLE statement like the one below, which will import data but
+   ignore any CREATE TABLE statements in the dump file, instead relying on
+   the columns you specify.
+
+   copy
+
+ > CREATE DATABASE IF NOT EXISTS employees;
+ > USE employees;
+ > IMPORT TABLE employees (
+     emp_no INT PRIMARY KEY,
+     birth_date DATE NOT NULL,
+     first_name STRING NOT NULL,
+     last_name STRING NOT NULL,
+     gender STRING NOT NULL,
+     hire_date DATE NOT NULL
+   )
+   MYSQLDUMP DATA ('https://s3-us-west-1.amazonaws.com/cockroachdb-movr/datasets/employees-db/mysqldump/employees.sql.gz');
+
+Configuration Options
+
+   The following options are available to IMPORT ... MYSQLDUMP:
+
+     * Skip foreign keys
+
+  Skip foreign keys
+
+   By default, IMPORT ... MYSQLDUMP supports foreign keys. Default: false.
+   Add the skip_foreign_keys option to speed up data import by ignoring
+   foreign key constraints in the dump file's DDL. It will also enable you to
+   import individual tables that would otherwise fail due to dependencies on
+   other tables.
+
+   Note:
+
+   The most common dependency issues are caused by unsatisfied foreign key
+   relationships. You can avoid these issues by adding the skip_foreign_keys
+   option to your IMPORT statement as needed. For more information, see the
+   list of import options.
+
+   For example, if you get the error message pq: there is no unique
+   constraint matching given keys for referenced table tablename, use IMPORT
+   ... WITH skip_foreign_keys.
+
+   Example usage:
+
+   copy
+
+ > IMPORT MYSQLDUMP 's3://your-external-storage/employees.sql?AWS_ACCESS_KEY_ID=123&AWS_SECRET_ACCESS_KEY=456' WITH skip_foreign_keys;
+
+   Foreign key constraints can be added by using ALTER TABLE ... ADD
+   CONSTRAINT commands after importing the data.
+
+See also
+
+     * IMPORT
+     * Migrate from CSV
+     * Migrate from Postgres
+     * Can a Postgres or MySQL application be migrated to CockroachDB?
+     * SQL Dump (Export)
+     * Back up Data
+     * Restore Data
+     * Use the Built-in SQL Client
+     * Other Cockroach Commands
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

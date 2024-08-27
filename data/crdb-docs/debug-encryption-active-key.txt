@@ -1,0 +1,7 @@
+   Refresh:
+   http://localhost:4000/docs/v20.2/cockroach-debug-encryption-active-key.html
+   Link: canonical
+
+                                  Redirecting…
+
+   Click here if you are not redirected.

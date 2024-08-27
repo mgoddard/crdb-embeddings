@@ -1,0 +1,503 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                             SET (session variable)
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The SET statement can modify one of the session configuration variables.
+   These can also be queried via SHOW.
+
+   Warning:
+   In some cases, client drivers can drop and restart the connection to the
+   server. When this happens, any session configurations made with SET
+   statements are lost. It is therefore more reliable to configure the
+   session in the client's connection string. For examples in different
+   languages, see the Build an App with CockroachDB tutorials.
+
+Required privileges
+
+   No privileges are required to modify the session settings.
+
+Synopsis
+
+   SET SESSION var_name TO = var_value ,
+   Note:
+   The SET statement for session settings is unrelated to the other SET
+   TRANSACTION and SET CLUSTER SETTING statements.
+
+Parameters
+
+   The SET <session variable> statement accepts two parameters: the variable
+   name and the value to use to modify the variable.
+
+   The variable name is case insensitive. The value can be a list of one or
+   more items. For example, the variable search_path is multi-valued.
+
+  Supported variables
+
+                                                                                       Modify View 
+Variable name                     Description                        Initial value     with   with 
+                                                                                       SET ?  SHOW 
+                                                                                              ?    
+                                                                     Empty string, or              
+                                  The current application name for   cockroach for     
+application_name                  statistics collection.             sessions from the Yes    Yes
+                                                                     built-in SQL      
+                                                                     client.           
+bytea_output                      The mode for conversions from      hex               Yes    Yes  
+                                  STRING to BYTES.                   
+crdb_version                      The version of CockroachDB.        `CockroachDB OSS  No     Yes  
+                                                                     version`          
+                                                                     Database in                   
+database                          The current database.              connection        Yes    Yes
+                                                                     string, or empty  
+                                                                     if not specified. 
+default_int_size                  The size, in bytes, of an INT      8                 Yes    Yes  
+                                  type.                              
+                                  All transactions execute with                                    
+default_transaction_isolation     SERIALIZABLE isolation. See        SERIALIZABLE      No     Yes
+                                  Transactions: Isolation levels.    
+                                  The default transaction access                                   
+                                  mode for the current session. If   
+                                  set to on, only read operations    
+default_transaction_read_only     are allowed in transactions in the off               Yes    Yes
+                                  current session; if set to off,    
+                                  both read and write operations are 
+                                  allowed. See SET TRANSACTION for   
+                                  more details.                      
+                                  The query distribution mode for                                  
+                                  the session. By default,           
+                                  CockroachDB determines which       
+distsql                           queries are faster to execute if   auto              Yes    Yes
+                                  distributed across multiple nodes, 
+                                  and all other queries are run      
+                                  through the gateway node.          
+                                  Indicates whether UPDATE                                         
+                                  statements acquire locks using the 
+                                  FOR UPDATE locking mode during     
+                                  their initial row scan, which      
+enable_implicit_select_for_update improves performance for contended on                Yes    Yes
+                                  workloads. For more information    
+                                  about how FOR UPDATE locking       
+                                  works, see the documentation for   
+                                  SELECT FOR UPDATE.                 
+                                  Indicates whether the cost-based                                 
+                                  optimizer will plan certain        
+                                  queries using a zig-zag merge join 
+                                  algorithm, which searches for the  
+enable_zigzag_join                desired intersection by jumping    on                Yes    Yes
+                                  back and forth between the indexes 
+                                  based on the fact that after       
+                                  constraining indexes, they share   
+                                  an ordering.                       
+                                  The number of digits displayed for                               
+extra_float_digits                floating-point values. Only values 0                 Yes    Yes
+                                  between -15 and 3 are supported.   
+                                  Maximum number of joins that the                                 
+                                  optimizer will attempt to reorder  
+reorder_joins_limit               when searching for an optimal      4                 Yes    Yes
+                                  query execution plan. For more     
+                                  information, see Join reordering.  
+                                  When set to true, allows the                                     
+force_savepoint_restart           SAVEPOINT statement to accept any  off               Yes    Yes
+                                  name for a savepoint.              
+                                  The ID of the node currently                                     
+                                  connected to.                      
+node_id                                                              Node-dependent    No     Yes
+                                  This variable is particularly      
+                                  useful for verifying load balanced 
+                                  connections.                       
+optimizer_foreign_keys            If off, disables optimizer-driven  on                Yes    Yes  
+                                  foreign key checks.                
+                                  The default size of the buffer                                   
+                                  that accumulates results for a     
+                                  statement or a batch of statements 
+                                  before they are sent to the        
+                                  client. This can also be set for   
+                                  all connections using the          
+                                  'sql.defaults.results_buffer_size' 
+                                  cluster setting. Note that         
+                                  auto-retries generally only happen 
+results_buffer_size               while no results have been         16384             Yes    Yes
+                                  delivered to the client, so        
+                                  reducing this size can increase    
+                                  the number of retriable errors a   
+                                  client receives. On the other      
+                                  hand, increasing the buffer size   
+                                  can increase the delay until the   
+                                  client receives the first result   
+                                  row. Setting to 0 disables any     
+                                  buffering.                         
+                                  If on, CockroachDB throws on error                               
+require_explicit_primary_keys     for all tables created without an  off               Yes    Yes
+                                  explicit primary key defined.      
+                                  A list of schemas that will be                                   
+search_path                       searched to resolve unqualified    public            Yes    Yes
+                                  table or function names. For more  
+                                  details, see SQL name resolution.  
+server_version                    The version of PostgreSQL that     Version-dependent No     Yes  
+                                  CockroachDB emulates.              
+server_version_num                The version of PostgreSQL that     Version-dependent Yes    Yes  
+                                  CockroachDB emulates.              
+session_id                        The ID of the current session.     Session-dependent No     Yes  
+session_user                      The user connected for the current User in           No     Yes  
+                                  session.                           connection string 
+                                  If false, potentially unsafe SQL   true for                      
+                                  statements are allowed, including  interactive       
+                                  DROP of a non-empty database and   sessions from the 
+                                  all dependent objects, DELETE      built-in SQL      
+sql_safe_updates                  without a WHERE clause, UPDATE     client,           Yes    Yes
+                                  without a WHERE clause, and ALTER  false for         
+                                  TABLE .. DROP COLUMN. See Allow    sessions from     
+                                  Potentially Unsafe SQL Statements  other clients     
+                                  for more details.                  
+                                  The amount of time a statement can                               
+                                  run before being stopped.          
+                                                                     
+                                  This value can be an int (e.g.,    
+statement_timeout                 10) and will be interpreted as     0s                Yes    Yes
+                                  milliseconds. It can also be an    
+                                  interval or string argument, where 
+                                  the string can be parsed as a      
+                                  valid interval (e.g., '4s'). A     
+                                  value of 0 turns it off.           
+                                  The default time zone for the                                    
+                                  current session.                   
+                                                                     
+timezone                          This session variable was named    UTC               Yes    Yes
+                                  "time zone" (with a space) in      
+                                  CockroachDB 1.x. It has been       
+                                  renamed for compatibility with     
+                                  PostgreSQL.                        
+tracing                           The trace recording state.         off                      Yes  
+                                  All transactions execute with                                    
+                                  SERIALIZABLE isolation. See        
+                                  Transactions: Isolation levels.    
+                                                                     
+transaction_isolation             This session variable was called   SERIALIZABLE      No     Yes
+                                  transaction isolation level (with  
+                                  spaces) in CockroachDB 1.x. It has 
+                                  been renamed for compatibility     
+                                  with PostgreSQL.                   
+                                  The priority of the current                                      
+                                  transaction. See Transactions:     
+                                  Isolation levels for more details. 
+                                                                     
+transaction_priority              This session variable was called   NORMAL            Yes    Yes
+                                  transaction priority (with a       
+                                  space) in CockroachDB 1.x. It has  
+                                  been renamed for compatibility     
+                                  with PostgreSQL.                   
+                                  The access mode of the current                                   
+transaction_read_only             transaction. See Set Transaction   off               Yes    Yes
+                                  for more details.                  
+                                  The state of the current                                         
+                                  transaction. See Transactions for  
+                                  more details.                      
+                                                                     
+transaction_status                This session variable was called   NoTxn             No     Yes
+                                  transaction status (with a space)  
+                                  in CockroachDB 1.x. It has been    
+                                  renamed for compatibility with     
+                                  PostgreSQL.                        
+                                  The vectorized execution engine                                  
+                                  mode. Options include auto, on,    
+vectorize                         and off. For more details, see     auto              Yes    Yes
+                                  Configuring vectorized execution   
+                                  for CockroachDB.                   
+                                  The minimum number of rows                                       
+vectorize_row_count_threshold     required to use the vectorized     1000              Yes    Yes
+                                  engine to execute a query plan.    
+client_encoding                   (Reserved; exposed only for ORM    UTF8              No     Yes  
+                                  compatibility.)                    
+client_min_messages               (Reserved; exposed only for ORM    notice            No     Yes  
+                                  compatibility.)                    
+datestyle                         (Reserved; exposed only for ORM    ISO               No     Yes  
+                                  compatibility.)                    
+integer_datetimes                 (Reserved; exposed only for ORM    on                No     Yes  
+                                  compatibility.)                    
+intervalstyle                     (Reserved; exposed only for ORM    postgres          No     Yes  
+                                  compatibility.)                    
+max_identifier_length             (Reserved; exposed only for ORM    128               No     Yes  
+                                  compatibility.)                    
+max_index_keys                    (Reserved; exposed only for ORM    32                No     Yes  
+                                  compatibility.)                    
+standard_conforming_strings       (Reserved; exposed only for ORM    on                No     Yes  
+                                  compatibility.)                    
+server_encoding                   (Reserved; exposed only for ORM    UTF8              Yes    Yes  
+                                  compatibility.)                    
+
+   Special syntax cases:
+
+   Syntax                Equivalent to                     Notes              
+                                                           This is provided   
+                                                           as convenience for 
+   USE ...               SET database = ...                users with a       
+                                                           MySQL/MSSQL        
+                                                           background.        
+                                                           This is provided   
+   SET NAMES ...         SET client_encoding = ...         for compatibility  
+                                                           with PostgreSQL    
+                                                           clients.           
+                                                           This is provided   
+   SET SCHEMA <name>     SET search_path = <name>          for better         
+                                                           compatibility with 
+                                                           PostgreSQL.        
+   SET SESSION                                             This is provided   
+   CHARACTERISTICS AS    SET default_transaction_isolation for compatibility  
+   TRANSACTION ISOLATION = ...                             with standard SQL. 
+   LEVEL ...             
+                                                           This is provided   
+   SET TIME ZONE ...     SET timezone = ...                for compatibility  
+                                                           with PostgreSQL    
+                                                           clients.           
+
+Examples
+
+  Set simple variables
+
+   The following demonstrates how SET can be used to configure the default
+   database for the current session:
+
+   copy
+
+ > SET database = movr;
+
+   copy
+
+ > SHOW database;
+
+   database
+ +----------+
+   movr
+ (1 row)
+
+  Set variables to values containing spaces
+
+   The following demonstrates how to use quoting to use values containing
+   spaces:
+
+   copy
+
+ > SET database = "database name with spaces";
+
+   copy
+
+ > SHOW database;
+
+   database
+ +----------+
+   database name with spaces
+ (1 row)
+
+  Set variables to a list of values
+
+   The following demonstrates how to assign a list of values:
+
+   copy
+
+ > SET search_path = pg_catalog,public;
+
+   copy
+
+ > SHOW search_path;
+
+      search_path
+ +--------------------+
+   pg_catalog, public
+ (1 row)
+
+  Reset a variable to its default value
+
+   Tip:
+   You can use RESET to reset a session variable as well.
+   copy
+
+ > SHOW search_path;
+
+   search_path
+ +-------------+
+   public
+ (1 row)
+
+   copy
+
+ > SET search_path = 'app';
+
+   copy
+
+ > SHOW search_path;
+
+   search_path
+ +-------------+
+   app
+ (1 row)
+
+   copy
+
+ > SET search_path = DEFAULT;
+
+   copy
+
+ > SHOW search_path;
+
+   search_path
+ +-------------+
+   public
+ (1 row)
+
+SET TIME ZONE
+
+   Warning:
+
+   As a best practice, we recommend not using this setting and avoid setting
+   a session time for your database. We instead recommend converting UTC
+   values to the appropriate time zone on the client side.
+
+   You can control the default time zone for a session with SET TIME ZONE.
+   This will apply an offset to all TIMESTAMPTZ/TIMESTAMP WITH TIME ZONE and
+   TIMETZ/TIME WITH TIME ZONE values in the session. By default, CockroachDB
+   uses UTC as the time zone for SET TIME ZONE offsets.
+
+  Parameters
+
+   The input passed to SET TIME ZONE indicates the time zone for the current
+   session. This value can be a string representation of a local
+   system-defined time zone (e.g., 'EST', 'America/New_York') or a positive
+   or negative numeric offset from UTC (e.g., -7, +7, or UTC-7, UTC+7) or GMT
+   (e.g., GMT-7, GMT+7). The numeric offset input can also be colon-delimited
+   (e.g., -7:00, GMT+7:00).
+
+   Note:
+
+   Only offsets specified by integers use the ISO 8601 time offset (i.e., the
+   offset input is parsed as hours east of the specified time zone). If you
+   explicitly specify UTC or GMT for the time zone offset (e.g.,
+   UTC-7,GMT+7), or if the numeric input is colon-delimited (e.g., -7:00,
+   GMT+7:00), CockroachDB uses the POSIX time offset (i.e., hours west of the
+   specified time zone).
+
+   All timezone abbreviations are case-sensitive and must be uppercase, with
+   the exception of UTC, for which utc is an alias.
+
+   DEFAULT, LOCAL, or 0 sets the session time zone to UTC.
+
+  Example: Set the default time zone via SET TIME ZONE
+
+   copy
+
+ > SET TIME ZONE 'EST'; -- same as SET "timezone" = 'EST'
+
+   copy
+
+ > SHOW TIME ZONE;
+
+   timezone
+ +----------+
+   EST
+ (1 row)
+
+   copy
+
+ > SET TIME ZONE DEFAULT; -- same as SET "timezone" = DEFAULT
+
+   copy
+
+ > SHOW TIME ZONE;
+
+   timezone
+ +----------+
+   UTC
+ (1 row)
+
+SET TRACING
+
+   SET TRACING changes the trace recording state of the current session. A
+   trace recording can be inspected with the SHOW TRACE FOR SESSION
+   statement.
+
+   Value   Description                                                        
+   off     Trace recording is disabled.                                       
+   cluster Trace recording is enabled; distributed traces are collected.      
+   on      Same as cluster.                                                   
+   kv      Same as cluster except that "kv messages" are collected instead of 
+           regular trace messages. See SHOW TRACE FOR SESSION.                
+   local   Trace recording is enabled; only trace messages issued by the      
+           local node are collected.                                          
+           Result rows and row counts are copied to the session trace. This   
+           must be specified to in order for the output of a query to be      
+   results printed in the session trace.                                      
+                                                                              
+           Example: SET tracing = kv, results;                                
+
+See also
+
+     * RESET
+     * SET TRANSACTION
+     * SET CLUSTER SETTING
+     * SHOW (session variable)
+     * The TIMESTAMP and TIMESTAMPTZ data types.
+     * SHOW TRACE FOR SESSION
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

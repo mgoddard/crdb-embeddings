@@ -1,0 +1,169 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                           CockroachDB in Comparison
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   This page shows you how key features of CockroachDB stack up against other
+   databases. Hover over features for their intended meanings, and click
+   CockroachDB answers to view related documentation.
+
+                      MySQL                MySQL                              
+                      PostgreSQL           PostgreSQL          
+                      Oracle               Oracle              
+                      Cassandra            Cassandra           CockroachDB
+                      MongoDB              MongoDB             
+                      Spanner              Spanner             
+                      Yugabyte             Yugabyte            
+                      Manual Sharding Add  Manual Sharding Add                
+                      On Configuration     On Configuration                   
+   Database           Node based,          Node based,         Node based,    
+   Horizontal Scale   Automated read       Automated read      Automated for  
+   tooltip icon       scale, limited write scale, limited      both reads and
+                      Node based,          write Node based,   writes
+                      Automated for both   Automated for both  
+                      reads and writes     reads and writes    
+                      Manual - not part of Manual - not part   Detailed       
+   Database Load      database None and    of database None    options to     
+   Balancing          Full copies across   and Full copies     optimize       
+   (internal) tooltip regions Even         across regions Even storage,       
+   icon               distribution to      distribution to     compute and    
+                      optimize storage     optimize storage    latency        
+                      Manual - not part of Manual - not part                  
+                      database Automated   of database                        
+                      for reads, limited   Automated for                      
+                      for writes to one    reads, limited for  Fully          
+   Failover tooltip   region Automated for writes to one       automated for
+   icon               reads, limited       region Automated    both reads and
+                      guarantees for       for reads, limited  writes
+                      writes Fully         guarantees for      
+                      automated for both   writes Fully        
+                      reads and writes     automated for both  
+                                           reads and writes    
+                      Manual Repair RPO    Manual Repair RPO                  
+                      ~1-60 mins Automated ~1-60 mins                         
+   Automated Repair   RPO ~1 -5 mins       Automated RPO ~1 -5 Automated      
+   and RPO tooltip    Manual & Automated   mins Manual &       Repair RPO <10
+   icon               Repair RPO <1 min    Automated Repair    sec
+                      "Automated Repair    RPO <1 min          
+                      RPO <10 sec"         "Automated Repair   
+                                           RPO <10 sec"        
+   Distributed Reads  Manual -             Manual -            Yes            
+   tooltip icon       Asynchronous Yes     Asynchronous Yes    
+   Distributed        No Lightweight       No Lightweight                     
+   Transactions       Transactions only    Transactions only   Yes
+   tooltip icon       Yes                  Yes                 
+                      Single Region        Single Region                      
+                      Consistent Default:  Consistent Default:                
+                      Snapshot Highest:    Snapshot Highest:                  
+                      Serializable         Serializable                       
+                      Eventual Consistent  Eventual Consistent Guaranteed     
+                      Default: Read        Default: Read       Consistent     
+   Database Isolation Uncommited Highest:  Uncommited Highest: Default:
+   Levels tooltip     Snapshot Read        Snapshot Read       Serializable
+   icon               Eventual Consistent, Eventual            Highest:
+                      No Transaction       Consistent, No      Serializable
+                      Isolation Guarantees Transaction         
+                      Default: Snapshot    Isolation           
+                      Highest:             Guarantees Default: 
+                      Serializable         Snapshot Highest:   
+                                           Serializable        
+                      Phantom Reads,       Phantom Reads,                     
+                      Non-repeatable       Non-repeatable      
+                      reads, Write skew    reads, Write skew   
+                      Dirty Reads, Phantom Dirty Reads,        
+                      Reads,               Phantom Reads,      
+                      Non-repeatable       Non-repeatable      
+   Potential data     reads, write skew    reads, write skew   
+   issues (default)   Dirty Reads, Phantom Dirty Reads,        None
+   tooltip icon       Reads,               Phantom Reads,      
+                      Non-repeatable       Non-repeatable      
+                      reads, write         reads, write        
+                      conflicts None       conflicts None      
+                      Phantom Reads,       Phantom Reads,      
+                      Non-repeatable reads Non-repeatable      
+                                           reads               
+                                                               Yes - wire     
+   SQL tooltip icon   Yes No Yes - with    Yes No Yes - with   compatible     
+                      limitations          limitations         with           
+                                                               PostgreSQL     
+   Database Schema    Yes Offline Online,  Yes Offline Online, Online,        
+   Change tooltip     Active, Dynamic      Active, Dynamic     Active,        
+   icon                                                        Dynamic        
+   Cost Based                                                                 
+   Optimization       Yes No ? No          Yes No ? No         Yes
+   tooltip icon       
+   Data               No Yes, Object Level No Yes, Object                     
+   Geo-partitoning    Yes No               Level Yes No        Yes, Row level
+   tooltip icon       
+   Upgrade Method     Offline Online,      Offline Online,     Online,        
+   tooltip icon       Rolling              Rolling             Rolling        
+                      Yes - Manual Yes,    Yes - Manual Yes,   Yes for both   
+   Multi-region       but not for writes   but not for writes  reads and      
+   tooltip icon       Yes, for reads and   Yes, for reads and  writes         
+                      writes               writes              
+   Multi-cloud        No Yes               No Yes              Yes            
+   tooltip icon       
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

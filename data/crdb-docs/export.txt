@@ -1,0 +1,306 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                     EXPORT
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The EXPORT statement exports tabular data or the results of arbitrary
+   SELECT statements to CSV files.
+
+   Using the CockroachDB distributed execution engine, EXPORT parallelizes
+   CSV creation across all nodes in the cluster, making it possible to
+   quickly get large sets of data out of CockroachDB in a format that can be
+   ingested by downstream systems. If you do not need distributed exports,
+   you can use the non-enterprise feature to export tabular data in CSV
+   format.
+
+   Warning:
+
+   This is an enterprise feature. Also, it is in beta and is currently
+   undergoing continued testing. Please file a Github issue with us if you
+   identify a bug.
+
+Export file location
+
+   You can use remote cloud storage (Amazon S3, Google Cloud Platform, etc.)
+   to store the exported CSV data. Alternatively, you can use an HTTP server
+   accessible from all nodes.
+
+   For simplicity's sake, it's strongly recommended to use cloud/remote
+   storage for the data you want to export. Local files are supported;
+   however, they must be accessible identically from all nodes in the
+   cluster.
+
+Cancelling export
+
+   After the export has been initiated, you can cancel it with CANCEL QUERY.
+
+Synopsis
+
+   EXPORT INTO CSV file_location opt_with_options FROM select_stmt TABLE
+   table_name
+   Note:
+   The EXPORT statement cannot be used within a transaction.
+
+Required privileges
+
+   Only members of the admin role can run EXPORT. By default, the root user
+   belongs to the admin role.
+
+Parameters
+
+   Parameter      Description                                                 
+   file_location  Specify the URL of the file location where you want to      
+                  store the exported CSV data.                                
+   WITH kv_option Control your export's behavior with these options.          
+   select_stmt    Specify the query whose result you want to export to CSV    
+                  format.                                                     
+   table_name     Specify the name of the table you want to export to CSV     
+                  format.                                                     
+
+  Export file URL
+
+   URLs for the file directory location you want to export to must use the
+   following format:
+
+ [scheme]://[host]/[path]?[parameters]
+
+   Location        Scheme    Host         Parameters                          
+                                          AUTH ^1 (optional; can be implicit  
+   Amazon          s3        Bucket name  or specified), AWS_ACCESS_KEY_ID,   
+                                          AWS_SECRET_ACCESS_KEY,              
+                                          AWS_SESSION_TOKEN                   
+                             N/A (see     AZURE_ACCOUNT_KEY,                  
+   Azure           azure     Example file AZURE_ACCOUNT_NAME                  
+                             URLs         
+                                          AUTH (optional; can be default,     
+   Google Cloud ^2 gs        Bucket name  implicit, or specified),            
+                                          CREDENTIALS                         
+   HTTP ^3         http      Remote host  N/A                                 
+                             nodeID or                                        
+   NFS/Local ^4    nodelocal self ^5 (see N/A
+                             Example file 
+                             URLs)        
+                                          AWS_ACCESS_KEY_ID,                  
+   S3-compatible   s3        Bucket name  AWS_SECRET_ACCESS_KEY,              
+   services ^6                            AWS_SESSION_TOKEN, AWS_REGION ^7    
+                                          (optional), AWS_ENDPOINT            
+
+   Note:
+
+   The location parameters often contain special characters that need to be
+   URI-encoded. Use Javascript's encodeURIComponent function or Go language's
+   url.QueryEscape function to URI-encode the parameters. Other languages
+   provide similar functions to URI-encode special characters.
+
+   Note:
+
+   If your environment requires an HTTP or HTTPS proxy server for outgoing
+   connections, you can set the standard HTTP_PROXY and HTTPS_PROXY
+   environment variables when starting CockroachDB.
+
+   If you cannot run a full proxy, you can disable external HTTP(S) access
+   (as well as custom HTTP(S) endpoints) when performing bulk operations
+   (e.g., BACKUP, RESTORE, etc.) by using the --external-io-disable-http
+   flag. You can also disable the use of implicit credentials when accessing
+   external cloud storage services for various bulk operations by using the
+   --external-io-disable-implicit-credentials flag.
+
+     * ^1 If the AUTH parameter is not provided, AWS connections default to
+       specified and the access keys must be provided in the URI parameters.
+       If the AUTH parameter is implicit, the access keys can be ommitted and
+       the credentials will be loaded from the environment.
+
+     * ^2 If the AUTH parameter is not specified, the
+       cloudstorage.gs.default.key cluster setting will be used if it is
+       non-empty, otherwise the implicit behavior is used. If the AUTH
+       parameter is implicit, all GCS connections use Google's default
+       authentication strategy. If the AUTH parameter is default, the
+       cloudstorage.gs.default.key cluster setting must be set to the
+       contents of a service account file which will be used during
+       authentication. If the AUTH parameter is specified, GCS connections
+       are authenticated on a per-statement basis, which allows the JSON key
+       object to be sent in the CREDENTIALS parameter. The JSON key object
+       should be base64-encoded (using the standard encoding in RFC 4648).
+
+     * ^3 You can create your own HTTP server with Caddy or nginx. A custom
+       root CA can be appended to the system's default CAs by setting the
+       cloudstorage.http.custom_ca cluster setting, which will be used when
+       verifying certificates from HTTPS URLs.
+
+     * ^4 The file system backup location on the NFS drive is relative to the
+       path specified by the --external-io-dir flag set while starting the
+       node. If the flag is set to disabled, then imports from local
+       directories and NFS drives are disabled.
+
+     * ^5 Using a nodeID is required and the data files will be in the extern
+       directory of the specified node. In most cases (including single-node
+       clusters), using nodelocal://1/<path> is sufficient. Use self if you
+       do not want to specify a nodeID, and the individual data files will be
+       in the extern directories of arbitrary nodes; however, to work
+       correctly, each node must have the --external-io-dir flag point to the
+       same NFS mount or other network-backed, shared storage.
+
+     * ^6 A custom root CA can be appended to the system's default CAs by
+       setting the cloudstorage.http.custom_ca cluster setting, which will be
+       used when verifying certificates from an S3-compatible service.
+
+     * ^7 The AWS_REGION parameter is optional since it is not a required
+       parameter for most S3-compatible services. Specify the parameter only
+       if your S3-compatible service requires it.
+
+    Example file URLs
+
+Location  Example                                                                    
+Amazon S3 s3://acme-co/employees.sql?AWS_ACCESS_KEY_ID=123&AWS_SECRET_ACCESS_KEY=456 
+Azure     azure://employees.sql?AZURE_ACCOUNT_KEY=123&AZURE_ACCOUNT_NAME=acme-co     
+Google    gs://acme-co/employees.sql                                                 
+Cloud     
+HTTP      http://localhost:8080/employees.sql                                        
+NFS/Local nodelocal://1/path/employees,                                              
+          nodelocal://self/nfsmount/backups/employees ^5                             
+
+   You can specify the base directory where you want to store the exported
+   .csv files. CockroachDB will create several files in the specified
+   directory with programmatically generated names (e.g., n1.1.csv, n1.2.csv,
+   n2.1.csv, ...).
+
+  Export options
+
+   You can control the EXPORT process's behavior using any of the following
+   key-value pairs as a kv_option.
+
+    delimiter
+
+   If not using comma as your column delimiter, you can specify another ASCII
+   character as the delimiter.
+
+   Required? No                                                     
+   Key       delimiter                                              
+   Value     The ASCII character that delimits columns in your rows 
+   Example   To use tab-delimited values: WITH delimiter = e'\t'    
+
+    nullas
+
+   Convert SQL NULL values so they match the specified string.
+
+   Required? No                                                               
+   Key       nullas                                                           
+             The string that should be used to represent NULL values. To      
+   Value     avoid collisions, it is important to pick nullas values that     
+             does not appear in the exported data.                            
+   Example   To use empty columns as NULL: WITH nullas = ''                   
+
+Examples
+
+  Export a table
+
+   copy
+
+ > EXPORT INTO CSV
+   'azure://acme-co/customer-export-data?AZURE_ACCOUNT_KEY=hash&AZURE_ACCOUNT_NAME=acme-co'
+   WITH delimiter = '|' FROM TABLE bank.customers;
+
+  Export using a SELECT statement
+
+   copy
+
+ > EXPORT INTO CSV
+   'azure://acme-co/customer-export-data?AZURE_ACCOUNT_KEY=hash&AZURE_ACCOUNT_NAME=acme-co'
+   FROM SELECT * FROM bank.customers WHERE id >= 100;
+
+  Non-distributed export using the SQL shell
+
+   copy
+
+ $ cockroach sql -e "SELECT * from bank.customers WHERE id>=100;" --format=csv > my.csv
+
+  View a running export
+
+   View running exports by using SHOW QUERIES:
+
+   copy
+
+ > SHOW QUERIES;
+
+  Cancel a running export
+
+   Use SHOW QUERIES to get a running export's query_id, which can be used to
+   cancel the export:
+
+   copy
+
+ > CANCEL QUERY '14dacc1f9a781e3d0000000000000001';
+
+Known limitation
+
+   EXPORT may fail with an error if the SQL statements are incompatible with
+   DistSQL. In that case, use the non-enterprise feature to export tabular
+   data in CSV format.
+
+See also
+
+     * Create a File Server
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

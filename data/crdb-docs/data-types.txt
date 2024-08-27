@@ -1,0 +1,172 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                   Data Types
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+Supported types
+
+   CockroachDB supports the following data types. Click a type for more
+   details.
+
+   Type        Description      Example                              Vectorized 
+                                                                     Execution  
+               A 1-dimensional,                                                 
+               1-indexed,                                                       
+   ARRAY       homogeneous      {"sky","road","car"}                 Not
+               array of any                                          supported
+               non-array data   
+               type.            
+               A string of                                           Not        
+   BIT         binary digits    B'10010101'                          supported  
+               (bits).          
+   BOOL        A Boolean value. true                                 Supported  
+               A string of                                                      
+   BYTES       binary           b'\141\061\142\062\143\063'          Supported
+               characters.      
+               The COLLATE                                                      
+               feature lets you                                                 
+               sort STRING      
+   COLLATE     values according 'a1b2c3' COLLATE en                  Not
+               to language- and                                      supported
+               country-specific 
+               rules, known as  
+               collations.      
+   DATE        A date.          DATE '2016-01-25'                    Supported  
+               An exact,                                                        
+   DECIMAL     fixed-point      1.2345                               Supported
+               number.          
+               A 64-bit,                                                        
+   FLOAT       inexact,         1.2345                               Supported
+               floating-point   
+               number.          
+   INET        An IPv4 or IPv6  192.168.0.1                          Not        
+               address.                                              supported  
+               A signed                                                         
+   INT         integer, up to   12345                                Supported
+               64 bits.         
+   INTERVAL    A span of time.  INTERVAL '2h30m30s'                  Supported  
+               JSON (JavaScript '{"first_name": "Lola", "last_name": Not        
+   JSONB       Object Notation) "Dog", "location": "NYC", "online" : supported  
+               data.            true, "friends" : 547}'              
+               A pseudo-type                                                    
+               that combines an                                      Not        
+   SERIAL      integer type     148591304110702593                   supported
+               with a DEFAULT   
+               expression.      
+               A string of                                                      
+   STRING      Unicode          'a1b2c3'                             Supported
+               characters.      
+               TIME stores a                                                    
+               time of day in                                                   
+               UTC.             
+   TIME        TIMETZ converts  TIME '01:23:45.123456'               Not
+   TIMETZ      TIME values with TIMETZ '01:23:45.123456-5:00'        supported
+               a specified time 
+               zone offset from 
+               UTC.             
+               TIMESTAMP stores                                                 
+               a date and time                                       
+               pairing in UTC.                                       
+   TIMESTAMP   TIMESTAMPTZ      TIMESTAMP '2016-01-25 10:10:10'
+   TIMESTAMPTZ converts         TIMESTAMPTZ '2016-01-25              Supported
+               TIMESTAMP values 10:10:10-05:00'
+               with a specified 
+               time zone offset 
+               from UTC.        
+               A 128-bit                                                        
+   UUID        hexadecimal      7f9c24e8-3b12-4fef-91e0-56a2d5a246ec Supported
+               value.           
+
+Data type conversions and casts
+
+   CockroachDB supports explicit type conversions using the following
+   methods:
+
+     * <type> 'string literal', to convert from the literal representation of
+       a value to a value of that type. For example: DATE '2008-12-21', INT
+       '123', or BOOL 'true'.
+
+     * <value>::<data type>, or its equivalent longer form CAST(<value> AS
+       <data type>), which converts an arbitrary expression of one built-in
+       type to another (this is also known as type coercion or "casting").
+       For example: NOW()::DECIMAL, VARIANCE(a+2)::INT.
+
+       Tip:
+
+       To create constant values, consider using a type annotation instead of
+       a cast, as it provides more predictable results.
+
+     * Other built-in conversion functions when the type is not a SQL type,
+       for example from_ip(), to_ip() to convert IP addresses between STRING
+       and BYTES values.
+
+   CockroachDB also supports implicit casting from string literals to INT and
+   DECIMAL ARRAYs, where appropriate. For an example, see Implicit casting to
+   INT and DECIMAL ARRAYs.
+
+   You can find each data type's supported conversion and casting on its
+   respective page in its section Supported casting & conversion.
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

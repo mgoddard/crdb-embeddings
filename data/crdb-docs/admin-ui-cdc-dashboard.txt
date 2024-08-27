@@ -1,0 +1,213 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                             Changefeeds Dashboard
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The Changefeeds dashboard in the CockroachDB Admin UI lets you monitor the
+   changefeeds created across your cluster. To view this dashboard, access
+   the Admin UI, click Metrics on the left-hand navigation bar, and then
+   select Dashboard > Changefeeds.
+
+Dashboard navigation
+
+   Use the Graph menu to display metrics for your entire cluster or for a
+   specific node.
+
+   To the right of the Graph and Dashboard menus, a range selector allows you
+   to filter the view for a predefined timeframe or custom date/time range.
+   Use the navigation buttons to move to the previous, next, or current
+   timeframe. Note that the active timeframe is reflected in the URL and can
+   be easily shared.
+
+   The Changefeeds dashboard displays the following time series graphs:
+
+Max Changefeed Latency
+
+   This graph shows the maximum latency for resolved timestamps of any
+   running changefeed.
+
+   CockroachDB Admin UI Max Changefeed Latency graph
+
+   Note:
+
+   The maximum latency for resolved timestamps is distinct from and slower
+   than the commit-to-emit latency for individual change messages. For more
+   information about resolved timestamps, see Ordering guarantees.
+
+Sink Byte Traffic
+
+   This graph shows the number of bytes emitted by CockroachDB into the sink
+   for changefeeds.
+
+   CockroachDB Admin UI Sink Byte Traffic graph
+
+   Metric        Description                                                  
+   Emitted Bytes The number of bytes emitted by CockroachDB into the sink for 
+                 changefeeds.                                                 
+
+Sink Counts
+
+   This graph shows:
+
+     * The number of messages that CockroachDB sent to the sink.
+     * The number of flushes that the sink performed for changefeeds.
+
+   CockroachDB Admin UI Sink Counts graph
+
+   Metric   Description                                                       
+   Messages The number of messages that CockroachDB sent to the sink for      
+            changefeeds.                                                      
+   Flushes  The the number of flushes that the sink performed for             
+            changefeeds.                                                      
+
+Sink Timings
+
+   This graph shows:
+
+     * The time in milliseconds per second required by CockroachDB to send
+       messages to the sink.
+     * The time CockroachDB spent waiting for the sink to flush the messages
+       for changefeeds.
+
+   CockroachDB Admin UI Sink Timings graph
+
+   Metric            Description                                              
+                     The time in milliseconds per second required by          
+   Message Emit Time CockroachDB to send messages to the sink for             
+                     changefeeds.                                             
+                     The time in milliseconds per second that CockroachDB     
+   Flush Time        spent waiting for the sink to flush the messages for     
+                     changefeeds.                                             
+
+Changefeed Restarts
+
+   This graph displays the number of times changefeeds restarted due to
+   retryable errors.
+
+   CockroachDB Admin UI Changefeed Restarts graph
+
+Summary and events
+
+  Summary panel
+
+   A Summary panel of key metrics is displayed to the right of the timeseries
+   graphs.
+
+   CockroachDB Admin UI Summary Panel
+
+   Metric             Description                                             
+   Total Nodes        The total number of nodes in the cluster.               
+                      Decommissioned nodes are not included in this count.    
+   Capacity Used      The storage capacity used as a percentage of usable     
+                      capacity allocated across all nodes.                    
+   Unavailable Ranges The number of unavailable ranges in the cluster. A      
+                      non-zero number indicates an unstable cluster.          
+   Queries per second The total number of SELECT, UPDATE, INSERT, and DELETE  
+                      queries executed per second across the cluster.         
+   P99 Latency        The 99th percentile of service latency.                 
+
+   Note:
+
+   If you are testing your deployment locally with multiple CockroachDB nodes
+   running on a single machine (this is not recommended in production), you
+   must explicitly set the store size per node in order to display the
+   correct capacity. Otherwise, the machine's actual disk capacity will be
+   counted as a separate store for each node, thus inflating the computed
+   capacity.
+
+  Events panel
+
+   Underneath the Summary panel, the Events panel lists the 5 most recent
+   events logged for all nodes across the cluster. To list all events, click
+   View all events.
+
+   CockroachDB Admin UI Events
+
+   The following types of events are listed:
+
+     * Database created
+     * Database dropped
+     * Table created
+     * Table dropped
+     * Table altered
+     * Index created
+     * Index dropped
+     * View created
+     * View dropped
+     * Schema change reversed
+     * Schema change finished
+     * Node joined
+     * Node decommissioned
+     * Node restarted
+     * Cluster setting changed
+
+See also
+
+     * Change Data Capture
+     * Troubleshooting Overview
+     * Support Resources
+     * Raw Status Endpoints
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

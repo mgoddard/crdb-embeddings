@@ -1,0 +1,159 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                   Jobs Page
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The Jobs page of the Admin UI provides details about long-running tasks
+   performed by your cluster. These can include:
+
+     * Schema changes through ALTER TABLE, DROP DATABASE, DROP TABLE, and
+       TRUNCATE.
+     * IMPORT.
+     * Enterprise BACKUP and RESTORE.
+     * User-created table statistics created for use by the cost-based
+       optimizer.
+     * Automatic table statistics.
+     * Changefeeds.
+   Tip:
+
+   All users can see their own jobs, and admin users can view all jobs
+   performed across all nodes in the cluster.
+
+   To view these details, access the Admin UI and click Jobs in the left-hand
+   navigation.
+
+Filter jobs
+
+   Use the Status menu to filter jobs by job status.
+
+   Use the Type menu to filter jobs by type.
+
+   You can toggle between showing the latest 50 jobs or all jobs on the
+   cluster.
+
+   Note:
+
+   Jobs are deleted every 14 days. This interval can be changed via the
+   jobs.retention_time cluster setting.
+
+   The Jobs list is designed for you to manage pending work. It is not
+   intended to display the canonical record of all jobs that have run. If you
+   need a historical record of all jobs you have run, you should log this
+   information externally.
+
+Jobs list
+
+   Use the Jobs list to see your recently created and completed jobs.
+
+     * For changefeeds, the table displays a high-water timestamp that
+       advances as the changefeed progresses. This is a guarantee that all
+       changes before or at the timestamp have been emitted. Hover over the
+       high-water timestamp to view the system time.
+
+     * Automatic table statistics jobs are not displayed even when the Type
+       menu is set to All. To view these jobs, set Type to
+       Automatic-Statistics Creation as described above.
+
+     * To view job details, click on the job description.
+
+   CockroachDB Admin UI Jobs Page
+
+   Parameter     Description                                                  
+   Description   SQL statement that created the job.                          
+   Job ID        Unique job ID. This value is used to pause, resume, or       
+                 cancel jobs.                                                 
+   Users         User that created the job.                                   
+   Creation Time Date and time the job was created.                           
+   Status        Current job status or completion progress.                   
+
+  Job status
+
+   Status    Description                                 
+   PENDING   Job is created but has not started running. 
+   PAUSED    Job is paused.                              
+   FAILED    Job failed to complete.                     
+   SUCCEEDED Job successfully completed.                 
+   CANCELED  Job was cancelled.                          
+
+   A job that is currently running will be displayed with its percent
+   completion and time remaining, rather than the RUNNING status.
+
+Job details
+
+   Click any description on the jobs list to see the full SQL statement that
+   created the job.
+
+   The job ID, creation time, users, and status are also shown.
+
+   CockroachDB Admin UI Jobs Page
+
+See also
+
+     * SHOW JOBS
+     * Troubleshooting Overview
+     * Support Resources
+     * Raw Status Endpoints
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

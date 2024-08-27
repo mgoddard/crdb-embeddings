@@ -1,0 +1,732 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                               Selection Queries
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   Selection queries read and process data in CockroachDB. They are more
+   general than simple SELECT clauses: they can group one or more selection
+   clauses with set operations and can request a specific ordering or row
+   limit.
+
+   Selection queries can occur:
+
+     * At the top level of a query like other SQL statements.
+     * Between parentheses as a subquery.
+     * As operand to other statements that take tabular data as input, for
+       example INSERT, UPSERT, CREATE TABLE AS or ALTER ... SPLIT AT.
+
+Synopsis
+
+   select_clause sort_clause sort_clause for_locking_clause opt_select_limit
+   limit_clause offset_clause offset_clause limit_clause
+   opt_for_locking_clause WITH RECURSIVE common_table_expr , select_clause
+   sort_clause for_locking_clause opt_select_limit limit_clause offset_clause
+   offset_clause limit_clause opt_for_locking_clause
+
+Parameters
+
+   Parameter          Description                                             
+   common_table_expr  See Common Table Expressions.                           
+   select_clause      A valid selection clause, either simple or using set    
+                      operations.                                             
+   sort_clause        An optional ORDER BY clause. See Ordering Query Results 
+                      for details.                                            
+   limit_clause       An optional LIMIT clause. See Limiting Query Results    
+                      for details.                                            
+   offset_clause      An optional OFFSET clause. See Limiting Query Results   
+                      for details.                                            
+                      The FOR UPDATE locking clause is used to order          
+   for_locking_clause transactions by controlling concurrent access to one or 
+                      more rows of a table. For more information, see SELECT  
+                      FOR UPDATE.                                             
+
+   The optional LIMIT and OFFSET clauses can appear in any order, but must
+   appear after ORDER BY, if also present.
+
+   Note:
+   Because the WITH, ORDER BY, LIMIT and OFFSET sub-clauses are all optional,
+   any simple selection clause is also a valid selection query.
+
+Selection clauses
+
+   Selection clauses are the main component of a selection query. They define
+   tabular data. There are four specific syntax forms collectively named
+   selection clauses:
+
+   Form           Usage                                                       
+   SELECT         Load or compute tabular data from various sources. This is  
+                  the most common selection clause.                           
+   VALUES         List tabular data by the client.                            
+   TABLE          Load tabular data from the database.                        
+   Set Operations Combine tabular data from two or more selection clauses.    
+
+   Note:
+   To perform joins or other relational operations over selection clauses,
+   use a table expression and convert it back into a selection clause with
+   TABLE or SELECT.
+
+  Synopsis
+
+   simple_select_clause values_clause table_clause set_operation (
+   simple_select_clause values_clause table_clause set_operation )
+
+  VALUES clause
+
+    Syntax
+
+   VALUES ( a_expr , ) ,
+
+   A VALUES clause defines tabular data defined by the expressions listed
+   within parentheses. Each parenthesis group defines a single row in the
+   resulting table.
+
+   The columns of the resulting table data have automatically generated
+   names. These names can be modified with AS when the VALUES clause is used
+   as a sub-query.
+
+    Example
+
+   copy
+
+ > VALUES (1, 2, 3), (4, 5, 6);
+
+ +---------+---------+---------+
+ | column1 | column2 | column3 |
+ +---------+---------+---------+
+ |       1 |       2 |       3 |
+ |       4 |       5 |       6 |
+ +---------+---------+---------+
+
+  TABLE clause
+
+    Syntax
+
+   TABLE table_ref
+
+   A TABLE clause reads tabular data from a specified table. The columns of
+   the resulting table data are named after the schema of the table.
+
+   In general, TABLE x is equivalent to SELECT * FROM x, but it is shorter to
+   type.
+
+   Note:
+   Any table expression between parentheses is a valid operand for TABLE, not
+   just simple table or view names.
+
+    Example
+
+   copy
+
+ > CREATE TABLE employee_copy AS TABLE employee;
+
+   This statement copies the content from table employee into a new table.
+   However, note that the TABLE clause does not preserve the indexing,
+   foreign key, or constraint and default information from the schema of the
+   table it reads from, so in this example, the new table employee_copy will
+   likely have a simpler schema than employee.
+
+   Other examples:
+
+   copy
+
+ > TABLE employee;
+
+   copy
+
+ > INSERT INTO employee_copy TABLE employee;
+
+  SELECT clause
+
+   See Simple SELECT Clause for more details.
+
+Set operations
+
+   Set operations combine data from two selection clauses. They are valid as
+   operand to other set operations or as main component in a selection query.
+
+  Synopsis
+
+   select_clause UNION INTERSECT EXCEPT ALL DISTINCT select_clause
+
+  Set operators
+
+   SQL lets you compare the results of multiple selection clauses. You can
+   think of each of the set operators as representing a Boolean operator:
+
+     * UNION = OR
+     * INTERSECT = AND
+     * EXCEPT = NOT
+
+   By default, each of these comparisons displays only one copy of each value
+   (similar to SELECT DISTINCT). However, each function also lets you add an
+   ALL to the clause to display duplicate values.
+
+  Union: Combine two queries
+
+   UNION combines the results of two queries into one result.
+
+   copy
+
+ > SELECT name
+ FROM accounts
+ WHERE state_opened IN ('AZ', 'NY')
+ UNION
+ SELECT name
+ FROM mortgages
+ WHERE state_opened IN ('AZ', 'NY');
+
+ +-----------------+
+ |      name       |
+ +-----------------+
+ | Naseem Joossens |
+ | Ricarda Caron   |
+ | Carola Dahl     |
+ | Aygün Sanna     |
+ +-----------------+
+
+   To show duplicate rows, you can use ALL.
+
+   copy
+
+ > SELECT name
+ FROM accounts
+ WHERE state_opened IN ('AZ', 'NY')
+ UNION ALL
+ SELECT name
+ FROM mortgages
+ WHERE state_opened IN ('AZ', 'NY');
+
+ +-----------------+
+ |      name       |
+ +-----------------+
+ | Naseem Joossens |
+ | Ricarda Caron   |
+ | Carola Dahl     |
+ | Naseem Joossens |
+ | Aygün Sanna     |
+ | Carola Dahl     |
+ +-----------------+
+
+  Intersect: Retrieve intersection of two queries
+
+   INTERSECT finds only values that are present in both query operands.
+
+   copy
+
+ > SELECT name
+ FROM accounts
+ WHERE state_opened IN ('NJ', 'VA')
+ INTERSECT
+ SELECT name
+ FROM mortgages;
+
+ +-----------------+
+ |      name       |
+ +-----------------+
+ | Danijel Whinery |
+ | Agar Archer     |
+ +-----------------+
+
+  Except: Exclude one query's results from another
+
+   EXCEPT finds values that are present in the first query operand but not
+   the second.
+
+   copy
+
+ > SELECT name
+ FROM mortgages
+ EXCEPT
+ SELECT name
+ FROM accounts;
+
+ +------------------+
+ |       name       |
+ +------------------+
+ | Günay García     |
+ | Karla Goddard    |
+ | Cybele Seaver    |
+ +------------------+
+
+Ordering results
+
+   The following sections provide examples. For more details, see Ordering
+   Query Results.
+
+  Order retrieved rows by one column
+
+   copy
+
+ > SELECT *
+ FROM accounts
+ WHERE balance BETWEEN 350 AND 500
+ ORDER BY balance DESC;
+
+ +----+--------------------+---------+----------+--------------+
+ | id |        name        | balance |   type   | state_opened |
+ +----+--------------------+---------+----------+--------------+
+ | 12 | Raniya Žitnik      |     500 | savings  | CT           |
+ | 59 | Annibale Karga     |     500 | savings  | ND           |
+ | 27 | Adelbert Ventura   |     500 | checking | IA           |
+ | 86 | Theresa Slaski     |     500 | checking | WY           |
+ | 73 | Ruadh Draganov     |     500 | checking | TN           |
+ | 16 | Virginia Ruan      |     400 | checking | HI           |
+ | 43 | Tahirih Malinowski |     400 | checking | MS           |
+ | 50 | Dusan Mallory      |     350 | savings  | NV           |
+ +----+--------------------+---------+----------+--------------+
+
+  Order retrieved rows by multiple columns
+
+   Columns are sorted in the order you list them in sortby_list. For example,
+   ORDER BY a, b sorts the rows by column a and then sorts rows with the same
+   a value by their column b values.
+
+   copy
+
+ > SELECT *
+ FROM accounts
+ WHERE balance BETWEEN 350 AND 500
+ ORDER BY balance DESC, name ASC;
+
+ +----+--------------------+---------+----------+--------------+
+ | id |        name        | balance |   type   | state_opened |
+ +----+--------------------+---------+----------+--------------+
+ | 27 | Adelbert Ventura   |     500 | checking | IA           |
+ | 59 | Annibale Karga     |     500 | savings  | ND           |
+ | 12 | Raniya Žitnik      |     500 | savings  | CT           |
+ | 73 | Ruadh Draganov     |     500 | checking | TN           |
+ | 86 | Theresa Slaski     |     500 | checking | WY           |
+ | 43 | Tahirih Malinowski |     400 | checking | MS           |
+ | 16 | Virginia Ruan      |     400 | checking | HI           |
+ | 50 | Dusan Mallory      |     350 | savings  | NV           |
+ +----+--------------------+---------+----------+--------------+
+
+Limiting row count and pagination
+
+   The following sections provide examples. For more details, see Limiting
+   Query Results.
+
+  Limit number of retrieved results
+
+   You can reduce the number of results with LIMIT.
+
+   copy
+
+ > SELECT id, name
+ FROM accounts
+ LIMIT 5;
+
+ +----+------------------+
+ | id |       name       |
+ +----+------------------+
+ |  1 | Bjorn Fairclough |
+ |  2 | Bjorn Fairclough |
+ |  3 | Arturo Nevin     |
+ |  4 | Arturo Nevin     |
+ |  5 | Naseem Joossens  |
+ +----+------------------+
+
+  Paginate through limited results
+
+   To iterate through a table one "page" of results at a time (also known as
+   pagination) there are two options, only one of which is recommended:
+
+     * Keyset pagination (fast, recommended)
+     * LIMIT / OFFSET pagination (slow, not recommended)
+
+   Keyset pagination (also known as the "seek method") is used to fetch a
+   subset of records from a table quickly. It does this by restricting the
+   set of records returned with a combination of WHERE and LIMIT clauses. To
+   get the next page, you check the value of the column in the WHERE clause
+   against the last row returned in the previous page of results.
+
+   The general pattern for keyset pagination queries is:
+
+   copy
+
+ SELECT * FROM t AS OF SYSTEM TIME ${time}
+   WHERE key > ${value}
+   ORDER BY key
+   LIMIT ${amount}
+
+   This is faster than using LIMIT/OFFSET because, instead of doing a full
+   table scan up to the value of the OFFSET, a keyset pagination query looks
+   at a fixed-size set of records for each iteration. This can be done
+   quickly provided that the key used in the WHERE clause to implement the
+   pagination is indexed and unique. A primary key meets both of these
+   criteria.
+
+   Note:
+
+   CockroachDB does not have cursors. To support a cursor-like use case,
+   namely "operate on a snapshot of the database at the moment the cursor is
+   opened", use the AS OF SYSTEM TIME clause as shown in the examples below.
+
+    Pagination example
+
+   The examples in this section use the employees data set, which you can
+   load into CockroachDB as follows:
+
+   copy
+
+ CREATE DATABASE IF NOT EXISTS employees;
+ USE employees;
+ IMPORT PGDUMP 'https://s3-us-west-1.amazonaws.com/cockroachdb-movr/datasets/employees-db/pg_dump/employees-full.sql.gz';
+
+   To get the first page of results using keyset pagination, run the
+   statement below.
+
+   copy
+
+ SELECT * FROM employees AS OF SYSTEM TIME '-1m' WHERE emp_no > 10000 ORDER BY emp_no LIMIT 25;
+
+   emp_no |        birth_date         | first_name |  last_name  | gender |         hire_date         
+ +--------+---------------------------+------------+-------------+--------+---------------------------+
+    10001 | 1953-09-02 00:00:00+00:00 | Georgi     | Facello     | M      | 1986-06-26 00:00:00+00:00 
+    10002 | 1964-06-02 00:00:00+00:00 | Bezalel    | Simmel      | F      | 1985-11-21 00:00:00+00:00 
+    10003 | 1959-12-03 00:00:00+00:00 | Parto      | Bamford     | M      | 1986-08-28 00:00:00+00:00 
+    ... snip
+
+ (25 rows)
+
+ Time: 1.31ms
+
+   Tip:
+
+   When writing your own queries of this type, use a known minimum value for
+   the key's data type. If you don't know what the minimum value of the key
+   is, you can use SELECT min(key) FROM table.
+
+   Note:
+
+   We use AS OF SYSTEM TIME in these examples to ensure that we are operating
+   on a consistent snapshot of the database as of the specified timestamp.
+   This reduces the chance that there will be any concurrent updates to the
+   data the query is accessing, and thus no missing or duplicated rows during
+   the pagination. It also reduces the risk of transaction retries due to
+   concurrent data access. The value of -1m passed to AS OF SYSTEM TIME may
+   need to be updated depending on your application's data access patterns.
+
+   To get the second page of results, run:
+
+   copy
+
+ SELECT * FROM employees AS OF SYSTEM TIME '-1m' WHERE emp_no > 10025 ORDER BY emp_no LIMIT 25;
+
+   emp_no |        birth_date         | first_name | last_name  | gender |         hire_date         
+ +--------+---------------------------+------------+------------+--------+---------------------------+
+    10026 | 1953-04-03 00:00:00+00:00 | Yongqiao   | Berztiss   | M      | 1995-03-20 00:00:00+00:00 
+    10027 | 1962-07-10 00:00:00+00:00 | Divier     | Reistad    | F      | 1989-07-07 00:00:00+00:00 
+    10028 | 1963-11-26 00:00:00+00:00 | Domenick   | Tempesti   | M      | 1991-10-22 00:00:00+00:00 
+    ... snip!
+
+ (25 rows)
+
+ Time: 1.473ms
+
+   To get an arbitrary page of results showing employees whose IDs (emp_no)
+   are in a much higher range, run the following query. Note that it takes
+   about the same amount of time to run as the previous queries.
+
+   copy
+
+ SELECT * FROM employees AS OF SYSTEM TIME '-1m' WHERE emp_no > 300025 ORDER BY emp_no LIMIT 25;
+
+   emp_no |        birth_date         | first_name |  last_name   | gender |         hire_date         
+ +--------+---------------------------+------------+--------------+--------+---------------------------+
+   400000 | 1963-11-29 00:00:00+00:00 | Mitsuyuki  | Reinhart     | M      | 1985-08-27 00:00:00+00:00 
+   400001 | 1962-06-02 00:00:00+00:00 | Rosalie    | Chinin       | M      | 1986-11-28 00:00:00+00:00 
+   400002 | 1964-08-16 00:00:00+00:00 | Quingbo    | Birnbaum     | F      | 1986-04-23 00:00:00+00:00 
+   ... snip!
+
+ (25 rows)
+
+ Time: 1.319ms
+
+   Compare the execution speed of the previous keyset pagination queries with
+   the query below that uses LIMIT / OFFSET to get the same page of results:
+
+   copy
+
+ SELECT * FROM employees AS OF SYSTEM TIME '-1m' LIMIT 25 OFFSET 200024;
+
+   emp_no |        birth_date         | first_name |  last_name   | gender |         hire_date         
+ +--------+---------------------------+------------+--------------+--------+---------------------------+
+   400000 | 1963-11-29 00:00:00+00:00 | Mitsuyuki  | Reinhart     | M      | 1985-08-27 00:00:00+00:00 
+   400001 | 1962-06-02 00:00:00+00:00 | Rosalie    | Chinin       | M      | 1986-11-28 00:00:00+00:00 
+   400002 | 1964-08-16 00:00:00+00:00 | Quingbo    | Birnbaum     | F      | 1986-04-23 00:00:00+00:00 
+   ... snip!
+
+ (25 rows)
+
+ Time: 118.114ms
+
+   The query using LIMIT/OFFSET for pagination is almost 100 times slower. To
+   see why, let's use EXPLAIN.
+
+   copy
+
+ EXPLAIN SELECT * FROM employees LIMIT 25 OFFSET 200024;
+
+     tree    |    field    |         description
+ ------------+-------------+------------------------------
+             | distributed | true
+             | vectorized  | false
+   limit     |             |
+    │        | offset      | 200024
+    └── scan |             |
+             | table       | employees@idx_17110_primary
+             | spans       | LIMITED SCAN
+             | limit       | 200049
+ (8 rows)
+
+   The culprit is this: because we used LIMIT/OFFSET, we are performing a
+   limited scan of the entire table (see spans = LIMITED SCAN above) from the
+   first record all the way up to the value of the offset. In other words, we
+   are iterating over a big array of rows from 1 to n, where n is 200049.
+
+   Meanwhile, the keyset pagination queries are looking at a much smaller
+   range of table spans, which is much faster (see spans = 300026- + 25
+   below). Because there is an index on every column in the WHERE clause,
+   these queries are doing an index lookup to jump to the start of the page
+   of results, and then getting an additional 25 rows from there. This is
+   much faster.
+
+   copy
+
+ EXPLAIN SELECT * FROM employees WHERE emp_no > 300025 ORDER BY emp_no LIMIT 25;
+
+   tree |    field    |         description
+ -------+-------------+------------------------------
+        | distributed | false
+        | vectorized  | false
+   scan |             |
+        | table       | employees@idx_17110_primary
+        | spans       | /300026-
+        | limit       | 25
+ (6 rows)
+
+   Warning:
+
+   Using a sequential (i.e., non-UUID) primary key creates hot spots in the
+   database for write-heavy workloads, since concurrent INSERTs to the table
+   will attempt to write to the same (or nearby) underlying ranges. This can
+   be mitigated by designing your schema with multi-column primary keys which
+   include a monotonically increasing column.
+
+Row-level locking for concurrency control with SELECT FOR UPDATE
+
+   The SELECT FOR UPDATE statement is used to order transactions by
+   controlling concurrent access to one or more rows of a table.
+
+   It works by locking the rows returned by a selection query, such that
+   other transactions trying to access those rows are forced to wait for the
+   transaction that locked the rows to finish. These other transactions are
+   effectively put into a queue based on when they tried to read the value of
+   the locked rows.
+
+   Because this queueing happens during the read operation, the thrashing
+   that would otherwise occur if multiple concurrently executing transactions
+   attempt to SELECT the same data and then UPDATE the results of that
+   selection is prevented. By preventing this thrashing, CockroachDB also
+   prevents the transaction retries that would otherwise occur.
+
+   As a result, using SELECT FOR UPDATE leads to increased throughput and
+   decreased tail latency for contended operations.
+
+   For an example showing how to use it, see SELECT FOR UPDATE.
+
+Composability
+
+   Selection clauses are defined in the context of selection queries. Table
+   expressions are defined in the context of the FROM sub-clause of SELECT.
+   Nevertheless, they can be integrated with one another to form more complex
+   queries or statements.
+
+  Using any selection clause as a selection query
+
+   Any selection clause can be used as a selection query with no change.
+
+   For example, the construct SELECT * FROM accounts is a selection clause.
+   It is also a valid selection query, and thus can be used as a stand-alone
+   statement by appending a semicolon:
+
+   copy
+
+ > SELECT * FROM accounts;
+
+ +----+-----------------------+---------+----------+--------------+
+ | id |         name          | balance |   type   | state_opened |
+ +----+-----------------------+---------+----------+--------------+
+ |  1 | Bjorn Fairclough      |    1200 | checking | AL           |
+ |  2 | Bjorn Fairclough      |    2500 | savings  | AL           |
+ |  3 | Arturo Nevin          |     250 | checking | AK           |
+ [ truncated ]
+ +----+-----------------------+---------+----------+--------------+
+
+   Likewise, the construct VALUES (1), (2), (3) is also a selection clause
+   and thus can also be used as a selection query on its own:
+
+   copy
+
+ > VALUES (1), (2), (3);
+
+ +---------+
+ | column1 |
+ +---------+
+ |       1 |
+ |       2 |
+ |       3 |
+ +---------+
+ (3 rows)
+
+  Using any table expression as selection clause
+
+   Any table expression can be used as a selection clause (and thus also a
+   selection query) by prefixing it with TABLE or by using it as an operand
+   to SELECT * FROM.
+
+   For example, the simple table name customers is a table expression, which
+   designates all rows in that table. The expressions TABLE accounts and
+   SELECT * FROM accounts are valid selection clauses.
+
+   Likewise, the SQL join expression customers c JOIN orders o ON c.id =
+   o.customer_id is a table expression. You can turn it into a valid
+   selection clause, and thus a valid selection query as follows:
+
+   copy
+
+ > TABLE (customers c JOIN orders o ON c.id = o.customer_id);
+
+   copy
+
+ > SELECT * FROM customers c JOIN orders o ON c.id = o.customer_id;
+
+  Using any selection query as table expression
+
+   Any selection query (or selection clause) can be used as a table
+   expression by enclosing it between parentheses, which forms a subquery.
+
+   For example, the following construct is a selection query, but is not a
+   valid table expression:
+
+   copy
+
+ > SELECT * FROM customers ORDER BY name LIMIT 5
+
+   To make it valid as operand to FROM or another table expression, you can
+   enclose it between parentheses as follows:
+
+   copy
+
+ > SELECT id FROM (SELECT * FROM customers ORDER BY name LIMIT 5);
+
+   copy
+
+ > SELECT o.id
+     FROM orders o
+     JOIN (SELECT * FROM customers ORDER BY name LIMIT 5) AS c
+       ON o.customer_id = c.id;
+
+  Using selection queries with other statements
+
+   Selection queries are also valid as operand in contexts that require
+   tabular data.
+
+   For example:
+
+   Statement        Example using SELECT    Example using       Example using 
+                                            VALUES              TABLE         
+                    INSERT INTO foo SELECT  INSERT INTO foo     INSERT INTO   
+   INSERT           * FROM bar              VALUES (1), (2),    foo TABLE bar 
+                                            (3)                 
+                    UPSERT INTO foo SELECT  UPSERT INTO foo     UPSERT INTO   
+   UPSERT           * FROM bar              VALUES (1), (2),    foo TABLE bar 
+                                            (3)                 
+                    CREATE TABLE foo AS                         
+   CREATE TABLE AS  SELECT * FROM bar       CREATE TABLE foo AS 
+                    CREATE TABLE foo AS     TABLE bar
+                    VALUES (1),(2),(3)      
+                    ALTER TABLE foo SPLIT                       
+   ALTER ... SPLIT  AT SELECT * FROM bar    ALTER TABLE foo     
+   AT               ALTER TABLE foo SPLIT   SPLIT AT TABLE bar
+                    AT VALUES (1),(2),(3)   
+   Subquery in a    SELECT * FROM (SELECT * SELECT * FROM       SELECT * FROM 
+   table expression FROM bar)               (VALUES             (TABLE bar)   
+                                            (1),(2),(3))        
+   Subquery in a    SELECT * FROM foo WHERE SELECT * FROM foo   SELECT * FROM 
+   scalar           x IN (SELECT * FROM     WHERE x IN (VALUES  foo WHERE x   
+   expression       bar)                    (1),(2),(3))        IN (TABLE     
+                                                                bar)          
+
+See also
+
+     * Simple SELECT Clause
+     * SELECT FOR UPDATE
+     * Table Expressions
+     * Ordering Query Results
+     * Limiting Query Results
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

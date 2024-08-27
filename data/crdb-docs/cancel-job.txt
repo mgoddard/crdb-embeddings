@@ -1,0 +1,140 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                   CANCEL JOB
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The CANCEL JOB statement lets you stop long-running jobs, which include
+   IMPORT jobs, enterprise BACKUP and RESTORE jobs, schema changes,
+   user-created table statistics jobs, automatic table statistics jobs,
+   changefeeds, and schema change jobs.
+
+Limitations
+
+   When an enterprise RESTORE is canceled, partially restored data is
+   properly cleaned up. This can have a minor, temporary impact on cluster
+   performance.
+
+Required privileges
+
+   Only members of the admin role can cancel a job. By default, the root user
+   belongs to the admin role.
+
+Synopsis
+
+   CANCEL JOB job_id JOBS select_stmt
+
+Parameters
+
+   Parameter   Description                                                    
+   job_id      The ID of the job you want to cancel, which can be found with  
+               SHOW JOBS.                                                     
+   select_stmt A selection query that returns job_id(s) to cancel.            
+
+Examples
+
+  Cancel a single job
+
+ > SHOW JOBS;
+
+ +----------------+---------+-------------------------------------------+...
+ |       id       |  type   |               description                 |...
+ +----------------+---------+-------------------------------------------+...
+ | 27536791415282 | RESTORE | RESTORE db.* FROM 'azure://backup/db/tbl' |...
+ +----------------+---------+-------------------------------------------+...
+
+ > CANCEL JOB 27536791415282;
+
+  Cancel multiple jobs
+
+   To cancel multiple jobs, nest a SELECT clause that retrieves job_id(s)
+   inside the CANCEL JOBS statement:
+
+   copy
+
+ > CANCEL JOBS (SELECT job_id FROM [SHOW JOBS]
+       WHERE user_name = 'maxroach');
+
+   All jobs created by maxroach will be cancelled.
+
+  Cancel automatic table statistics jobs
+
+   Canceling an automatic table statistics job is not useful since the system
+   will automatically restart the job immediately. To permanently disable
+   automatic table statistics jobs, disable the
+   sql.stats.automatic_collection.enabled cluster setting:
+
+   copy
+
+ > SET CLUSTER SETTING sql.stats.automatic_collection.enabled = false;
+
+See also
+
+     * SHOW JOBS
+     * BACKUP
+     * RESTORE
+     * IMPORT
+     * CREATE CHANGEFEED
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

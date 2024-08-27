@@ -1,0 +1,335 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                Operational FAQs
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+Why is my process hanging when I try to start it in the background?
+
+   The first question that needs to be asked is whether or not you have
+   previously run a multi-node cluster using the same data directory. If you
+   haven't, then you should check out our Cluster Setup Troubleshooting docs.
+   If you have previously started and stopped a multi-node cluster and are
+   now trying to bring it back up, you're in the right place.
+
+   In order to keep your data consistent, CockroachDB only works when at
+   least a majority of its nodes are running. This means that if only one
+   node of a three node cluster is running, that one node will not be able to
+   do anything. The --background flag of cockroach start causes the start
+   command to wait until the node has fully initialized and is able to start
+   serving queries.
+
+   Together, these two facts mean that the --background flag will cause
+   cockroach start to hang until a majority of nodes are running. In order to
+   restart your cluster, you should either use multiple terminals so that you
+   can start multiple nodes at once or start each node in the background
+   using your shell's functionality (e.g., cockroach start &) instead of the
+   --background flag.
+
+Why is memory usage increasing despite lack of traffic?
+
+   Like most databases, CockroachDB caches the most recently accessed data in
+   memory so that it can provide faster reads, and its periodic writes of
+   timeseries data cause that cache size to increase until it hits its
+   configured limit. For information about manually controlling the cache
+   size, see Recommended Production Settings.
+
+Why is disk usage increasing despite lack of writes?
+
+   The timeseries data used to power the graphs in the Admin UI is stored
+   within the cluster and accumulates for 30 days before it starts getting
+   truncated. As a result, for the first 30 days or so of a cluster's life,
+   you will see a steady increase in disk usage and the number of ranges even
+   if you aren't writing data to the cluster yourself.
+
+Can I reduce or disable the storage of timeseries data?
+
+   Yes. By default, CockroachDB stores timeseries data for the last 30 days
+   for display in the Admin UI, but you can reduce the interval for
+   timeseries storage or disable timeseries storage entirely.
+
+   Note:
+   After reducing or disabling timeseries storage, it can take up to 24 hours
+   for timeseries data to be deleted and for the change to be reflected in
+   Admin UI metrics.
+
+  Reduce the interval for timeseries storage
+
+   To reduce the interval for storage of timeseries data, change the
+   timeseries.storage.resolution_10s.ttl cluster setting to an INTERVAL value
+   less than 720h0m0s (30 days). For example, to store timeseries data for
+   the last 15 days, run the following SET CLUSTER SETTING command:
+
+   copy
+
+ > SET CLUSTER SETTING timeseries.storage.resolution_10s.ttl = '360h0m0s';
+
+   copy
+
+ > SHOW CLUSTER SETTING timeseries.storage.resolution_10s.ttl;
+
+   timeseries.storage.resolution_10s.ttl
+ +---------------------------------------+
+   360:00:00
+ (1 row)
+
+  Disable timeseries storage entirely
+
+   Note:
+
+   Disabling timeseries storage is recommended only if you exclusively use a
+   third-party tool such as Prometheus for timeseries monitoring. Prometheus
+   and other such tools do not rely on CockroachDB-stored timeseries data;
+   instead, they ingest metrics exported by CockroachDB from memory and then
+   store the data themselves.
+
+   To disable the storage of timeseries data entirely, run the following
+   command:
+
+   copy
+
+ > SET CLUSTER SETTING timeseries.storage.enabled = false;
+
+   copy
+
+ > SHOW CLUSTER SETTING timeseries.storage.enabled;
+
+   timeseries.storage.enabled
+ +----------------------------+
+             false
+ (1 row)
+
+   If you want all existing timeseries data to be deleted, change the
+   timeseries.storage.resolution_10s.ttl cluster setting as well:
+
+   copy
+
+ > SET CLUSTER SETTING timeseries.storage.resolution_10s.ttl = '0s';
+
+What happens when a node runs out of disk space?
+
+   When a node runs out of disk space, it shuts down and cannot be restarted
+   until space is freed up. To prepare for this case, place a ballast file in
+   each node's storage directory that can be deleted to free up enough space
+   to be able to restart the node. If you did not create a ballast file, look
+   for other files that can be deleted, such as log files.
+
+   Note:
+
+   In addition to using ballast files, it is important to actively monitor
+   remaining disk space.
+
+Why would increasing the number of nodes not result in more operations per
+second?
+
+   If queries operate on different data, then increasing the number of nodes
+   should improve the overall throughput (transactions/second or QPS).
+
+   However, if your queries operate on the same data, you may be observing
+   transaction contention. See Understanding and Avoiding Transaction
+   Contention for more details.
+
+Why does CockroachDB collect anonymized cluster usage details by default?
+
+   Collecting information about CockroachDB's real world usage helps us
+   prioritize the development of product features. We choose our default as
+   "opt-in" to strengthen the information we receive from our collection
+   efforts, but we also make a careful effort to send only anonymous,
+   aggregate usage statistics. See Diagnostics Reporting for a detailed look
+   at what information is sent and how to opt-out.
+
+What happens when node clocks are not properly synchronized?
+
+   CockroachDB requires moderate levels of clock synchronization to preserve
+   data consistency. For this reason, when a node detects that its clock is
+   out of sync with at least half of the other nodes in the cluster by 80% of
+   the maximum offset allowed, it spontaneously shuts down. This offset
+   defaults to 500ms but can be changed via the --max-offset flag when
+   starting each node.
+
+   While serializable consistency is maintained regardless of clock skew,
+   skew outside the configured clock offset bounds can result in violations
+   of single-key linearizability between causally dependent transactions.
+   It's therefore important to prevent clocks from drifting too far by
+   running NTP or other clock synchronization software on each node.
+
+   The one rare case to note is when a node's clock suddenly jumps beyond the
+   maximum offset before the node detects it. Although extremely unlikely,
+   this could occur, for example, when running CockroachDB inside a VM and
+   the VM hypervisor decides to migrate the VM to different hardware with a
+   different time. In this case, there can be a small window of time between
+   when the node's clock becomes unsynchronized and when the node
+   spontaneously shuts down. During this window, it would be possible for a
+   client to read stale data and write data derived from stale reads. To
+   protect against this, we recommend using the
+   server.clock.forward_jump_check_enabled and
+   server.clock.persist_upper_bound_interval cluster settings.
+
+  Considerations
+
+   When setting up clock synchronization:
+
+     * All nodes in the cluster must be synced to the same time source, or to
+       different sources that implement leap second smearing in the same way.
+       For example, Google and Amazon have time sources that are compatible
+       with each other (they implement leap second smearing in the same way),
+       but are incompatible with the default NTP pool (which does not
+       implement leap second smearing).
+     * For nodes running in AWS, we recommend Amazon Time Sync Service. For
+       nodes running in GCP, we recommend Google's internal NTP service. For
+       nodes running elsewhere, we recommend Google Public NTP. Note that the
+       Google and Amazon time services can be mixed with each other, but they
+       cannot be mixed with other time services (unless you have verified
+       leap second behavior). Either all of your nodes should use the Google
+       and Amazon services, or none of them should.
+     * If you do not want to use the Google or Amazon time sources, you can
+       use chrony and enable client-side leap smearing, unless the time
+       source you're using already does server-side smearing. In most cases,
+       we recommend the Google Public NTP time source because it handles
+       smearing the leap second. If you use a different NTP time source that
+       doesn't smear the leap second, you must configure client-side smearing
+       manually and do so in the same way on each machine.
+     * Do not run more than one clock sync service on VMs where cockroach is
+       running.
+
+  Tutorials
+
+   For guidance on synchronizing clocks, see the tutorial for your deployment
+   environment:
+
+   Environment   Featured Approach                                            
+   On-Premises   Use NTP with Google's external NTP service.                  
+   AWS           Use the Amazon Time Sync Service.                            
+   Azure         Disable Hyper-V time synchronization and use NTP with        
+                 Google's external NTP service.                               
+   Digital Ocean Use NTP with Google's external NTP service.                  
+   GCE           Use NTP with Google's internal NTP service.                  
+
+How can I tell how well node clocks are synchronized?
+
+   As explained in more detail in our monitoring documentation, each
+   CockroachDB node exports a wide variety of metrics at
+   http://<host>:<http-port>/_status/vars in the format used by the popular
+   Prometheus timeseries database. Two of these metrics export how close each
+   node's clock is to the clock of all other nodes:
+
+   Metric                   Definition                                        
+   clock_offset_meannanos   The mean difference between the node's clock and  
+                            other nodes' clocks in nanoseconds                
+                            The standard deviation of the difference between  
+   clock_offset_stddevnanos the node's clock and other nodes' clocks in       
+                            nanoseconds                                       
+
+   As described in the above answer, a node will shut down if the mean offset
+   of its clock from the other nodes' clocks exceeds 80% of the maximum
+   offset allowed. It's recommended to monitor the clock_offset_meannanos
+   metric and alert if it's approaching the 80% threshold of your cluster's
+   configured max offset.
+
+   You can also see these metrics in the Clock Offset graph on the Admin UI's
+   Runtime dashboard.
+
+How do I prepare for planned node maintenance?
+
+   By default, if a node stays offline for more than 5 minutes, the cluster
+   will consider it dead and will rebalance its data to other nodes. Before
+   temporarily stopping nodes for planned maintenance (e.g., upgrading system
+   software), if you expect any nodes to be offline for longer than 5
+   minutes, you can prevent the cluster from unnecessarily rebalancing data
+   off the nodes by increasing the server.time_until_store_dead cluster
+   setting to match the estimated maintenance window.
+
+   For example, let's say you want to maintain a group of servers, and the
+   nodes running on the servers may be offline for up to 15 minutes as a
+   result. Before shutting down the nodes, you would change the
+   server.time_until_store_dead cluster setting as follows:
+
+   copy
+
+ > SET CLUSTER SETTING server.time_until_store_dead = '15m0s';
+
+   After completing the maintenance work and restarting the nodes, you would
+   then change the setting back to its default:
+
+   copy
+
+ > RESET CLUSTER SETTING server.time_until_store_dead;
+
+   It's also important to ensure that load balancers do not send client
+   traffic to a node about to be shut down, even if it will only be down for
+   a few seconds. If you find that your load balancer's health check is not
+   always recognizing a node as unready before the node shuts down, you can
+   increase the server.shutdown.drain_wait setting, which tells the node to
+   wait in an unready state for the specified duration. For example:
+
+   copy
+
+  > SET CLUSTER SETTING server.shutdown.drain_wait = '10s';
+
+See also
+
+     * Product FAQs
+     * SQL FAQs
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

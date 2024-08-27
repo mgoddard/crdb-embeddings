@@ -1,0 +1,225 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                  Constraints
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   Constraints offer additional data integrity by enforcing conditions on the
+   data within a column. Whenever values are manipulated (inserted, deleted,
+   or updated), constraints are checked and modifications that violate
+   constraints are rejected.
+
+   For example, the UNIQUE constraint requires that all values in a column be
+   unique from one another (except NULL values). If you attempt to write a
+   duplicate value, the constraint rejects the entire statement.
+
+Supported constraints
+
+   Constraint    Description                                                  
+   CHECK         Values must return TRUE or NULL for a Boolean expression.    
+                 If a value is not defined for the constrained column in an   
+   DEFAULT value INSERT statement, the DEFAULT value is written to the        
+                 column.                                                      
+   FOREIGN KEY   Values must exactly match existing values from the column it 
+                 references.                                                  
+   NOT NULL      Values may not be NULL.                                      
+                 Values must uniquely identify each row (one per table). This 
+   PRIMARY KEY   behaves as if the NOT NULL and UNIQUE constraints are        
+                 applied, as well as automatically creates an index for the   
+                 table using the constrained columns.                         
+                 Each non-NULL value must be unique. This also automatically  
+   UNIQUE        creates an index for the table using the constrained         
+                 columns.                                                     
+
+Using constraints
+
+  Add constraints
+
+   How you add constraints depends on the number of columns you want to
+   constrain, as well as whether or not the table is new.
+
+     * One column of a new table has its constraints defined after the
+       column's data type. For example, this statement applies the PRIMARY
+       KEY constraint to foo.a:
+
+       copy
+
+ > CREATE TABLE foo (a INT PRIMARY KEY);
+
+     * Multiple columns of a new table have their constraints defined after
+       the table's columns. For example, this statement applies the PRIMARY
+       KEY constraint to foo's columns a and b:
+
+       copy
+
+ > CREATE TABLE bar (a INT, b INT, PRIMARY KEY (a,b));
+
+   Note:
+   The DEFAULT and NOT NULL constraints cannot be applied to multiple
+   columns.
+
+     * Existing tables can have the following constraints added:
+
+          * CHECK, FOREIGN KEY, and UNIQUE constraints can be added through
+            ALTER TABLE...ADD CONSTRAINT. For example, this statement adds
+            the UNIQUE constraint to baz.id:
+       copy
+
+ > ALTER TABLE baz ADD CONSTRAINT id_unique UNIQUE (id);
+
+          * DEFAULT values and NOT NULL constraints can be added through
+            ALTER TABLE...ALTER COLUMN. For example, this statement adds the
+            Default Value constraint to baz.bool:
+       copy
+
+ > ALTER TABLE baz ALTER COLUMN bool SET DEFAULT true;
+
+          * PRIMARY KEY constraints can be added with ADD CONSTRAINT/ADD
+            PRIMARY KEY in the following circumstances:
+               * A DROP CONSTRAINT statement precedes the ADD CONSTRAINT/ADD
+                 PRIMARY KEY statement in the same transaction. For examples,
+                 see the ADD CONSTRAINT and DROP CONSTRAINT pages.
+               * The current primary key is on rowid, the default primary key
+                 created if none is explicitly defined at table creation.
+               * The ADD CONSTRAINT/ADD PRIMARY KEY is in the same
+                 transaction as a CREATE TABLE statement with no primary key
+                 defined.
+
+    Order of constraints
+
+   The order in which you list constraints is not important because
+   constraints are applied to every modification of their respective tables
+   or columns.
+
+    Name constraints on new tables
+
+   You can name constraints applied to new tables using the CONSTRAINT clause
+   before defining the constraint:
+
+   copy
+
+ > CREATE TABLE foo (a INT CONSTRAINT another_name PRIMARY KEY);
+
+   copy
+
+ > CREATE TABLE bar (a INT, b INT, CONSTRAINT yet_another_name PRIMARY KEY (a,b));
+
+  View constraints
+
+   To view a table's constraints, use SHOW CONSTRAINTS or SHOW CREATE.
+
+  Remove constraints
+
+   The procedure for removing a constraint depends on its type:
+
+   Constraint Type Procedure                                                  
+   CHECK           Use DROP CONSTRAINT.                                       
+   DEFAULT value   Use ALTER COLUMN.                                          
+   FOREIGN KEY     Use DROP CONSTRAINT.                                       
+   NOT NULL        Use ALTER COLUMN.                                          
+                   Primary key constraints can be dropped with DROP           
+   PRIMARY KEY     CONSTRAINT if an ADD CONSTRAINT statement follows the DROP 
+                   CONSTRAINT statement in the same transaction.              
+                   The UNIQUE constraint cannot be dropped directly. To       
+   UNIQUE          remove the constraint, drop the index that was created by  
+                   the constraint, e.g., DROP INDEX my_unique_constraint.     
+
+  Change constraints
+
+   The procedure for changing a constraint depends on its type:
+
+   Constraint Type Procedure                                                  
+                   Issue a transaction that adds a new CHECK constraint (ADD  
+   CHECK           CONSTRAINT), and then remove the existing one (DROP        
+                   CONSTRAINT).                                               
+   DEFAULT value   The DEFAULT value can be changed through ALTER COLUMN.     
+                   Issue a transaction that adds a new FOREIGN KEY constraint 
+   FOREIGN KEY     (ADD CONSTRAINT), and then remove the existing one (DROP   
+                   CONSTRAINT).                                               
+   NOT NULL        The NOT NULL constraint cannot be changed, only added and  
+                   removed with ALTER COLUMN.                                 
+                   To change a primary key, use an ALTER TABLE ... ALTER      
+                   PRIMARY KEY statement.                                     
+                                                                              
+   PRIMARY KEY     When you change a primary key with ALTER PRIMARY KEY, the  
+                   old primary key index becomes a secondary index. If you do 
+                   not want the old primary key to become a secondary index,  
+                   use DROP CONSTRAINT/ADD CONSTRAINT to change the primary   
+                   key.                                                       
+                   Issue a transaction that adds a new UNIQUE constraint (ADD 
+   UNIQUE          CONSTRAINT), and then remove the existing one (DROP        
+                   CONSTRAINT).                                               
+
+See also
+
+     * CREATE TABLE
+     * ADD CONSTRAINT
+     * DROP CONSTRAINT
+     * SHOW CONSTRAINTS
+     * SHOW CREATE
+     * ALTER PRIMARY KEY
+     * ALTER TABLE
+     * ALTER COLUMN
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

@@ -1,0 +1,178 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                CockroachDB Docs
+
+   CockroachDB is the SQL database for building global, scalable cloud
+   services that survive disasters.
+
+   Get Started
+
+   Online Training
+
+   Install CockroachDB
+
+   Start a Local Cluster
+
+   Learn CockroachDB SQL
+
+   Hello, World!
+
+   Explore Capabilities
+
+   Develop
+
+   Client Drivers
+
+   Connection Parameters
+
+   SQL Best Practices
+
+   SQL Statements
+
+   SQL Data Types
+
+   SQL Tuning
+
+   Deploy
+
+   Production Checklist
+
+   Topology Patterns
+
+   Manual Deployment
+
+   Orchestration
+
+   Performance
+
+   Rolling Upgrade
+
+   Migrate
+
+   Overview
+
+   Migrate from Oracle
+
+   Migrate from Postgres
+
+   Migrate from MySQL
+
+   Migrate from CSV
+
+   Troubleshoot
+
+   Overview
+
+   Common Errors
+
+   Cluster Setup
+
+   Query Behavior
+
+   Support Resources
+
+   Reference
+
+   SQL
+
+   CLI
+
+   Cluster Settings
+
+   Admin UI
+
+   Third-Party Tools
+
+   Learn More
+
+   Architecture
+
+   SQL Feature Support
+
+   Whitepapers
+
+   Videos & Webinars
+
+   DB Comparisons
+
+   FAQs
+
+   Product FAQs
+
+   SQL FAQs
+
+   Operational FAQs
+
+   Availability FAQs
+
+   Licensing FAQs
+
+   Releases
+
+   Latest Stable Release
+
+   All Stable Releases
+
+   All Testing Releases
+
+   Known Limitations
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

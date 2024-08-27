@@ -1,0 +1,177 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                  SHOW COLUMNS
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The SHOW COLUMNS statement shows details about columns in a table,
+   including each column's name, type, default value, and whether or not it's
+   nullable.
+
+Required privileges
+
+   The user must have any privilege on the target table.
+
+Synopsis
+
+   SHOW COLUMNS FROM table_name WITH COMMENT
+
+Parameters
+
+   Parameter  Description                                      
+   table_name The name of the table for which to show columns. 
+
+Response
+
+   The following fields are returned for each column.
+
+   Field                 Description                                          
+   column_name           The name of the column.                              
+   data_type             The data type of the column.                         
+   is_nullable           Whether or not the column accepts NULL. Possible     
+                         values: true or false.                               
+   column_default        The default value for the column, or an expression   
+                         that evaluates to a default value.                   
+   generation_expression The expression used for a computed column.           
+   indices               The list of indexes that the column is involved in,  
+                         as an array.                                         
+   is_hidden             Whether or not the column is hidden. Possible        
+                         values: true or false.                               
+
+Examples
+
+  Setup
+
+   The following examples use MovR, a fictional vehicle-sharing application,
+   to demonstrate CockroachDB SQL statements. For more information about the
+   MovR example application and dataset, see MovR: A Global Vehicle-sharing
+   App.
+
+   To follow along, run cockroach demo to start a temporary, in-memory
+   cluster with the movr dataset preloaded:
+
+   copy
+
+ $ cockroach demo
+
+  Show columns in a table
+
+   copy
+
+ > SHOW COLUMNS FROM users;
+
+   column_name | data_type | is_nullable | column_default | generation_expression |  indices  | is_hidden
+ +-------------+-----------+-------------+----------------+-----------------------+-----------+-----------+
+   id          | UUID      |    false    | NULL           |                       | {primary} |   false
+   city        | VARCHAR   |    false    | NULL           |                       | {primary} |   false
+   name        | VARCHAR   |    true     | NULL           |                       | {}        |   false
+   address     | VARCHAR   |    true     | NULL           |                       | {}        |   false
+   credit_card | VARCHAR   |    true     | NULL           |                       | {}        |   false
+ (5 rows)
+
+   Alternatively, within the built-in SQL shell, you can use the \d <table>
+   shell command:
+
+   copy
+
+ > \d users
+
+   column_name | data_type | is_nullable | column_default | generation_expression |  indices  | is_hidden
+ +-------------+-----------+-------------+----------------+-----------------------+-----------+-----------+
+   id          | UUID      |    false    | NULL           |                       | {primary} |   false
+   city        | VARCHAR   |    false    | NULL           |                       | {primary} |   false
+   name        | VARCHAR   |    true     | NULL           |                       | {}        |   false
+   address     | VARCHAR   |    true     | NULL           |                       | {}        |   false
+   credit_card | VARCHAR   |    true     | NULL           |                       | {}        |   false
+ (5 rows)
+
+  Show columns with comments
+
+   You can use COMMENT ON to add comments on a column.
+
+   copy
+
+ > COMMENT ON COLUMN users.credit_card IS 'This column contains user payment information.';
+
+   copy
+
+ > SHOW COLUMNS FROM users WITH COMMENT;
+
+   column_name | data_type | is_nullable | column_default | generation_expression |  indices  | is_hidden |                    comment
+ +-------------+-----------+-------------+----------------+-----------------------+-----------+-----------+------------------------------------------------+
+   id          | UUID      |    false    | NULL           |                       | {primary} |   false   | NULL
+   city        | VARCHAR   |    false    | NULL           |                       | {primary} |   false   | NULL
+   name        | VARCHAR   |    true     | NULL           |                       | {}        |   false   | NULL
+   address     | VARCHAR   |    true     | NULL           |                       | {}        |   false   | NULL
+   credit_card | VARCHAR   |    true     | NULL           |                       | {}        |   false   | This column contains user payment information.
+ (5 rows)
+
+See also
+
+     * CREATE TABLE
+     * Information Schema
+     * Other SQL Statements
+     * COMMENT ON
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

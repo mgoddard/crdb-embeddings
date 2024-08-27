@@ -1,0 +1,169 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                           cockroach nodelocal upload
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The cockroach nodelocal upload command uploads a file to the external IO
+   directory on a node's (the gateway node, by default) local file system.
+
+   This command takes in a source file to upload and a destination filename.
+   It will then use a SQL connection to upload the file to the node's local
+   file system, at externalIODir/destination/filename.
+
+   Note:
+
+   The source file is only uploaded to one node, not all of the nodes.
+
+Required privileges
+
+   Only members of the admin role can run cockroach nodelocal upload. By
+   default, the root user belongs to the admin role.
+
+Considerations
+
+   The --external-io flag on the node you're uploading to cannot be set to
+   disabled.
+
+Synopsis
+
+   Upload a file:
+
+ $ cockroach nodelocal upload <location/of/file> <destination/of/file> [flags]
+
+   View help:
+
+ $ cockroach nodelocal upload --help
+
+Flags
+
+   Flag        Description                                                    
+               The path to the certificate directory containing the CA and    
+               client certificates and client key.                            
+   --certs-dir                                                                
+               Env Variable: COCKROACH_CERTS_DIR                              
+               Default: ${HOME}/.cockroach-certs/                             
+   --echo-sql  Reveal the SQL statements sent implicitly by the command-line  
+               utility.                                                       
+               The server host and port number to connect to. This can be the 
+               address of any node in the cluster.                            
+   --host                                                                     
+               Env Variable: COCKROACH_HOST                                   
+               Default: localhost:26257                                       
+               Use an insecure connection.                                    
+   --insecure                                                                 
+               Env Variable: COCKROACH_INSECURE                               
+               Default: false                                                 
+               A connection URL to use instead of the other arguments.        
+   --url                                                                      
+               Env Variable: COCKROACH_URL                                    
+               Default: no URL                                                
+               The SQL user that will own the client session.                 
+   --user                                                                     
+   -u          Env Variable: COCKROACH_USER                                   
+               Default: root                                                  
+
+Examples
+
+  Upload a file
+
+   To upload a file to the default node (i.e., the gateway node):
+
+   copy
+
+ $ cockroach nodelocal upload ./grants.csv test/grants.csv --certs-dir=certs
+
+ successfully uploaded to nodelocal://1/test/grants.csv
+
+   Then, you can use the file to IMPORT or IMPORT INTO data.
+
+  Upload a file to a specific node
+
+   To upload a file to a specific node (e.g., node 2), use the --host flag:
+
+   copy
+
+ $ cockroach nodelocal upload ./grants.csv grants.csv --host=localhost:26259 --insecure
+
+ successfully uploaded to nodelocal://2/grants.csv
+
+   Or, use the --url flag:
+
+   copy
+
+ $ cockroach nodelocal upload ./grants.csv grants.csv --url=postgresql://root@localhost:26258?sslmode=disable --insecure
+
+ successfully uploaded to nodelocal://3/grants.csv
+
+   Then, you can use the file to IMPORT or IMPORT INTO data.
+
+See also
+
+     * Other Cockroach Commands
+     * Troubleshooting Overview
+     * Import Data
+     * IMPORT
+     * IMPORT INTO
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

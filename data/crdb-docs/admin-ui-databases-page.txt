@@ -1,0 +1,130 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                 Database Page
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+   Note:
+
+   On a secure cluster, this area of the Admin UI can only be accessed by an
+   admin user. See Admin UI access.
+
+   The Databases page of the Admin UI provides details of the following:
+
+     * The databases configured.
+     * The tables in each database.
+     * The grants assigned to each user.
+
+   To view this page, access the Admin UI and click Databases in the
+   left-hand navigation.
+
+Tables view
+
+   The Tables view shows details of the system table as well as the tables in
+   your databases.
+
+   To view table details, click on a table name.
+
+   CockroachDB Admin UI Database Tables View
+
+   The following are displayed for each table:
+
+   Parameter    Description                                                   
+   Table Name   The name of the table.                                        
+   Size         Approximate disk size of all replicas of this table on the    
+                cluster.                                                      
+   Ranges       The number of ranges in the table.                            
+   # of Columns The number of columns in the table.                           
+   # of Indices The number of indices for the table.                          
+
+  Table details
+
+   Click any table name in Tables view to display details for that table.
+
+   CockroachDB Admin UI Database Tables View
+
+     * Overview displays the SQL statements used to create and define the
+       table, as well as partitioning info and zone configurations. In
+       addition, the following metrics are displayed:
+          * Size is the approximate disk size of all replicas of this table
+            on the cluster.
+          * Ranges is the number of ranges in this table.
+          * Replicas is the number of replicas of this table on the cluster.
+     * Grants displays the grants associated with the table.
+
+Grants view
+
+   The Grants view shows the privileges granted to users for each database.
+
+   For more details about grants and privileges, see GRANT <privileges>.
+
+   CockroachDB Admin UI Database Grants View
+
+See also
+
+     * Statements page
+     * Assign privileges
+     * GRANT <privileges>
+     * Raw status endpoints
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

@@ -1,0 +1,430 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                          EXPERIMENTAL CHANGEFEED FOR
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+   Note:
+
+   EXPERIMENTAL CHANGEFEED FOR is the core implementation of changefeeds. For
+   the enterprise-only version, see CREATE CHANGEFEED.
+
+   The EXPERIMENTAL CHANGEFEED FOR statement creates a new core changefeed,
+   which streams row-level changes to the client indefinitely until the
+   underlying connection is closed or the changefeed is canceled.
+
+   Note:
+
+   Because core changefeeds return results differently than other SQL
+   statements, they require a dedicated database connection with specific
+   settings around result buffering. In normal operation, CockroachDB
+   improves performance by buffering results server-side before returning
+   them to a client; however, result buffering is automatically turned off
+   for core changefeeds. Core changefeeds also have different cancellation
+   behavior than other queries: they can only be canceled by closing the
+   underlying connection or issuing a CANCEL QUERY statement on a separate
+   connection. Combined, these attributes of changefeeds mean that
+   applications should explicitly create dedicated connections to consume
+   changefeed data, instead of using a connection pool as most client drivers
+   do by default.
+
+   For more information, see Change Data Capture.
+
+   Warning:
+
+   This is an experimental feature. The interface and output are subject to
+   change.
+
+Required privileges
+
+   Changefeeds can only be created by superusers, i.e., members of the admin
+   role. The admin role exists by default with root as the member.
+
+Considerations
+
+     * Because core changefeeds return results differently than other SQL
+       statements, they require a dedicated database connection with specific
+       settings around result buffering. In normal operation, CockroachDB
+       improves performance by buffering results server-side before returning
+       them to a client; however, result buffering is automatically turned
+       off for core changefeeds. Core changefeeds also have different
+       cancelation behavior than other queries: they can only be canceled by
+       closing the underlying connection or issuing a CANCEL QUERY statement
+       on a separate connection. Combined, these attributes of changefeeds
+       mean that applications should explicitly create dedicated connections
+       to consume changefeed data, instead of using a connection pool as most
+       client drivers do by default.
+
+       This cancelation behavior (i.e., close the underlying connection to
+       cancel the changefeed) also extends to client driver usage; in
+       particular, when a client driver calls Rows.Close() after encountering
+       errors for a stream of rows. The pgwire protocol requires that the
+       rows be consumed before the connection is again usable, but in the
+       case of a core changefeed, the rows are never consumed. It is
+       therefore critical that you close the connection, otherwise the
+       application will be blocked forever on Rows.Close().
+
+     * In most cases, each version of a row will be emitted once. However,
+       some infrequent conditions (e.g., node failures, network partitions)
+       will cause them to be repeated. This gives our changefeeds an
+       at-least-once delivery guarantee. For more information, see Change
+       Data Capture - Ordering Guarantees.
+
+Synopsis
+
+ > EXPERIMENTAL CHANGEFEED FOR table_name [ WITH (option [= value] [, ...]) ];
+
+Parameters
+
+   Parameter      Description                                                 
+   table_name     The name of the table (or tables in a comma separated list) 
+                  to create a changefeed for.                                 
+   option / value For a list of available options and their values, see       
+                  Options below.                                              
+
+  Options
+
+Option                    Value             Description                           
+updated                   N/A               Include updated timestamps with each  
+                                            row.                                  
+                                            Periodically emit resolved timestamps 
+                                            to the changefeed. Optionally, set a  
+                                            minimum duration between emitting     
+resolved                  INTERVAL          resolved timestamps. If unspecified,  
+                                            all resolved timestamps are emitted.  
+                                                                                  
+                                            Example: resolved='10s'               
+                                            Use key_only to emit only the key and 
+                                            no value, which is faster if you only 
+envelope                  key_only / row    want to know when the key changes.    
+                                                                                  
+                                            Default: envelope=row                 
+                                            Emits any changes after the given     
+                                            timestamp, but does not output the    
+                                            current state of the table first. If  
+                                            cursor is not specified, the          
+                                            changefeed starts by doing a          
+                                            consistent scan of all the watched    
+                                            rows and emits the current value,     
+cursor                    Timestamp         then moves to emitting any changes    
+                                            that happen after the scan.           
+                                                                                  
+                                            cursor can be used to start a new     
+                                            changefeed where a previous           
+                                            changefeed ended.                     
+                                                                                  
+                                            Example:                              
+                                            CURSOR=1536242855577149065.0000000000 
+                                            Format of the emitted record.         
+                          json /            Currently, support for Avro is        
+format                    experimental_avro limited and experimental.             
+                                                                                  
+                                            Default: format=json.                 
+confluent_schema_registry Schema Registry   The Schema Registry address is        
+                          address           required to use experimental_avro.    
+
+    Avro limitations
+
+   Currently, support for Avro is limited and experimental. Below is a list
+   of unsupported SQL types and values for Avro changefeeds:
+
+     * Decimals must have precision specified.
+     * Decimals with NaN or infinite values cannot be written in Avro.
+
+       Note:
+
+       To avoid NaN or infinite values, add a CHECK constraint to prevent
+       these values from being inserted into decimal columns.
+
+     * time, date, interval, uuid, inet, array, and jsonb are not supported
+       in Avro yet.
+
+Examples
+
+  Create a changefeed
+
+   In this example, you'll set up a core changefeed for a single-node
+   cluster.
+
+    1. In a terminal window, start cockroach:
+
+       copy
+
+ $ cockroach start \
+ --insecure \
+ --listen-addr=localhost \
+ --background
+
+    2. As the root user, open the built-in SQL client:
+
+       copy
+
+ $ cockroach sql \
+ --url="postgresql://root@127.0.0.1:26257?sslmode=disable" \
+ --format=csv
+
+       Note:
+
+       Because core changefeeds return results differently than other SQL
+       statements, they require a dedicated database connection with specific
+       settings around result buffering. In normal operation, CockroachDB
+       improves performance by buffering results server-side before returning
+       them to a client; however, result buffering is automatically turned
+       off for core changefeeds. Core changefeeds also have different
+       cancellation behavior than other queries: they can only be canceled by
+       closing the underlying connection or issuing a CANCEL QUERY statement
+       on a separate connection. Combined, these attributes of changefeeds
+       mean that applications should explicitly create dedicated connections
+       to consume changefeed data, instead of using a connection pool as most
+       client drivers do by default.
+
+       Note:
+
+       To determine how wide the columns need to be, the default table
+       display format in cockroach sql buffers the results it receives from
+       the server before printing them to the console. When consuming core
+       changefeed data using cockroach sql, it's important to use a display
+       format like csv that does not buffer its results. To set the display
+       format, use the --format=csv flag when starting the built-in SQL
+       client, or set the \set display_format=csv option once the SQL client
+       is open.
+
+    3. Enable the kv.rangefeed.enabled cluster setting:
+
+       copy
+
+ > SET CLUSTER SETTING kv.rangefeed.enabled = true;
+
+    4. Create table foo:
+
+       copy
+
+ > CREATE TABLE foo (a INT PRIMARY KEY);
+
+    5. Insert a row into the table:
+
+       copy
+
+ > INSERT INTO foo VALUES (0);
+
+    6. Start the core changefeed:
+
+       copy
+
+ > EXPERIMENTAL CHANGEFEED FOR foo;
+
+ table,key,value
+ foo,[0],"{""after"": {""a"": 0}}"
+
+    7. In a new terminal, add another row:
+
+       copy
+
+ $ cockroach sql --insecure -e "INSERT INTO foo VALUES (1)"
+
+    8. Back in the terminal where the core changefeed is streaming, the
+       following output has appeared:
+
+ foo,[1],"{""after"": {""a"": 1}}"
+
+       Note that records may take a couple of seconds to display in the core
+       changefeed.
+
+    9. To stop streaming the changefeed, enter CTRL+C into the terminal where
+       the changefeed is running.
+
+   10. To stop cockroach, run:
+
+       copy
+
+ $ cockroach quit --insecure
+
+  Create a changefeed with Avro
+
+   In this example, you'll set up a core changefeed for a single-node cluster
+   that emits Avro records. CockroachDB's Avro binary encoding convention
+   uses the Confluent Schema Registry to store Avro schemas.
+
+    1. Use the cockroach start-single-node command to start a single-node
+       cluster:
+
+       copy
+
+ $ cockroach start-single-node \
+ --insecure \
+ --listen-addr=localhost \
+ --background
+
+    2. Download and extract the Confluent Open Source platform.
+
+    3. Move into the extracted confluent-<version> directory and start
+       Confluent:
+
+       copy
+
+ $ ./bin/confluent start
+
+       Only zookeeper, kafka, and schema-registry are needed. To troubleshoot
+       Confluent, see their docs.
+
+    4. As the root user, open the built-in SQL client:
+
+       copy
+
+ $ cockroach sql --url="postgresql://root@127.0.0.1:26257?sslmode=disable" --format=csv
+
+       Note:
+
+       Because core changefeeds return results differently than other SQL
+       statements, they require a dedicated database connection with specific
+       settings around result buffering. In normal operation, CockroachDB
+       improves performance by buffering results server-side before returning
+       them to a client; however, result buffering is automatically turned
+       off for core changefeeds. Core changefeeds also have different
+       cancellation behavior than other queries: they can only be canceled by
+       closing the underlying connection or issuing a CANCEL QUERY statement
+       on a separate connection. Combined, these attributes of changefeeds
+       mean that applications should explicitly create dedicated connections
+       to consume changefeed data, instead of using a connection pool as most
+       client drivers do by default.
+
+       Note:
+
+       To determine how wide the columns need to be, the default table
+       display format in cockroach sql buffers the results it receives from
+       the server before printing them to the console. When consuming core
+       changefeed data using cockroach sql, it's important to use a display
+       format like csv that does not buffer its results. To set the display
+       format, use the --format=csv flag when starting the built-in SQL
+       client, or set the \set display_format=csv option once the SQL client
+       is open.
+
+    5. Enable the kv.rangefeed.enabled cluster setting:
+
+       copy
+
+ > SET CLUSTER SETTING kv.rangefeed.enabled = true;
+
+    6. Create table bar:
+
+       copy
+
+ > CREATE TABLE bar (a INT PRIMARY KEY);
+
+    7. Insert a row into the table:
+
+       copy
+
+ > INSERT INTO bar VALUES (0);
+
+    8. Start the core changefeed:
+
+       copy
+
+ > EXPERIMENTAL CHANGEFEED FOR bar WITH format = experimental_avro, confluent_schema_registry = 'http://localhost:8081';
+
+ table,key,value
+ bar,\000\000\000\000\001\002\000,\000\000\000\000\002\002\002\000
+
+    9. In a new terminal, add another row:
+
+       copy
+
+ $ cockroach sql --insecure -e "INSERT INTO bar VALUES (1)"
+
+   10. Back in the terminal where the core changefeed is streaming, the
+       output will appear:
+
+ bar,\000\000\000\000\001\002\002,\000\000\000\000\002\002\002\002
+
+       Note that records may take a couple of seconds to display in the core
+       changefeed.
+
+   11. To stop streaming the changefeed, enter CTRL+C into the terminal where
+       the changefeed is running.
+
+   12. To stop cockroach, run:
+
+       copy
+
+ $ cockroach quit --insecure
+
+   13. To stop Confluent, move into the extracted confluent-<version>
+       directory and stop Confluent:
+
+       copy
+
+ $ ./bin/confluent stop
+
+       To stop all Confluent processes, use:
+
+       copy
+
+ $ ./bin/confluent destroy
+
+See also
+
+     * Change Data Capture
+     * Other SQL Statements
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

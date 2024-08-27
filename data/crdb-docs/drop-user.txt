@@ -1,0 +1,131 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                   DROP USER
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The DROP USER statement removes one or more SQL users.
+
+   Note:
+
+   Since the keywords ROLE and USER can now be used interchangeably in SQL
+   statements for enhanced Postgres compatibility, DROP USER is now an alias
+   for DROP ROLE.
+
+Required privileges
+
+   To drop other non-admin users, the user must have the CREATEROLE parameter
+   set.
+
+Synopsis
+
+   DROP USER IF EXISTS user_name ,
+
+Parameters
+
+   Parameter Description                                                      
+             The username of the user to remove. To remove multiple users,    
+   user_name use a comma-separate list of usernames.                          
+                                                                              
+             You can use SHOW USERS to find usernames.                        
+
+Example
+
+   All of a user's privileges must be revoked before the user can be dropped.
+
+   In this example, first check a user's privileges. Then, revoke the user's
+   privileges before removing the user.
+
+   copy
+
+ > SHOW GRANTS ON test.customers FOR mroach;
+
+ +-----------+--------+------------+
+ |   Table   |  User  | Privileges |
+ +-----------+--------+------------+
+ | customers | mroach | CREATE     |
+ | customers | mroach | INSERT     |
+ | customers | mroach | UPDATE     |
+ +-----------+--------+------------+
+ (3 rows)
+
+   copy
+
+ > REVOKE CREATE,INSERT,UPDATE ON test.customers FROM mroach;
+
+   copy
+
+ > DROP USER mroach;
+
+See also
+
+     * CREATE USER
+     * ALTER USER
+     * SHOW USERS
+     * GRANT
+     * SHOW GRANTS
+     * Create Security Certificates
+     * Other SQL Statements
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

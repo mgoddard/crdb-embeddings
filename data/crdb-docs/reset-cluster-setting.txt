@@ -1,0 +1,126 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                             RESET CLUSTER SETTING
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The RESET statement resets a cluster setting to its default value for the
+   client session..
+
+Required privileges
+
+   Only members of the admin role can modify cluster settings. By default,
+   the root user belongs to the admin role.
+
+Synopsis
+
+   RESET CLUSTER SETTING var_name
+
+Parameters
+
+   Parameter Description                                         
+   var_name  The name of the cluster setting (case-insensitive). 
+
+Example
+
+   Tip:
+   You can use SET CLUSTER SETTING .. TO DEFAULT to reset a cluster setting
+   as well.
+   copy
+
+ > SET CLUSTER SETTING sql.metrics.statement_details.enabled = false;
+
+   copy
+
+ > SHOW CLUSTER SETTING sql.metrics.statement_details.enabled;
+
+ +---------------------------------------+
+ | sql.metrics.statement_details.enabled |
+ +---------------------------------------+
+ | false                                 |
+ +---------------------------------------+
+ (1 row)
+
+   copy
+
+ > RESET CLUSTER SETTING sql.metrics.statement_details.enabled;
+
+   copy
+
+ > SHOW CLUSTER SETTING sql.metrics.statement_details.enabled;
+
+ +---------------------------------------+
+ | sql.metrics.statement_details.enabled |
+ +---------------------------------------+
+ | true                                  |
+ +---------------------------------------+
+ (1 row)
+
+See also
+
+     * SET CLUSTER SETTING
+     * SHOW CLUSTER SETTING
+     * Cluster settings
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

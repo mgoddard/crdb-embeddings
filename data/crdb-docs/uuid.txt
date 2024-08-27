@@ -1,0 +1,307 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                      UUID
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The UUID (Universally Unique Identifier) data type stores a 128-bit value
+   that is unique across both space and time.
+
+   Tip:
+
+   To auto-generate unique row IDs, we recommend using UUID with the
+   gen_random_uuid() function as the default value. See the example below for
+   more details.
+
+Syntax
+
+   A UUID value can be expressed using the following formats:
+
+   Format             Description                                             
+   Standard           Hyphen-separated groups of 8, 4, 4, 4, 12 hexadecimal   
+   RFC4122-specified  digits.                                                 
+   format                                                                     
+                      Example: acde070d-8c4c-4f0d-9d8a-162843c10333           
+                      The standard RFC4122-specified format with braces.      
+   With braces                                                                
+                      Example: {acde070d-8c4c-4f0d-9d8a-162843c10333}         
+                      UUID value specified as bytes.                          
+   As BYTES                                                                   
+                      Example: b'kafef00ddeadbeed'                            
+                      UUID can be used as a Uniform Resource Name (URN). In   
+                      that case, the format is specified as "urn:uuid:"       
+   UUID used as a URN followed by standard RFC4122-specified format.          
+                                                                              
+                      Example: urn:uuid:63616665-6630-3064-6465-616462656564  
+
+Size
+
+   A UUID value is 128 bits in width, but the total storage size is likely to
+   be larger due to CockroachDB metadata.
+
+Examples
+
+  Create a table with manually-entered UUID values
+
+    Create a table with UUID in standard RFC4122-specified format
+
+   copy
+
+ > CREATE TABLE v (token uuid);
+
+   copy
+
+ > INSERT INTO v VALUES ('63616665-6630-3064-6465-616462656562');
+
+   copy
+
+ > SELECT * FROM v;
+
+ +--------------------------------------+
+ |                token                 |
+ +--------------------------------------+
+ | 63616665-6630-3064-6465-616462656562 |
+ +--------------------------------------+
+ (1 row)
+
+    Create a table with UUID in standard RFC4122-specified format with braces
+
+   copy
+
+ > INSERT INTO v VALUES ('{63616665-6630-3064-6465-616462656563}');
+
+   copy
+
+ > SELECT * FROM v;
+
+ +--------------------------------------+
+ |                token                 |
+ +--------------------------------------+
+ | 63616665-6630-3064-6465-616462656562 |
+ | 63616665-6630-3064-6465-616462656563 |
+ +--------------------------------------+
+ (2 rows)
+
+    Create a table with UUID in byte format
+
+   copy
+
+ > INSERT INTO v VALUES (b'kafef00ddeadbeed');
+
+   copy
+
+ > SELECT * FROM v;
+
+ +--------------------------------------+
+ |                token                 |
+ +--------------------------------------+
+ | 63616665-6630-3064-6465-616462656562 |
+ | 63616665-6630-3064-6465-616462656563 |
+ | 6b616665-6630-3064-6465-616462656564 |
+ +--------------------------------------+
+ (3 rows)
+
+    Create a table with UUID used as URN
+
+   copy
+
+ > INSERT INTO v VALUES ('urn:uuid:63616665-6630-3064-6465-616462656564');
+
+   copy
+
+ > SELECT * FROM v;
+
+ +--------------------------------------+
+ |                token                 |
+ +--------------------------------------+
+ | 63616665-6630-3064-6465-616462656562 |
+ | 63616665-6630-3064-6465-616462656563 |
+ | 6b616665-6630-3064-6465-616462656564 |
+ | 63616665-6630-3064-6465-616462656564 |
+ +--------------------------------------+
+ (4 rows)
+
+  Create a table with auto-generated unique row IDs
+
+   To auto-generate unique row IDs, use the UUID column with the
+   gen_random_uuid() function as the default value:
+
+   copy
+
+ > CREATE TABLE users (
+         id UUID NOT NULL DEFAULT gen_random_uuid(),
+         city STRING NOT NULL,
+         name STRING NULL,
+         address STRING NULL,
+         credit_card STRING NULL,
+         CONSTRAINT "primary" PRIMARY KEY (city ASC, id ASC),
+         FAMILY "primary" (id, city, name, address, credit_card)
+ );
+
+   copy
+
+ > INSERT INTO users (name, city) VALUES ('Petee', 'new york'), ('Eric', 'seattle'), ('Dan', 'seattle');
+
+   copy
+
+ > SELECT * FROM users;
+
+                    id                  |   city   | name  | address | credit_card
+ +--------------------------------------+----------+-------+---------+-------------+
+   cf8ee4e2-cd74-449a-b6e6-a0fb2017baa4 | new york | Petee | NULL    | NULL
+   2382564e-702f-42d9-a139-b6df535ae00a | seattle  | Eric  | NULL    | NULL
+   7d27e40b-263a-4891-b29b-d59135e55650 | seattle  | Dan   | NULL    | NULL
+ (3 rows)
+
+   Alternatively, you can use the BYTES column with the uuid_v4() function as
+   the default value instead:
+
+   copy
+
+ > CREATE TABLE users2 (
+         id BYTES DEFAULT uuid_v4(),
+         city STRING NOT NULL,
+         name STRING NULL,
+         address STRING NULL,
+         credit_card STRING NULL,
+         CONSTRAINT "primary" PRIMARY KEY (city ASC, id ASC),
+         FAMILY "primary" (id, city, name, address, credit_card)
+ );
+
+   copy
+
+ > INSERT INTO users2 (name, city) VALUES ('Anna', 'new york'), ('Jonah', 'seattle'), ('Terry', 'chicago');
+
+   copy
+
+ > SELECT * FROM users;
+
+                         id                       |   city   | name  | address | credit_card
+ +------------------------------------------------+----------+-------+---------+-------------+
+   4\244\277\323/\261M\007\213\275*\0060\346\025z | chicago  | Terry | NULL    | NULL
+   \273*t=u.F\010\274f/}\313\332\373a             | new york | Anna  | NULL    | NULL
+   \004\\\364nP\024L)\252\364\222r$\274O0         | seattle  | Jonah | NULL    | NULL
+ (3 rows)
+
+   In either case, generated IDs will be 128-bit, large enough for there to
+   be virtually no chance of generating non-unique values. Also, once the
+   table grows beyond a single key-value range (more than 512 MiB by
+   default), new IDs will be scattered across all of the table's ranges and,
+   therefore, likely across different nodes. This means that multiple nodes
+   will share in the load.
+
+   This approach has the disadvantage of creating a primary key that may not
+   be useful in a query directly, which can require a join with another table
+   or a secondary index.
+
+   If it is important for generated IDs to be stored in the same key-value
+   range, you can use an integer type with the unique_rowid() function as the
+   default value, either explicitly or via the SERIAL pseudo-type:
+
+   copy
+
+ > CREATE TABLE users3 (
+         id INT DEFAULT unique_rowid(),
+         city STRING NOT NULL,
+         name STRING NULL,
+         address STRING NULL,
+         credit_card STRING NULL,
+         CONSTRAINT "primary" PRIMARY KEY (city ASC, id ASC),
+         FAMILY "primary" (id, city, name, address, credit_card)
+ );
+
+   copy
+
+ > INSERT INTO users3 (name, city) VALUES ('Blake', 'chicago'), ('Hannah', 'seattle'), ('Bobby', 'seattle');
+
+   copy
+
+ > SELECT * FROM users3;
+
+           id         |  city   |  name  | address | credit_card
+ +--------------------+---------+--------+---------+-------------+
+   469048192112197633 | chicago | Blake  | NULL    | NULL
+   469048192112263169 | seattle | Hannah | NULL    | NULL
+   469048192112295937 | seattle | Bobby  | NULL    | NULL
+ (3 rows)
+
+   Upon insert or upsert, the unique_rowid() function generates a default
+   value from the timestamp and ID of the node executing the insert. Such
+   time-ordered values are likely to be globally unique except in cases where
+   a very large number of IDs (100,000+) are generated per node per second.
+   Also, there can be gaps and the order is not completely guaranteed.
+
+Supported casting and conversion
+
+   UUID values can be cast to the following data type:
+
+   Type  Details                                                              
+   BYTES Requires supported BYTES string format, e.g.,                        
+         b'\141\061\142\062\143\063'.                                         
+
+See also
+
+   Data Types
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

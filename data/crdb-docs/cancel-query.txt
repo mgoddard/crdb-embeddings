@@ -1,0 +1,150 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                  CANCEL QUERY
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The CANCEL QUERY statement cancels a running SQL query.
+
+Considerations
+
+     * Schema changes are treated differently than other SQL queries. You can
+       use SHOW JOBS to monitor the progress of schema changes and CANCEL JOB
+       to cancel schema changes that are taking longer than expected.
+     * In rare cases where a query is close to completion when a cancellation
+       request is issued, the query may run to completion.
+
+Required privileges
+
+   Members of the admin role (include root, which belongs to admin by
+   default) can cancel any currently active. User that are not members of the
+   admin role can cancel only their own currently active queries.
+
+Synopsis
+
+   CANCEL QUERY IF EXISTS query_id QUERIES IF EXISTS select_stmt
+
+Parameters
+
+   Parameter   Description                                                    
+               A scalar expression that produces the ID of the query to       
+               cancel.                                                        
+   query_id                                                                   
+               CANCEL QUERY accepts a single query ID. If a subquery is used  
+               and returns multiple IDs, the CANCEL QUERY statement will      
+               fail. To cancel multiple queries, use CANCEL QUERIES.          
+   select_stmt A selection query whose result you want to cancel.             
+
+Response
+
+   When a query is successfully cancelled, CockroachDB sends a query
+   execution canceled error to the client that issued the query.
+
+     * If the canceled query was a single, stand-alone statement, no further
+       action is required by the client.
+     * If the canceled query was part of a larger, multi-statement
+       transaction, the client should then issue a ROLLBACK statement.
+
+Examples
+
+  Cancel a query via the query ID
+
+   In this example, we use the SHOW QUERIES statement to get the ID of a
+   query and then pass the ID into the CANCEL QUERY statement:
+
+ > SHOW QUERIES;
+
+ +----------------------------------+---------+----------+----------------------------------+----------------------------------+--------------------+------------------+-------------+-----------+
+ |             query_id             | node_id | username |              start               |              query               |   client_address   | application_name | distributed |   phase   |
+ +----------------------------------+---------+----------+----------------------------------+----------------------------------+--------------------+------------------+-------------+-----------+
+ | 14dacc1f9a781e3d0000000000000001 |       2 | mroach   | 2017-08-10 14:08:22.878113+00:00 | SELECT * FROM test.kv ORDER BY k | 192.168.0.72:56194 | test_app         | false       | executing |
+ +----------------------------------+---------+----------+----------------------------------+----------------------------------+--------------------+------------------+-------------+-----------+
+ | 14dacc206c47a9690000000000000002 |       2 | root     | 2017-08-14 19:11:05.309119+00:00 | SHOW CLUSTER QUERIES             | 127.0.0.1:50921    |                  | NULL        | preparing |
+ +----------------------------------+---------+----------+----------------------------------+----------------------------------+--------------------+------------------+-------------+-----------+
+
+ > CANCEL QUERY '14dacc1f9a781e3d0000000000000001';
+
+  Cancel a query via a subquery
+
+   In this example, we nest a SELECT clause that retrieves the ID of a query
+   inside the CANCEL QUERY statement:
+
+ > CANCEL QUERY (SELECT query_id FROM [SHOW CLUSTER QUERIES]
+       WHERE client_address = '192.168.0.72:56194'
+           AND username = 'mroach'
+           AND query = 'SELECT * FROM test.kv ORDER BY k');
+
+   Note:
+   CANCEL QUERY accepts a single query ID. If a subquery is used and returns
+   multiple IDs, the CANCEL QUERY statement will fail. To cancel multiple
+   queries, use CANCEL QUERIES.
+
+See also
+
+     * Manage Long-Running Queries
+     * SHOW QUERIES
+     * CANCEL SESSION
+     * SQL Statements
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

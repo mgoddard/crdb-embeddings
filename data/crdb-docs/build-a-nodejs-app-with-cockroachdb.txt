@@ -1,0 +1,774 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+         Build a Node.js App with CockroachDB and the Node.js pg Driver
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+   Use pg Use Sequelize
+
+   This tutorial shows you how build a simple Node.js application with
+   CockroachDB and the Node.js pg driver.
+
+   We have tested the Node.js pg driver enough to claim beta-level support.
+   If you encounter problems, please open an issue with details to help us
+   make progress toward full support.
+
+Before you begin
+
+    1. Install CockroachDB.
+    2. Start up a secure or insecure local cluster.
+    3. Choose the instructions that correspond to whether your cluster is
+       secure or insecure:
+   Secure Insecure
+
+Step 1. Install Node.js packages
+
+   To let your application communicate with CockroachDB, install the Node.js
+   pg driver:
+
+   copy
+
+ $ npm install pg
+
+   The example app on this page also requires async:
+
+   copy
+
+ $ npm install async
+
+Step 2. Create the maxroach user and bank database
+
+   Start the built-in SQL shell:
+
+   copy
+
+ $ cockroach sql --certs-dir=certs
+
+   In the SQL shell, issue the following statements to create the maxroach
+   user and bank database:
+
+   copy
+
+ > CREATE USER IF NOT EXISTS maxroach;
+
+   copy
+
+ > CREATE DATABASE bank;
+
+   Give the maxroach user the necessary permissions:
+
+   copy
+
+ > GRANT ALL ON DATABASE bank TO maxroach;
+
+   Exit the SQL shell:
+
+   copy
+
+ > \q
+
+Step 3. Generate a certificate for the maxroach user
+
+   Create a certificate and key for the maxroach user by running the
+   following command. The code samples will run as this user.
+
+   copy
+
+ $ cockroach cert create-client maxroach --certs-dir=certs --ca-key=my-safe-directory/ca.key
+
+Step 4. Run the Node.js code
+
+   Now that you have a database and a user, you'll run code to create a table
+   and insert some rows, and then you'll run code to read and update values
+   as an atomic transaction.
+
+  Basic statements
+
+   First, use the following code to connect as the maxroach user and execute
+   some basic SQL statements, creating a table, inserting rows, and reading
+   and printing the rows.
+
+   Download the basic-sample.js file, or create the file yourself and copy
+   the code into it.
+
+   copy
+
+ var async = require('async');
+ var fs = require('fs');
+ var pg = require('pg');
+
+ // Connect to the "bank" database.
+ var config = {
+     user: 'maxroach',
+     host: 'localhost',
+     database: 'bank',
+     port: 26257,
+     ssl: {
+         ca: fs.readFileSync('certs/ca.crt')
+             .toString(),
+         key: fs.readFileSync('certs/client.maxroach.key')
+             .toString(),
+         cert: fs.readFileSync('certs/client.maxroach.crt')
+             .toString()
+     }
+ };
+
+ // Create a pool.
+ var pool = new pg.Pool(config);
+
+ pool.connect(function (err, client, done) {
+
+     // Close communication with the database and exit.
+     var finish = function () {
+         done();
+         process.exit();
+     };
+
+     if (err) {
+         console.error('could not connect to cockroachdb', err);
+         finish();
+     }
+     async.waterfall([
+             function (next) {
+                 // Create the 'accounts' table.
+                 client.query('CREATE TABLE IF NOT EXISTS accounts (id INT PRIMARY KEY, balance INT);', next);
+             },
+             function (results, next) {
+                 // Insert two rows into the 'accounts' table.
+                 client.query('INSERT INTO accounts (id, balance) VALUES (1, 1000), (2, 250);', next);
+             },
+             function (results, next) {
+                 // Print out account balances.
+                 client.query('SELECT id, balance FROM accounts;', next);
+             },
+         ],
+         function (err, results) {
+             if (err) {
+                 console.error('Error inserting into and selecting from accounts: ', err);
+                 finish();
+             }
+
+             console.log('Initial balances:');
+             results.rows.forEach(function (row) {
+                 console.log(row);
+             });
+
+             finish();
+         });
+ });
+
+
+   Then run the code:
+
+   copy
+
+ $ node basic-sample.js
+
+   The output should be:
+
+ Initial balances:
+ { id: '1', balance: '1000' }
+ { id: '2', balance: '250' }
+
+  Transaction (with retry logic)
+
+   Next, use the following code to again connect as the maxroach user but
+   this time execute a batch of statements as an atomic transaction to
+   transfer funds from one account to another and then read the updated
+   values, where all included statements are either committed or aborted.
+
+   Download the txn-sample.js file, or create the file yourself and copy the
+   code into it.
+
+   Note:
+
+   With the default SERIALIZABLE isolation level, CockroachDB may require the
+   client to retry a transaction in case of read/write contention.
+   CockroachDB provides a generic retry function that runs inside a
+   transaction and retries it as needed. The code sample below shows how it
+   is used.
+
+   copy
+
+ var async = require('async');
+ var fs = require('fs');
+ var pg = require('pg');
+
+ // Connect to the bank database.
+
+ var config = {
+     user: 'maxroach',
+     host: 'localhost',
+     database: 'bank',
+     port: 26257,
+     ssl: {
+         ca: fs.readFileSync('certs/ca.crt')
+             .toString(),
+         key: fs.readFileSync('certs/client.maxroach.key')
+             .toString(),
+         cert: fs.readFileSync('certs/client.maxroach.crt')
+             .toString()
+     }
+ };
+
+ // Wrapper for a transaction.  This automatically re-calls "op" with
+ // the client as an argument as long as the database server asks for
+ // the transaction to be retried.
+
+ function txnWrapper(client, op, next) {
+     client.query('BEGIN; SAVEPOINT cockroach_restart', function (err) {
+         if (err) {
+             return next(err);
+         }
+
+         var released = false;
+         async.doWhilst(function (done) {
+                 var handleError = function (err) {
+                     // If we got an error, see if it's a retryable one
+                     // and, if so, restart.
+                     if (err.code === '40001') {
+                         // Signal the database that we'll retry.
+                         return client.query('ROLLBACK TO SAVEPOINT cockroach_restart', done);
+                     }
+                     // A non-retryable error; break out of the
+                     // doWhilst with an error.
+                     return done(err);
+                 };
+
+                 // Attempt the work.
+                 op(client, function (err) {
+                     if (err) {
+                         return handleError(err);
+                     }
+                     var opResults = arguments;
+
+                     // If we reach this point, release and commit.
+                     client.query('RELEASE SAVEPOINT cockroach_restart', function (err) {
+                         if (err) {
+                             return handleError(err);
+                         }
+                         released = true;
+                         return done.apply(null, opResults);
+                     });
+                 });
+             },
+             function () {
+                 return !released;
+             },
+             function (err) {
+                 if (err) {
+                     client.query('ROLLBACK', function () {
+                         next(err);
+                     });
+                 } else {
+                     var txnResults = arguments;
+                     client.query('COMMIT', function (err) {
+                         if (err) {
+                             return next(err);
+                         } else {
+                             return next.apply(null, txnResults);
+                         }
+                     });
+                 }
+             });
+     });
+ }
+
+ // The transaction we want to run.
+
+ function transferFunds(client, from, to, amount, next) {
+     // Check the current balance.
+     client.query('SELECT balance FROM accounts WHERE id = $1', [from], function (err, results) {
+         if (err) {
+             return next(err);
+         } else if (results.rows.length === 0) {
+             return next(new Error('account not found in table'));
+         }
+
+         var acctBal = results.rows[0].balance;
+         if (acctBal >= amount) {
+             // Perform the transfer.
+             async.waterfall([
+                 function (next) {
+                     // Subtract amount from account 1.
+                     client.query('UPDATE accounts SET balance = balance - $1 WHERE id = $2', [amount, from], next);
+                 },
+                 function (updateResult, next) {
+                     // Add amount to account 2.
+                     client.query('UPDATE accounts SET balance = balance + $1 WHERE id = $2', [amount, to], next);
+                 },
+                 function (updateResult, next) {
+                     // Fetch account balances after updates.
+                     client.query('SELECT id, balance FROM accounts', function (err, selectResult) {
+                         next(err, selectResult ? selectResult.rows : null);
+                     });
+                 }
+             ], next);
+         } else {
+             next(new Error('insufficient funds'));
+         }
+     });
+ }
+
+ // Create a pool.
+ var pool = new pg.Pool(config);
+
+ pool.connect(function (err, client, done) {
+     // Closes communication with the database and exits.
+     var finish = function () {
+         done();
+         process.exit();
+     };
+
+     if (err) {
+         console.error('could not connect to cockroachdb', err);
+         finish();
+     }
+
+     // Execute the transaction.
+     txnWrapper(client,
+         function (client, next) {
+             transferFunds(client, 1, 2, 100, next);
+         },
+         function (err, results) {
+             if (err) {
+                 console.error('error performing transaction', err);
+                 finish();
+             }
+
+             console.log('Balances after transfer:');
+             results.forEach(function (result) {
+                 console.log(result);
+             });
+
+             finish();
+         });
+ });
+
+
+   Then run the code:
+
+   copy
+
+ $ node txn-sample.js
+
+   The output should be:
+
+ Balances after transfer:
+ { id: '1', balance: '900' }
+ { id: '2', balance: '350' }
+
+   To verify that funds were transferred from one account to another, start
+   the built-in SQL client:
+
+   copy
+
+ $ cockroach sql --certs-dir=certs --database=bank
+
+   To check the account balances, issue the following statement:
+
+   copy
+
+ > SELECT id, balance FROM accounts;
+
+ +----+---------+
+ | id | balance |
+ +----+---------+
+ |  1 |     900 |
+ |  2 |     350 |
+ +----+---------+
+ (2 rows)
+
+Step 2. Create the maxroach user and bank database
+
+   Start the built-in SQL shell:
+
+   copy
+
+ $ cockroach sql --insecure
+
+   In the SQL shell, issue the following statements to create the maxroach
+   user and bank database:
+
+   copy
+
+ > CREATE USER IF NOT EXISTS maxroach;
+
+   copy
+
+ > CREATE DATABASE bank;
+
+   Give the maxroach user the necessary permissions:
+
+   copy
+
+ > GRANT ALL ON DATABASE bank TO maxroach;
+
+   Exit the SQL shell:
+
+   copy
+
+ > \q
+
+Step 3. Run the Node.js code
+
+   Now that you have a database and a user, you'll run code to create a table
+   and insert some rows, and then you'll run code to read and update values
+   as an atomic transaction.
+
+  Basic statements
+
+   First, use the following code to connect as the maxroach user and execute
+   some basic SQL statements, creating a table, inserting rows, and reading
+   and printing the rows.
+
+   Download the basic-sample.js file, or create the file yourself and copy
+   the code into it.
+
+   copy
+
+ var async = require('async');
+ var fs = require('fs');
+ var pg = require('pg');
+
+ // Connect to the "bank" database.
+ var config = {
+     user: 'maxroach',
+     host: 'localhost',
+     database: 'bank',
+     port: 26257
+ };
+
+ // Create a pool.
+ var pool = new pg.Pool(config);
+
+ pool.connect(function (err, client, done) {
+
+     // Close communication with the database and exit.
+     var finish = function () {
+         done();
+         process.exit();
+     };
+
+     if (err) {
+         console.error('could not connect to cockroachdb', err);
+         finish();
+     }
+     async.waterfall([
+             function (next) {
+                 // Create the 'accounts' table.
+                 client.query('CREATE TABLE IF NOT EXISTS accounts (id INT PRIMARY KEY, balance INT);', next);
+             },
+             function (results, next) {
+                 // Insert two rows into the 'accounts' table.
+                 client.query('INSERT INTO accounts (id, balance) VALUES (1, 1000), (2, 250);', next);
+             },
+             function (results, next) {
+                 // Print out account balances.
+                 client.query('SELECT id, balance FROM accounts;', next);
+             },
+         ],
+         function (err, results) {
+             if (err) {
+                 console.error('Error inserting into and selecting from accounts: ', err);
+                 finish();
+             }
+
+             console.log('Initial balances:');
+             results.rows.forEach(function (row) {
+                 console.log(row);
+             });
+
+             finish();
+         });
+ });
+
+
+   Then run the code:
+
+   copy
+
+ $ node basic-sample.js
+
+   The output should be:
+
+ Initial balances:
+ { id: '1', balance: '1000' }
+ { id: '2', balance: '250' }
+
+  Transaction (with retry logic)
+
+   Next, use the following code to again connect as the maxroach user but
+   this time execute a batch of statements as an atomic transaction to
+   transfer funds from one account to another and then read the updated
+   values, where all included statements are either committed or aborted.
+
+   Download the txn-sample.js file, or create the file yourself and copy the
+   code into it.
+
+   Note:
+
+   With the default SERIALIZABLE isolation level, CockroachDB may require the
+   client to retry a transaction in case of read/write contention.
+   CockroachDB provides a generic retry function that runs inside a
+   transaction and retries it as needed. The code sample below shows how it
+   is used.
+
+   copy
+
+ var async = require('async');
+ var fs = require('fs');
+ var pg = require('pg');
+
+ // Connect to the bank database.
+
+ var config = {
+     user: 'maxroach',
+     host: 'localhost',
+     database: 'bank',
+     port: 26257
+ };
+
+ // Wrapper for a transaction.  This automatically re-calls "op" with
+ // the client as an argument as long as the database server asks for
+ // the transaction to be retried.
+
+ function txnWrapper(client, op, next) {
+     client.query('BEGIN; SAVEPOINT cockroach_restart', function (err) {
+         if (err) {
+             return next(err);
+         }
+
+         var released = false;
+         async.doWhilst(function (done) {
+                 var handleError = function (err) {
+                     // If we got an error, see if it's a retryable one
+                     // and, if so, restart.
+                     if (err.code === '40001') {
+                         // Signal the database that we'll retry.
+                         return client.query('ROLLBACK TO SAVEPOINT cockroach_restart', done);
+                     }
+                     // A non-retryable error; break out of the
+                     // doWhilst with an error.
+                     return done(err);
+                 };
+
+                 // Attempt the work.
+                 op(client, function (err) {
+                     if (err) {
+                         return handleError(err);
+                     }
+                     var opResults = arguments;
+
+                     // If we reach this point, release and commit.
+                     client.query('RELEASE SAVEPOINT cockroach_restart', function (err) {
+                         if (err) {
+                             return handleError(err);
+                         }
+                         released = true;
+                         return done.apply(null, opResults);
+                     });
+                 });
+             },
+             function () {
+                 return !released;
+             },
+             function (err) {
+                 if (err) {
+                     client.query('ROLLBACK', function () {
+                         next(err);
+                     });
+                 } else {
+                     var txnResults = arguments;
+                     client.query('COMMIT', function (err) {
+                         if (err) {
+                             return next(err);
+                         } else {
+                             return next.apply(null, txnResults);
+                         }
+                     });
+                 }
+             });
+     });
+ }
+
+ // The transaction we want to run.
+
+ function transferFunds(client, from, to, amount, next) {
+     // Check the current balance.
+     client.query('SELECT balance FROM accounts WHERE id = $1', [from], function (err, results) {
+         if (err) {
+             return next(err);
+         } else if (results.rows.length === 0) {
+             return next(new Error('account not found in table'));
+         }
+
+         var acctBal = results.rows[0].balance;
+         if (acctBal >= amount) {
+             // Perform the transfer.
+             async.waterfall([
+                 function (next) {
+                     // Subtract amount from account 1.
+                     client.query('UPDATE accounts SET balance = balance - $1 WHERE id = $2', [amount, from], next);
+                 },
+                 function (updateResult, next) {
+                     // Add amount to account 2.
+                     client.query('UPDATE accounts SET balance = balance + $1 WHERE id = $2', [amount, to], next);
+                 },
+                 function (updateResult, next) {
+                     // Fetch account balances after updates.
+                     client.query('SELECT id, balance FROM accounts', function (err, selectResult) {
+                         next(err, selectResult ? selectResult.rows : null);
+                     });
+                 }
+             ], next);
+         } else {
+             next(new Error('insufficient funds'));
+         }
+     });
+ }
+
+ // Create a pool.
+ var pool = new pg.Pool(config);
+
+ pool.connect(function (err, client, done) {
+     // Closes communication with the database and exits.
+     var finish = function () {
+         done();
+         process.exit();
+     };
+
+     if (err) {
+         console.error('could not connect to cockroachdb', err);
+         finish();
+     }
+
+     // Execute the transaction.
+     txnWrapper(client,
+         function (client, next) {
+             transferFunds(client, 1, 2, 100, next);
+         },
+         function (err, results) {
+             if (err) {
+                 console.error('error performing transaction', err);
+                 finish();
+             }
+
+             console.log('Balances after transfer:');
+             results.forEach(function (result) {
+                 console.log(result);
+             });
+
+             finish();
+         });
+ });
+
+
+   Then run the code:
+
+   copy
+
+ $ node txn-sample.js
+
+   The output should be:
+
+ Balances after transfer:
+ { id: '1', balance: '900' }
+ { id: '2', balance: '350' }
+
+   To verify that funds were transferred from one account to another, start
+   the built-in SQL client:
+
+   copy
+
+ $ cockroach sql --insecure --database=bank
+
+   To check the account balances, issue the following statement:
+
+   copy
+
+ > SELECT id, balance FROM accounts;
+
+ +----+---------+
+ | id | balance |
+ +----+---------+
+ |  1 |     900 |
+ |  2 |     350 |
+ +----+---------+
+ (2 rows)
+
+What's next?
+
+   Read more about using the Node.js pg driver.
+
+   You might also be interested in the following pages:
+
+     * Client Connection Parameters
+     * Data Replication
+     * Fault Tolerance & Recovery
+     * Automatic Rebalancing
+     * Cross-Cloud Migration
+     * Follow-the-Workload
+     * Automated Operations
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

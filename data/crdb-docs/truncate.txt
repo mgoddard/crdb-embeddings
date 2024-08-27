@@ -1,0 +1,218 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                    TRUNCATE
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The TRUNCATE statement removes all rows from a table. At a high level, it
+   works by dropping the table and recreating a new table with the same name.
+
+   Note:
+
+   For smaller tables (with less than 1000 rows), using a DELETE statement
+   without a WHERE clause will be more performant than using TRUNCATE.
+
+   Note:
+
+   This statement performs a schema change. For more information about how
+   online schema changes work in CockroachDB, see Online Schema Changes.
+
+Synopsis
+
+   TRUNCATE TABLE table_name , CASCADE RESTRICT
+
+Required privileges
+
+   The user must have the DROP privilege on the table.
+
+Parameters
+
+   Parameter  Description                                                     
+   table_name The name of the table to truncate.                              
+              Truncate all tables with Foreign Key dependencies on the table  
+              being truncated.                                                
+   CASCADE                                                                    
+              CASCADE does not list dependent tables it truncates, so should  
+              be used cautiously.                                             
+   RESTRICT   (Default) Do not truncate the table if any other tables have    
+              Foreign Key dependencies on it.                                 
+
+Limitations
+
+   TRUNCATE is a schema change, and as such is not transactional. For more
+   information about how schema changes work, see Online Schema Changes.
+
+Viewing schema changes
+
+   This schema change statement is registered as a job. You can view
+   long-running jobs with SHOW JOBS.
+
+Examples
+
+  Truncate a table (no foreign key dependencies)
+
+   copy
+
+ > SELECT * FROM t1;
+
+ +----+------+
+ | id | name |
+ +----+------+
+ |  1 | foo  |
+ |  2 | bar  |
+ +----+------+
+ (2 rows)
+
+   copy
+
+ > TRUNCATE t1;
+
+   copy
+
+ > SELECT * FROM t1;
+
+ +----+------+
+ | id | name |
+ +----+------+
+ +----+------+
+ (0 rows)
+
+  Truncate a table and dependent tables
+
+   In these examples, the orders table has a Foreign Key relationship to the
+   customers table. Therefore, it's only possible to truncate the customers
+   table while simultaneously truncating the dependent orders table, either
+   using CASCADE or explicitly.
+
+    Truncate dependent tables using CASCADE
+
+   Warning:
+   CASCADE truncates all dependent tables without listing them, which can
+   lead to inadvertent and difficult-to-recover losses. To avoid potential
+   harm, we recommend truncating tables explicitly in most cases. See
+   Truncate Dependent Tables Explicitly for more details.
+   copy
+
+ > TRUNCATE customers;
+
+ pq: "customers" is referenced by foreign key from table "orders"
+
+   copy
+
+ > TRUNCATE customers CASCADE;
+
+   copy
+
+ > SELECT * FROM customers;
+
+ +----+-------+
+ | id | email |
+ +----+-------+
+ +----+-------+
+ (0 rows)
+
+   copy
+
+ > SELECT * FROM orders;
+
+ +----+----------+------------+
+ | id | customer | orderTotal |
+ +----+----------+------------+
+ +----+----------+------------+
+ (0 rows)
+
+    Truncate dependent tables explicitly
+
+   copy
+
+ > TRUNCATE customers, orders;
+
+   copy
+
+ > SELECT * FROM customers;
+
+ +----+-------+
+ | id | email |
+ +----+-------+
+ +----+-------+
+ (0 rows)
+
+   copy
+
+ > SELECT * FROM orders;
+
+ +----+----------+------------+
+ | id | customer | orderTotal |
+ +----+----------+------------+
+ +----+----------+------------+
+ (0 rows)
+
+See also
+
+     * DELETE
+     * SHOW JOBS
+     * Foreign Key constraint
+     * Online Schema Changes
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

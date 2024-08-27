@@ -1,0 +1,106 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                     cockroach debug encryption-active-key
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The cockroach debug encryption-active-key command displays the encryption
+   algorithm and store key for an encrypted store.
+
+Synopsis
+
+ $ cockroach debug encryption-active-key [path specified by the store flag]
+
+Subcommands
+
+   While the cockroach debug command has a few subcommands, users are
+   expected to use only the zip, encryption-active-key, merge-logs, and
+   ballast subcommands.
+
+   The other debug subcommands are useful only to CockroachDB's developers
+   and contributors.
+
+Example
+
+   Start a node with encryption-at-rest enabled:
+
+   copy
+
+ $ cockroach start --store=cockroach-data --enterprise-encryption=path=cockroach-data,key=aes-128.key,old-key=plain --insecure --certs-dir=certs
+
+   View the encryption algorithm and store key:
+
+   copy
+
+ $ cockroach debug encryption-active-key cockroach-data
+
+ AES128_CTR:be235c29239aa84a48e5e1874d76aebf7fb3c1bdc438cec2eb98de82f06a57a0
+
+See also
+
+     * File an Issue
+     * Other Cockroach Commands
+     * Troubleshooting Overview
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

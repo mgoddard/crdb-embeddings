@@ -1,0 +1,132 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                SHOW STATISTICS
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The SHOW STATISTICS statement lists table statistics used by the
+   cost-based optimizer.
+
+Synopsis
+
+   SHOW STATISTICS FOR TABLE table_name
+
+Required Privileges
+
+   No privileges are required to list table statistics.
+
+Parameters
+
+   Parameter  Description                                            
+   table_name The name of the table you want to view statistics for. 
+
+Examples
+
+  List table statistics
+
+   copy
+
+ > CREATE STATISTICS students ON id FROM students_by_list;
+
+ CREATE STATISTICS
+
+   copy
+
+ > SHOW STATISTICS FOR TABLE students_by_list;
+
+   statistics_name | column_names |             created              | row_count | distinct_count | null_count | histogram_id
+ +-----------------+--------------+----------------------------------+-----------+----------------+------------+--------------+
+   students        | {"id"}       | 2018-10-26 15:06:34.320165+00:00 |         0 |              0 |          0 |         NULL
+ (1 row)
+
+  Delete statistics
+
+   To delete statistics for all tables in all databases:
+
+   copy
+
+ > DELETE FROM system.table_statistics WHERE true;
+
+   To delete a named set of statistics (e.g, one named "my_stats"), run a
+   query like the following:
+
+   copy
+
+ > DELETE FROM system.table_statistics WHERE name = 'my_stats';
+
+   After deleting statistics, restart the nodes in your cluster to clear the
+   statistics caches.
+
+   For more information about the DELETE statement, see DELETE.
+
+See Also
+
+     * Cost-Based Optimizer
+     * CREATE STATISTICS
+     * CREATE TABLE
+     * INSERT
+     * IMPORT
+     * SQL Statements
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

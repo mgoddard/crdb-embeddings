@@ -1,0 +1,98 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                            Developer Guide Overview
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   This guide shows you how to do common tasks that come up when you build an
+   application using CockroachDB.
+
+Common Tasks
+
+     * Install a Postgres Client
+     * Connect to the Database
+     * Insert Data
+     * Query Data
+     * Update Data
+     * Delete Data
+     * Run Multi-Statement Transactions
+     * Error Handling and Troubleshooting
+     * Make Queries Fast
+
+Sample Apps and Tutorials
+
+   For simple but complete sample apps and tutorials, see Hello World.
+
+   For more advanced sample apps and tutorials, see Build a Spring App with
+   CockroachDB and Develop and Deploy a Multi-Region Web Application.
+
+See also
+
+     * Migrate to CockroachDB
+     * Connection parameters
+     * Selection queries
+     * Joins
+     * Transactions
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

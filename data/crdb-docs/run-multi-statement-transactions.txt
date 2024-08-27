@@ -1,0 +1,145 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                        Run Multi-Statement Transactions
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   This page has instructions for running multi-statement transactions
+   against CockroachDB from various programming languages.
+
+Before you begin
+
+   Make sure you have already:
+
+     * Set up a local cluster.
+     * Installed a Postgres client.
+     * Connected to the database.
+     * Inserted data that you now want to run queries against.
+   Note:
+
+   Your application should use a retry loop to handle transaction errors that
+   can occur under contention.
+
+Run a transaction
+
+   SQL Go Java Python
+   copy
+
+ BEGIN;
+ DELETE FROM customers WHERE id = 1;
+ DELETE orders WHERE customer = 1;
+ COMMIT;
+
+   For more information about how to use the built-in SQL client, see the
+   cockroach sql reference docs.
+
+   The best way to run a multi-statement transaction from Go code is to use
+   one of the following approaches:
+
+     * Use the crdb transaction wrapper which automatically handles
+       transaction retry errors if they occur, as shown in Build a Go App
+       with CockroachDB.
+
+     * Write your own retry loop wrapper, as shown in Build a Go App with
+       CockroachDB and GORM
+
+   The best way to run a multi-statement transaction from Java is to write a
+   wrapper method that automatically handles transaction retry errors.
+
+   For complete examples showing how to write and use such wrapper methods,
+   see Build a Java App with CockroachDB.
+
+   The best way to run a multi-statement transaction from Python code is to
+   use one of the following approaches:
+
+     * Use the sqlalchemy-cockroachdb SQLAlchemy dialect, which automatically
+       handles transaction retry errors if they occur, as shown in Build a
+       Python App with CockroachDB and SQLAlchemy.
+
+     * Write your own retry loop wrapper, as shown in Build a Python App with
+       CockroachDB.
+
+See also
+
+   Reference information related to this task:
+
+     * Transactions
+     * Transaction retries
+     * Batched statements
+     * Understanding and Avoiding Transaction Contention
+     * BEGIN
+     * COMMIT
+
+   Other common tasks:
+
+     * Connect to the Database
+     * Insert Data
+     * Query Data
+     * Update Data
+     * Delete Data
+     * Make Queries Fast
+     * Error Handling and Troubleshooting
+     * Hello World Example apps
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

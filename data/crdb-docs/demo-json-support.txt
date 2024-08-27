@@ -1,0 +1,441 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                  JSON Support
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   This page walks you through a simple demonstration of how CockroachDB can
+   store and query unstructured JSONB data from a third-party API, as well as
+   how an inverted index can optimize your queries.
+
+Step 1. Install prerequisites
+
+   Go Python
+     * Install the latest version of CockroachDB.
+     * Install the latest version of Go: brew install go
+     * Install the PostgreSQL driver: go get github.com/lib/pq
+     * Install the latest version of CockroachDB.
+     * Install the Python psycopg2 driver: pip install psycopg2
+     * Install the Python Requests library: pip install requests
+
+Step 2. Start a single-node cluster
+
+   For the purpose of this tutorial, you need only one CockroachDB node
+   running in insecure mode, so use the cockroach start-single-node command:
+
+   copy
+
+ $ cockroach start-single-node \
+ --insecure \
+ --store=json-test \
+ --listen-addr=localhost:26257 \
+ --http-addr=localhost:8080 \
+ --background
+
+Step 3. Create a user
+
+   Open the built-in SQL shell as the root user and create a new user,
+   maxroach:
+
+   copy
+
+ $ cockroach sql --insecure --host=localhost:26257
+
+   copy
+
+ > CREATE USER maxroach;
+
+Step 4. Create a database and grant privileges
+
+   Next, create a database called jsonb_test:
+
+   copy
+
+ > CREATE DATABASE jsonb_test;
+
+   Set the database as the default:
+
+   copy
+
+ > SET DATABASE = jsonb_test;
+
+   Then grant privileges to the maxroach user:
+
+   copy
+
+ > GRANT ALL ON DATABASE jsonb_test TO maxroach;
+
+Step 5. Create a table
+
+   Still in the SQL shell, create a table called programming:
+
+   copy
+
+ > CREATE TABLE programming (
+     id UUID DEFAULT uuid_v4()::UUID PRIMARY KEY,
+     posts JSONB
+   );
+
+   copy
+
+ > SHOW CREATE TABLE programming;
+
+   table_name  |                create_statement
+ +-------------+------------------------------------------------+
+   programming | CREATE TABLE programming (
+               |     id UUID NOT NULL DEFAULT uuid_v4()::UUID,
+               |     posts JSONB NULL,
+               |     CONSTRAINT "primary" PRIMARY KEY (id ASC),
+               |     FAMILY "primary" (id, posts)
+               | )
+ (1 row)
+
+Step 6. Run the code
+
+   Now that you have a database, user, and a table, let's run code to insert
+   rows into the table.
+
+   Go Python
+
+   The code queries the Reddit API for posts in /r/programming. The Reddit
+   API only returns 25 results per page; however, each page returns an
+   "after" string that tells you how to get the next page. Therefore, the
+   program does the following in a loop:
+
+    1. Makes a request to the API.
+    2. Inserts the results into the table and grabs the "after" string.
+    3. Uses the new "after" string as the basis for the next request.
+
+   Download the json-sample.go file, or create the file yourself and copy the
+   code into it:
+
+   copy
+
+ package main
+
+ import (
+     "database/sql"
+     "fmt"
+     "io/ioutil"
+     "net/http"
+     "time"
+
+     _ "github.com/lib/pq"
+ )
+
+ func main() {
+     db, err := sql.Open("postgres", "user=maxroach dbname=jsonb_test sslmode=disable port=26257")
+     if err != nil {
+         panic(err)
+     }
+
+     // The Reddit API wants us to tell it where to start from. The first request
+     // we just say "null" to say "from the start", subsequent requests will use
+     // the value received from the last call.
+     after := "null"
+
+     for i := 0; i < 300; i++ {
+         after, err = makeReq(db, after)
+         if err != nil {
+             panic(err)
+         }
+         // Reddit limits to 30 requests per minute, so don't do any more than that.
+         time.Sleep(2 * time.Second)
+     }
+ }
+
+ func makeReq(db *sql.DB, after string) (string, error) {
+     // First, make a request to reddit using the appropriate "after" string.
+     client := &http.Client{}
+     req, err := http.NewRequest("GET", fmt.Sprintf("https://www.reddit.com/r/programming.json?after=%s", after), nil)
+
+     req.Header.Add("User-Agent", `Go`)
+
+     resp, err := client.Do(req)
+     if err != nil {
+         return "", err
+     }
+
+     res, err := ioutil.ReadAll(resp.Body)
+     if err != nil {
+         return "", err
+     }
+
+     // We've gotten back our JSON from reddit, we can use a couple SQL tricks to
+     // accomplish multiple things at once.
+     // The JSON reddit returns looks like this:
+     // {
+     //   "data": {
+     //     "children": [ ... ]
+     //   },
+     //   "after": ...
+     // }
+     // We structure our query so that we extract the `children` field, and then
+     // expand that and insert each individual element into the database as a
+     // separate row. We then return the "after" field so we know how to make the
+     // next request.
+     r, err := db.Query(`
+         INSERT INTO jsonb_test.programming (posts)
+         SELECT json_array_elements($1->'data'->'children')
+         RETURNING $1->'data'->'after'`,
+         string(res))
+     if err != nil {
+         return "", err
+     }
+
+     // Since we did a RETURNING, we need to grab the result of our query.
+     r.Next()
+     var newAfter string
+     r.Scan(&newAfter)
+
+     return newAfter, nil
+ }
+
+
+   In a new terminal window, navigate to your sample code file and run it:
+
+   copy
+
+ $ go run json-sample.go
+
+   The code queries the Reddit API for posts in /r/programming. The Reddit
+   API only returns 25 results per page; however, each page returns an
+   "after" string that tells you how to get the next page. Therefore, the
+   program does the following in a loop:
+
+    1. Makes a request to the API.
+    2. Grabs the "after" string.
+    3. Inserts the results into the table.
+    4. Uses the new "after" string as the basis for the next request.
+
+   Download the json-sample.py file, or create the file yourself and copy the
+   code into it:
+
+   copy
+
+ import json
+ import psycopg2
+ import requests
+ import time
+
+ conn = psycopg2.connect(database="jsonb_test", user="maxroach", host="localhost", port=26257)
+ conn.set_session(autocommit=True)
+ cur = conn.cursor()
+
+ # The Reddit API wants us to tell it where to start from. The first request
+ # we just say "null" to say "from the start"; subsequent requests will use
+ # the value received from the last call.
+ url = "https://www.reddit.com/r/programming.json"
+ after = {"after": "null"}
+
+ for n in range(300):
+     # First, make a request to reddit using the appropriate "after" string.
+     req = requests.get(url, params=after, headers={"User-Agent": "Python"})
+
+     # Decode the JSON and set "after" for the next request.
+     resp = req.json()
+     after = {"after": str(resp['data']['after'])}
+
+     # Convert the JSON to a string to send to the database.
+     data = json.dumps(resp)
+
+     # The JSON reddit returns looks like this:
+     # {
+     #   "data": {
+     #     "children": [ ... ]
+     #   },
+     #   "after": ...
+     # }
+     # We structure our query so that we extract the `children` field, and then
+     # expand that and insert each individual element into the database as a
+     # separate row.
+     cur.execute("""INSERT INTO jsonb_test.programming (posts)
+             SELECT json_array_elements(%s->'data'->'children')""", (data,))
+
+     # Reddit limits to 30 requests per minute, so don't do any more than that.
+     time.sleep(2)
+
+ cur.close()
+ conn.close()
+
+
+   In a new terminal window, navigate to your sample code file and run it:
+
+   copy
+
+ $ python json-sample.py
+
+   The program will take awhile to finish, but you can start querying the
+   data right away.
+
+Step 7. Query the data
+
+   Back in the terminal where the SQL shell is running, verify that rows of
+   data are being inserted into your table:
+
+   copy
+
+ > SELECT count(*) FROM programming;
+
+   count
+ +-------+
+     675
+ (1 row)
+
+   copy
+
+ > SELECT count(*) FROM programming;
+
+   count
+ +-------+
+     825
+ (1 row)
+
+   Now, retrieve all the current entries where the link is pointing to
+   somewhere on GitHub:
+
+   copy
+
+ > SELECT id FROM programming \
+ WHERE posts @> '{"data": {"domain": "github.com"}}';
+
+                    id
+ +--------------------------------------+
+   05348629-d8f1-4c90-99cc-11e8ab313edb
+   059a1562-0054-49ff-adc7-aec82c6f74fb
+   1b5ea86d-c892-43ba-b40a-c63761aff3ea
+   25ac5bfe-44e2-4c6a-892c-959f859ee4e7
+   2ab49796-3e55-4a33-8a83-9decef9fbccc
+   2df2e3ac-757b-4689-844d-935876df75e9
+   4506e0b8-a572-499c-a9c1-2a5075a021f8
+   5209ce99-2253-4490-bceb-fd881ff6d962
+   56cf90cd-43a9-49e9-a078-3e28c115232f
+   57f287a3-d396-460a-a649-9fa41c4315e4
+   ...
+ (90 rows)
+
+ Time: 103.748ms
+
+   Note:
+
+   Since you are querying live data, your results for this and the following
+   steps may vary from the results documented in this tutorial.
+
+Step 8. Create an inverted index to optimize performance
+
+   The query in the previous step took 103.748ms. To optimize the performance
+   of queries that filter on the JSONB column, let's create an inverted index
+   on the column:
+
+   copy
+
+ > CREATE INVERTED INDEX ON programming(posts);
+
+Step 9. Run the query again
+
+   Now that there is an inverted index, the same query will run much faster:
+
+   copy
+
+ > SELECT id FROM programming \
+ WHERE posts @> '{"data": {"domain": "github.com"}}';
+
+ (109 rows)
+
+ Time: 6.862ms
+
+   Instead of 103.748ms, the query now takes 6.862ms.
+
+Step 10. Clean up
+
+   If the program is still running, press CTRL + c to stop it and then use
+   cockroach quit to stop the single-node CockroachDB cluster:
+
+   copy
+
+ $ cockroach quit --insecure --host=localhost:26257
+
+   If you do not plan to restart the cluster, remove the node's data store:
+
+   copy
+
+ $ rm -rf json-test
+
+What's next?
+
+   Explore other core CockroachDB benefits and features:
+
+     * Replication & Rebalancing
+     * Fault Tolerance & Recovery
+     * Low Latency Multi-Region Deployment
+     * Serializable Transactions
+     * Cross-Cloud Migration
+     * Follow-the-Workload
+     * Orchestration
+     * JSON Support
+
+   You may also want to learn more about the JSONB data type and inverted
+   indexes.
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

@@ -1,0 +1,179 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                           Third-Party Database Tools
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   CockroachDB's support of the PostgreSQL wire protocol enables support for
+   many drivers, ORMs, and other types of third-party database tools.
+
+Support levels
+
+   We’ve partnered with open-source projects, vendors, and individuals to
+   offer the following levels of support with third-party tools.
+
+     * Full support indicates that the vast majority of the tool's features
+       should work without issue with CockroachDB. CockroachDB is regularly
+       tested against the recommended version documented here.
+     * Beta support indicates that the tool has been tried with CockroachDB,
+       but its integration might require additional steps, lack support for
+       all features, or exhibit unexpected behavior.
+
+   If you encounter problems, please open an issue with details to help us
+   make progress toward better support.
+
+Drivers
+
+   Language  Driver    Recommended version     Support level 
+   C         libpq     PostgreSQL 9.5          Beta          
+   C++       libpqxx   7.1.1 (Windows)         Beta          
+                       4.0.1 or higher (macOS) 
+   C# (.NET) Npgsql    4.1.3.1                 Beta          
+   Clojure   java.jdbc 0.7.11                  Beta          
+             pgx       4.6.0                   Full          
+                                                             
+   Go          -----     -------------------     ---------   
+                                                             
+             pq        1.5.2                   Full          
+   Java      JDBC      42.2.12                 Full          
+   Node.js   pg        8.2.1                   Beta          
+   PHP       php-pgsql PHP 7.4.6               Beta          
+   Python    psycopg2  2.8.6                   Full          
+   Ruby      pg        1.2.3                   Beta          
+   Rust      postgres  0.17.3                  Beta          
+
+Object-relational mappers (ORMs)
+
+   Language   ORM          Recommended version                    Support     
+                                                                  level       
+   Go         GORM         1.9.11                                 Full        
+              Hibernate    5.4                                    Full        
+                                                                              
+   Java         --------     ----------------------------------     -------   
+                                                                              
+              jOOQ         3.13.2 (must be 3.13.0 or higher)      Full        
+   Node.js    Sequelize    sequelize 5.21.9                       Beta        
+                           sequelize-cockroachdb 1.1.0            
+   Ruby       ActiveRecord activerecord 5.2                       Full        
+                           activerecord-cockroachdb-adpater 5.2.0 
+                           Django 3.0.6                                       
+              Django       django-cockroachdb 3.0.1               Full        
+                                                                              
+                --------     ----------------------------------     -------   
+                                                                              
+              peewee       3.13.3                                 Full        
+                                                                              
+   Python       --------     ----------------------------------     -------   
+                                                                              
+              PonyORM      0.7.13                                 Full        
+                                                                              
+                --------     ----------------------------------     -------   
+                                                                              
+              SQLAlchemy   SQLAlchemy 1.3.17                      Full
+                           sqlalchemy-cockroachdb 1.3.0           
+   Typescript TypeORM      0.2.24                                 Full        
+
+Application frameworks
+
+   Framework Data access     Recommended version       Support level          
+             JDBC                                                             
+                                                                              
+               -----------                                                    
+                             
+             JPA (Hibernate) 
+                             See individual Java ORM   See individual Java
+   Spring      -----------   or driver for data access ORM or driver for data
+                             version support.          access support level.
+             jOOQ            
+                             
+               -----------   
+                             
+             MyBatis         
+
+Graphical user interfaces (GUIs)
+
+   GUI     Recommended version Support level 
+   DBeaver 5.2.3 or higher     Full          
+
+Integrated development environments (IDEs)
+
+   IDE           Recommended version Support level 
+   IntelliJ IDEA 2018.1              Beta          
+
+Schema migration tools
+
+   Tool   Recommended version Support level 
+   Flyway 6.4.2 or higher     Full          
+
+Other tools
+
+   Tool     Recommended version Support level 
+   Flowable 6.4.2 or higher     Full          
+
+See also
+
+     * Build an App with CockroachDB
+     * Install a Postgres Client
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

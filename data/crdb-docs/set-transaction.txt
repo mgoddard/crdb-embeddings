@@ -1,0 +1,187 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                SET TRANSACTION
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The SET TRANSACTION statement sets the transaction priority, access mode,
+   and "as of" timestamp after you BEGIN it but before executing the first
+   statement that manipulates a database.
+
+Synopsis
+
+   SET TRANSACTION PRIORITY LOW NORMAL HIGH READ ONLY WRITE AS OF SYSTEM TIME
+   a_expr ,
+
+Required privileges
+
+   No privileges are required to set the transaction priority. However,
+   privileges are required for each statement within a transaction.
+
+Parameters
+
+   Parameter         Description                                              
+                     If you do not want the transaction to run with NORMAL    
+                     priority, you can set it to LOW or HIGH.                 
+                                                                              
+                     Transactions with higher priority are less likely to     
+                     need to be retried.                                      
+   PRIORITY                                                                   
+                     For more information, see Transactions: Priorities.      
+                                                                              
+                     The current priority is also exposed as the session      
+                     variable transaction_priority.                           
+                                                                              
+                     Default: NORMAL                                          
+                     Set the transaction access mode to READ ONLY or READ     
+                     WRITE. The current transaction access mode is also       
+   READ              exposed as the session variable transaction_read_only.   
+                                                                              
+                     Default: READ WRITE                                      
+                     Execute the transaction using the database contents "as  
+                     of" a specified time in the past.                        
+                                                                              
+                     The AS OF SYSTEM TIME clause can be used only when the   
+   AS OF SYSTEM TIME transaction is read-only. If the transaction contains    
+                     any writes, or if the READ WRITE mode is specified, an   
+                     error will be returned.                                  
+                                                                              
+                     For more information, see AS OF SYSTEM TIME.             
+
+   CockroachDB now only supports SERIALIZABLE isolation, so transactions can
+   no longer be meaningfully set to any other ISOLATION LEVEL. In previous
+   versions of CockroachDB, you could set transactions to SNAPSHOT isolation,
+   but that feature has been removed.
+
+Examples
+
+  Set priority
+
+   Warning:
+   This example assumes you're using client-side intervention to handle
+   transaction retries.
+   copy
+
+ > BEGIN;
+
+   copy
+
+ > SET TRANSACTION PRIORITY HIGH;
+
+   copy
+
+ > SAVEPOINT cockroach_restart;
+
+   copy
+
+ > UPDATE products SET inventory = 0 WHERE sku = '8675309';
+
+   copy
+
+ > INSERT INTO orders (customer, sku, status) VALUES (1001, '8675309', 'new');
+
+   copy
+
+ > RELEASE SAVEPOINT cockroach_restart;
+
+   copy
+
+ > COMMIT;
+
+  Use the AS OF SYSTEM TIME option
+
+   You can execute the transaction using the database contents "as of" a
+   specified time in the past.
+
+   copy
+
+ > BEGIN;
+
+   copy
+
+ > SET TRANSACTION AS OF SYSTEM TIME '2019-04-09 18:02:52.0+00:00';
+
+   copy
+
+ > SELECT * FROM orders;
+
+   copy
+
+ > SELECT * FROM products;
+
+   copy
+
+ > COMMIT;
+
+See also
+
+     * SET
+     * Transactions: Priority levels
+     * BEGIN
+     * COMMIT
+     * SAVEPOINT
+     * RELEASE SAVEPOINT
+     * ROLLBACK
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

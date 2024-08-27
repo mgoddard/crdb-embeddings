@@ -1,0 +1,912 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                Build a Java App with CockroachDB and Hibernate
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+   Use JDBC Use Hibernate Use jOOQ
+
+   This tutorial shows you how build a simple Java application with
+   CockroachDB and the Hibernate ORM.
+
+   Tip:
+
+   For a sample app and tutorial that uses Spring Data JPA (Hibernate) and
+   CockroachDB, see Build a Spring App with CockroachDB and JPA.
+
+   For another use of Hibernate with CockroachDB, see our examples-orms
+   repository.
+
+Before you begin
+
+    1. Install CockroachDB.
+    2. Start up a secure or insecure local cluster.
+    3. Choose the instructions that correspond to whether your cluster is
+       secure or insecure:
+   Secure Insecure
+   Warning:
+
+   The examples on this page assume you are using a Java version <= 9. They
+   do not work with Java 10.
+
+Step 1. Install the Gradle build tool
+
+   This tutorial uses the Gradle build tool to get all dependencies for your
+   application, including Hibernate.
+
+   To install Gradle on Mac, run the following command:
+
+   copy
+
+ $ brew install gradle
+
+   To install Gradle on a Debian-based Linux distribution like Ubuntu:
+
+   copy
+
+ $ apt-get install gradle
+
+   To install Gradle on a Red Hat-based Linux distribution like Fedora:
+
+   copy
+
+ $ dnf install gradle
+
+   For other ways to install Gradle, see its official documentation.
+
+Step 2. Create the maxroach user and bank database
+
+   Start the built-in SQL shell:
+
+   copy
+
+ $ cockroach sql --certs-dir=certs
+
+   In the SQL shell, issue the following statements to create the maxroach
+   user and bank database:
+
+   copy
+
+ > CREATE USER IF NOT EXISTS maxroach;
+
+   copy
+
+ > CREATE DATABASE bank;
+
+   Give the maxroach user the necessary permissions:
+
+   copy
+
+ > GRANT ALL ON DATABASE bank TO maxroach;
+
+   Exit the SQL shell:
+
+   copy
+
+ > \q
+
+Step 3. Generate a certificate for the maxroach user
+
+   Create a certificate and key for the maxroach user by running the
+   following command. The code samples will run as this user.
+
+   You can pass the --also-generate-pkcs8-key flag to generate a key in
+   PKCS#8 format, which is the standard key encoding format in Java. In this
+   case, the generated PKCS8 key will be named client.maxroach.key.pk8.
+
+   copy
+
+ $ cockroach cert create-client maxroach --certs-dir=certs --ca-key=my-safe-directory/ca.key --also-generate-pkcs8-key
+
+Step 4. Run the Java code
+
+   The code below uses Hibernate to map Java methods to SQL operations. It
+   perform the following steps which roughly correspond to method calls in
+   the Sample class.
+
+    1. Create an accounts table in the bank database as specified by the
+       Hibernate Account class.
+    2. Inserts rows into the table using session.save(new Account(int id, int
+       balance)) (see Sample.addAccounts()).
+    3. Transfer money from one account to another, printing out account
+       balances before and after the transfer (see transferFunds(long fromId,
+       long toId, long amount)).
+    4. Print out account balances before and after the transfer (see
+       Sample.getAccountBalance(long id)).
+
+   In addition, the code shows a pattern for automatically handling
+   transaction retries by wrapping transactions in a higher-order function
+   Sample.runTransaction(). It also includes a method for testing the retry
+   handling logic (Sample.forceRetryLogic()), which will be run if you set
+   the FORCE_RETRY variable to true.
+
+   It does all of the above using the practices we recommend for using
+   Hibernate (and the underlying JDBC connection) with CockroachDB, which are
+   listed in the Recommended Practices section below.
+
+   To run it:
+
+    1. Download and extract hibernate-basic-sample.tgz. The settings in
+       hibernate.cfg.xml specify how to connect to the database.
+    2. Compile and run the code using build.gradle, which will also download
+       the dependencies.
+
+       copy
+
+ $ gradle run
+
+   Tip:
+
+   To clone a version of the code below that connects to insecure clusters,
+   run the command below. Note that you will need to edit the connection
+   string to use the certificates that you generated when you set up your
+   secure cluster.
+
+   git clone https://github.com/cockroachlabs/hello-world-java-hibernate/
+
+   The contents of Sample.java:
+
+   copy
+
+ package com.cockroachlabs;
+
+ import org.hibernate.Session;
+ import org.hibernate.SessionFactory;
+ import org.hibernate.Transaction;
+ import org.hibernate.JDBCException;
+ import org.hibernate.cfg.Configuration;
+
+ import java.util.*;
+ import java.util.function.Function;
+
+ import javax.persistence.Column;
+ import javax.persistence.Entity;
+ import javax.persistence.Id;
+ import javax.persistence.Table;
+
+ public class Sample {
+
+     private static final Random RAND = new Random();
+     private static final boolean FORCE_RETRY = false;
+     private static final String RETRY_SQL_STATE = "40001";
+     private static final int MAX_ATTEMPT_COUNT = 6;
+
+     // Account is our model, which corresponds to the "accounts" database table.
+     @Entity
+     @Table(name="accounts")
+     public static class Account {
+         @Id
+         @Column(name="id")
+         public long id;
+
+         public long getId() {
+             return id;
+         }
+
+         @Column(name="balance")
+         public long balance;
+         public long getBalance() {
+             return balance;
+         }
+         public void setBalance(long newBalance) {
+             this.balance = newBalance;
+         }
+
+         // Convenience constructor.
+         public Account(int id, int balance) {
+             this.id = id;
+             this.balance = balance;
+         }
+
+         // Hibernate needs a default (no-arg) constructor to create model objects.
+         public Account() {}
+     }
+
+     private static Function<Session, Long> addAccounts() throws JDBCException{
+         Function<Session, Long> f = s -> {
+             long rv = 0;
+             try {
+                 s.save(new Account(1, 1000));
+                 s.save(new Account(2, 250));
+                 s.save(new Account(3, 314159));
+                 rv = 1;
+                 System.out.printf("APP: addAccounts() --> %d\n", rv);
+             } catch (JDBCException e) {
+                 throw e;
+             }
+             return rv;
+         };
+         return f;
+     }
+
+     private static Function<Session, Long> transferFunds(long fromId, long toId, long amount) throws JDBCException{
+         Function<Session, Long> f = s -> {
+             long rv = 0;
+             try {
+                 Account fromAccount = (Account) s.get(Account.class, fromId);
+                 Account toAccount = (Account) s.get(Account.class, toId);
+                 if (!(amount > fromAccount.getBalance())) {
+                     fromAccount.balance -= amount;
+                     toAccount.balance += amount;
+                     s.save(fromAccount);
+                     s.save(toAccount);
+                     rv = amount;
+                     System.out.printf("APP: transferFunds(%d, %d, %d) --> %d\n", fromId, toId, amount, rv);
+                 }
+             } catch (JDBCException e) {
+                 throw e;
+             }
+             return rv;
+         };
+         return f;
+     }
+
+     // Test our retry handling logic if FORCE_RETRY is true.  This
+     // method is only used to test the retry logic.  It is not
+     // intended for production code.
+     private static Function<Session, Long> forceRetryLogic() throws JDBCException {
+         Function<Session, Long> f = s -> {
+             long rv = -1;
+             try {
+                 System.out.printf("APP: testRetryLogic: BEFORE EXCEPTION\n");
+                 s.createNativeQuery("SELECT crdb_internal.force_retry('1s')").executeUpdate();
+             } catch (JDBCException e) {
+                 System.out.printf("APP: testRetryLogic: AFTER EXCEPTION\n");
+                 throw e;
+             }
+             return rv;
+         };
+         return f;
+     }
+
+     private static Function<Session, Long> getAccountBalance(long id) throws JDBCException{
+         Function<Session, Long> f = s -> {
+             long balance;
+             try {
+                 Account account = s.get(Account.class, id);
+                 balance = account.getBalance();
+                 System.out.printf("APP: getAccountBalance(%d) --> %d\n", id, balance);
+             } catch (JDBCException e) {
+                 throw e;
+             }
+             return balance;
+         };
+         return f;
+     }
+
+     // Run SQL code in a way that automatically handles the
+     // transaction retry logic so we don't have to duplicate it in
+     // various places.
+     private static long runTransaction(Session session, Function<Session, Long> fn) {
+         long rv = 0;
+         int attemptCount = 0;
+
+         while (attemptCount < MAX_ATTEMPT_COUNT) {
+             attemptCount++;
+
+             if (attemptCount > 1) {
+                 System.out.printf("APP: Entering retry loop again, iteration %d\n", attemptCount);
+             }
+
+             Transaction txn = session.beginTransaction();
+             System.out.printf("APP: BEGIN;\n");
+
+             if (attemptCount == MAX_ATTEMPT_COUNT) {
+                 String err = String.format("hit max of %s attempts, aborting", MAX_ATTEMPT_COUNT);
+                 throw new RuntimeException(err);
+             }
+
+             // This block is only used to test the retry logic.
+             // It is not necessary in production code.  See also
+             // the method 'testRetryLogic()'.
+             if (FORCE_RETRY) {
+                 session.createNativeQuery("SELECT now()").list();
+             }
+
+             try {
+                 rv = fn.apply(session);
+                 if (rv != -1) {
+                     txn.commit();
+                     System.out.printf("APP: COMMIT;\n");
+                     break;
+                 }
+             } catch (JDBCException e) {
+                 if (RETRY_SQL_STATE.equals(e.getSQLState())) {
+                     // Since this is a transaction retry error, we
+                     // roll back the transaction and sleep a little
+                     // before trying again.  Each time through the
+                     // loop we sleep for a little longer than the last
+                     // time (A.K.A. exponential backoff).
+                     System.out.printf("APP: retryable exception occurred:\n    sql state = [%s]\n    message = [%s]\n    retry counter = %s\n", e.getSQLState(), e.getMessage(), attemptCount);
+                     System.out.printf("APP: ROLLBACK;\n");
+                     txn.rollback();
+                     int sleepMillis = (int)(Math.pow(2, attemptCount) * 100) + RAND.nextInt(100);
+                     System.out.printf("APP: Hit 40001 transaction retry error, sleeping %s milliseconds\n", sleepMillis);
+                     try {
+                         Thread.sleep(sleepMillis);
+                     } catch (InterruptedException ignored) {
+                         // no-op
+                     }
+                     rv = -1;
+                 } else {
+                     throw e;
+                 }
+             }
+         }
+         return rv;
+     }
+
+     public static void main(String[] args) {
+         // Create a SessionFactory based on our hibernate.cfg.xml configuration
+         // file, which defines how to connect to the database.
+         SessionFactory sessionFactory =
+                 new Configuration()
+                         .configure("hibernate.cfg.xml")
+                         .addAnnotatedClass(Account.class)
+                         .buildSessionFactory();
+
+         try (Session session = sessionFactory.openSession()) {
+             long fromAccountId = 1;
+             long toAccountId = 2;
+             long transferAmount = 100;
+
+             if (FORCE_RETRY) {
+                 System.out.printf("APP: About to test retry logic in 'runTransaction'\n");
+                 runTransaction(session, forceRetryLogic());
+             } else {
+
+                 runTransaction(session, addAccounts());
+                 long fromBalance = runTransaction(session, getAccountBalance(fromAccountId));
+                 long toBalance = runTransaction(session, getAccountBalance(toAccountId));
+                 if (fromBalance != -1 && toBalance != -1) {
+                     // Success!
+                     System.out.printf("APP: getAccountBalance(%d) --> %d\n", fromAccountId, fromBalance);
+                     System.out.printf("APP: getAccountBalance(%d) --> %d\n", toAccountId, toBalance);
+                 }
+
+                 // Transfer $100 from account 1 to account 2
+                 long transferResult = runTransaction(session, transferFunds(fromAccountId, toAccountId, transferAmount));
+                 if (transferResult != -1) {
+                     // Success!
+                     System.out.printf("APP: transferFunds(%d, %d, %d) --> %d \n", fromAccountId, toAccountId, transferAmount, transferResult);
+
+                     long fromBalanceAfter = runTransaction(session, getAccountBalance(fromAccountId));
+                     long toBalanceAfter = runTransaction(session, getAccountBalance(toAccountId));
+                     if (fromBalanceAfter != -1 && toBalanceAfter != -1) {
+                         // Success!
+                         System.out.printf("APP: getAccountBalance(%d) --> %d\n", fromAccountId, fromBalanceAfter);
+                         System.out.printf("APP: getAccountBalance(%d) --> %d\n", toAccountId, toBalanceAfter);
+                     }
+                 }
+             }
+         } finally {
+             sessionFactory.close();
+         }
+     }
+ }
+
+
+   Toward the end of the output, you should see:
+
+ APP: BEGIN;
+ APP: addAccounts() --> 1
+ APP: COMMIT;
+ APP: BEGIN;
+ APP: getAccountBalance(1) --> 1000
+ APP: COMMIT;
+ APP: BEGIN;
+ APP: getAccountBalance(2) --> 250
+ APP: COMMIT;
+ APP: getAccountBalance(1) --> 1000
+ APP: getAccountBalance(2) --> 250
+ APP: BEGIN;
+ APP: transferFunds(1, 2, 100) --> 100
+ APP: COMMIT;
+ APP: transferFunds(1, 2, 100) --> 100
+ APP: BEGIN;
+ APP: getAccountBalance(1) --> 900
+ APP: COMMIT;
+ APP: BEGIN;
+ APP: getAccountBalance(2) --> 350
+ APP: COMMIT;
+ APP: getAccountBalance(1) --> 900
+ APP: getAccountBalance(2) --> 350
+
+   To verify that the account balances were updated successfully, start the
+   built-in SQL client:
+
+   copy
+
+ $ cockroach sql --certs-dir=certs
+
+   To check the account balances, issue the following statement:
+
+   copy
+
+ SELECT id, balance FROM accounts;
+
+   id | balance
+ +----+---------+
+    1 |     900
+    2 |     350
+    3 |  314159
+ (3 rows)
+
+Step 2. Create the maxroach user and bank database
+
+   Start the built-in SQL shell:
+
+   copy
+
+ $ cockroach sql --insecure
+
+   In the SQL shell, issue the following statements to create the maxroach
+   user and bank database:
+
+   copy
+
+ > CREATE USER IF NOT EXISTS maxroach;
+
+   copy
+
+ > CREATE DATABASE bank;
+
+   Give the maxroach user the necessary permissions:
+
+   copy
+
+ > GRANT ALL ON DATABASE bank TO maxroach;
+
+   Exit the SQL shell:
+
+   copy
+
+ > \q
+
+Step 3. Run the Java code
+
+   The code below uses Hibernate to map Java methods to SQL operations. It
+   perform the following steps which roughly correspond to method calls in
+   the Sample class.
+
+    1. Create an accounts table in the bank database as specified by the
+       Hibernate Account class.
+    2. Inserts rows into the table using session.save(new Account(int id, int
+       balance)) (see Sample.addAccounts()).
+    3. Transfer money from one account to another, printing out account
+       balances before and after the transfer (see transferFunds(long fromId,
+       long toId, long amount)).
+    4. Print out account balances before and after the transfer (see
+       Sample.getAccountBalance(long id)).
+
+   In addition, the code shows a pattern for automatically handling
+   transaction retries by wrapping transactions in a higher-order function
+   Sample.runTransaction(). It also includes a method for testing the retry
+   handling logic (Sample.forceRetryLogic()), which will be run if you set
+   the FORCE_RETRY variable to true.
+
+   It does all of the above using the practices we recommend for using
+   Hibernate (and the underlying JDBC connection) with CockroachDB, which are
+   listed in the Recommended Practices section below.
+
+   To run it:
+
+    1. Clone the hello-world-java-hibernate repo to your machine:
+
+       copy
+
+ git clone https://github.com/cockroachlabs/hello-world-java-hibernate/
+
+    2. Compile and run the code using build.gradle, which will also download
+       the dependencies.
+
+       copy
+
+ $ gradle run
+
+   The contents of Sample.java:
+
+   copy
+
+ package com.cockroachlabs;
+
+ import org.hibernate.Session;
+ import org.hibernate.SessionFactory;
+ import org.hibernate.Transaction;
+ import org.hibernate.JDBCException;
+ import org.hibernate.cfg.Configuration;
+
+ import java.util.*;
+ import java.util.function.Function;
+
+ import javax.persistence.Column;
+ import javax.persistence.Entity;
+ import javax.persistence.Id;
+ import javax.persistence.Table;
+
+ public class Sample {
+
+     private static final Random RAND = new Random();
+     private static final boolean FORCE_RETRY = false;
+     private static final String RETRY_SQL_STATE = "40001";
+     private static final int MAX_ATTEMPT_COUNT = 6;
+
+     // Account is our model, which corresponds to the "accounts" database table.
+     @Entity
+     @Table(name="accounts")
+     public static class Account {
+         @Id
+         @Column(name="id")
+         public long id;
+
+         public long getId() {
+             return id;
+         }
+
+         @Column(name="balance")
+         public long balance;
+         public long getBalance() {
+             return balance;
+         }
+         public void setBalance(long newBalance) {
+             this.balance = newBalance;
+         }
+
+         // Convenience constructor.
+         public Account(int id, int balance) {
+             this.id = id;
+             this.balance = balance;
+         }
+
+         // Hibernate needs a default (no-arg) constructor to create model objects.
+         public Account() {}
+     }
+
+     private static Function<Session, Long> addAccounts() throws JDBCException{
+         Function<Session, Long> f = s -> {
+             long rv = 0;
+             try {
+                 s.save(new Account(1, 1000));
+                 s.save(new Account(2, 250));
+                 s.save(new Account(3, 314159));
+                 rv = 1;
+                 System.out.printf("APP: addAccounts() --> %d\n", rv);
+             } catch (JDBCException e) {
+                 throw e;
+             }
+             return rv;
+         };
+         return f;
+     }
+
+     private static Function<Session, Long> transferFunds(long fromId, long toId, long amount) throws JDBCException{
+         Function<Session, Long> f = s -> {
+             long rv = 0;
+             try {
+                 Account fromAccount = (Account) s.get(Account.class, fromId);
+                 Account toAccount = (Account) s.get(Account.class, toId);
+                 if (!(amount > fromAccount.getBalance())) {
+                     fromAccount.balance -= amount;
+                     toAccount.balance += amount;
+                     s.save(fromAccount);
+                     s.save(toAccount);
+                     rv = amount;
+                     System.out.printf("APP: transferFunds(%d, %d, %d) --> %d\n", fromId, toId, amount, rv);
+                 }
+             } catch (JDBCException e) {
+                 throw e;
+             }
+             return rv;
+         };
+         return f;
+     }
+
+     // Test our retry handling logic if FORCE_RETRY is true.  This
+     // method is only used to test the retry logic.  It is not
+     // intended for production code.
+     private static Function<Session, Long> forceRetryLogic() throws JDBCException {
+         Function<Session, Long> f = s -> {
+             long rv = -1;
+             try {
+                 System.out.printf("APP: testRetryLogic: BEFORE EXCEPTION\n");
+                 s.createNativeQuery("SELECT crdb_internal.force_retry('1s')").executeUpdate();
+             } catch (JDBCException e) {
+                 System.out.printf("APP: testRetryLogic: AFTER EXCEPTION\n");
+                 throw e;
+             }
+             return rv;
+         };
+         return f;
+     }
+
+     private static Function<Session, Long> getAccountBalance(long id) throws JDBCException{
+         Function<Session, Long> f = s -> {
+             long balance;
+             try {
+                 Account account = s.get(Account.class, id);
+                 balance = account.getBalance();
+                 System.out.printf("APP: getAccountBalance(%d) --> %d\n", id, balance);
+             } catch (JDBCException e) {
+                 throw e;
+             }
+             return balance;
+         };
+         return f;
+     }
+
+     // Run SQL code in a way that automatically handles the
+     // transaction retry logic so we don't have to duplicate it in
+     // various places.
+     private static long runTransaction(Session session, Function<Session, Long> fn) {
+         long rv = 0;
+         int attemptCount = 0;
+
+         while (attemptCount < MAX_ATTEMPT_COUNT) {
+             attemptCount++;
+
+             if (attemptCount > 1) {
+                 System.out.printf("APP: Entering retry loop again, iteration %d\n", attemptCount);
+             }
+
+             Transaction txn = session.beginTransaction();
+             System.out.printf("APP: BEGIN;\n");
+
+             if (attemptCount == MAX_ATTEMPT_COUNT) {
+                 String err = String.format("hit max of %s attempts, aborting", MAX_ATTEMPT_COUNT);
+                 throw new RuntimeException(err);
+             }
+
+             // This block is only used to test the retry logic.
+             // It is not necessary in production code.  See also
+             // the method 'testRetryLogic()'.
+             if (FORCE_RETRY) {
+                 session.createNativeQuery("SELECT now()").list();
+             }
+
+             try {
+                 rv = fn.apply(session);
+                 if (rv != -1) {
+                     txn.commit();
+                     System.out.printf("APP: COMMIT;\n");
+                     break;
+                 }
+             } catch (JDBCException e) {
+                 if (RETRY_SQL_STATE.equals(e.getSQLState())) {
+                     // Since this is a transaction retry error, we
+                     // roll back the transaction and sleep a little
+                     // before trying again.  Each time through the
+                     // loop we sleep for a little longer than the last
+                     // time (A.K.A. exponential backoff).
+                     System.out.printf("APP: retryable exception occurred:\n    sql state = [%s]\n    message = [%s]\n    retry counter = %s\n", e.getSQLState(), e.getMessage(), attemptCount);
+                     System.out.printf("APP: ROLLBACK;\n");
+                     txn.rollback();
+                     int sleepMillis = (int)(Math.pow(2, attemptCount) * 100) + RAND.nextInt(100);
+                     System.out.printf("APP: Hit 40001 transaction retry error, sleeping %s milliseconds\n", sleepMillis);
+                     try {
+                         Thread.sleep(sleepMillis);
+                     } catch (InterruptedException ignored) {
+                         // no-op
+                     }
+                     rv = -1;
+                 } else {
+                     throw e;
+                 }
+             }
+         }
+         return rv;
+     }
+
+     public static void main(String[] args) {
+         // Create a SessionFactory based on our hibernate.cfg.xml configuration
+         // file, which defines how to connect to the database.
+         SessionFactory sessionFactory =
+                 new Configuration()
+                         .configure("hibernate.cfg.xml")
+                         .addAnnotatedClass(Account.class)
+                         .buildSessionFactory();
+
+         try (Session session = sessionFactory.openSession()) {
+             long fromAccountId = 1;
+             long toAccountId = 2;
+             long transferAmount = 100;
+
+             if (FORCE_RETRY) {
+                 System.out.printf("APP: About to test retry logic in 'runTransaction'\n");
+                 runTransaction(session, forceRetryLogic());
+             } else {
+
+                 runTransaction(session, addAccounts());
+                 long fromBalance = runTransaction(session, getAccountBalance(fromAccountId));
+                 long toBalance = runTransaction(session, getAccountBalance(toAccountId));
+                 if (fromBalance != -1 && toBalance != -1) {
+                     // Success!
+                     System.out.printf("APP: getAccountBalance(%d) --> %d\n", fromAccountId, fromBalance);
+                     System.out.printf("APP: getAccountBalance(%d) --> %d\n", toAccountId, toBalance);
+                 }
+
+                 // Transfer $100 from account 1 to account 2
+                 long transferResult = runTransaction(session, transferFunds(fromAccountId, toAccountId, transferAmount));
+                 if (transferResult != -1) {
+                     // Success!
+                     System.out.printf("APP: transferFunds(%d, %d, %d) --> %d \n", fromAccountId, toAccountId, transferAmount, transferResult);
+
+                     long fromBalanceAfter = runTransaction(session, getAccountBalance(fromAccountId));
+                     long toBalanceAfter = runTransaction(session, getAccountBalance(toAccountId));
+                     if (fromBalanceAfter != -1 && toBalanceAfter != -1) {
+                         // Success!
+                         System.out.printf("APP: getAccountBalance(%d) --> %d\n", fromAccountId, fromBalanceAfter);
+                         System.out.printf("APP: getAccountBalance(%d) --> %d\n", toAccountId, toBalanceAfter);
+                     }
+                 }
+             }
+         } finally {
+             sessionFactory.close();
+         }
+     }
+ }
+
+
+   Toward the end of the output, you should see:
+
+ APP: BEGIN;
+ APP: addAccounts() --> 1
+ APP: COMMIT;
+ APP: BEGIN;
+ APP: getAccountBalance(1) --> 1000
+ APP: COMMIT;
+ APP: BEGIN;
+ APP: getAccountBalance(2) --> 250
+ APP: COMMIT;
+ APP: getAccountBalance(1) --> 1000
+ APP: getAccountBalance(2) --> 250
+ APP: BEGIN;
+ APP: transferFunds(1, 2, 100) --> 100
+ APP: COMMIT;
+ APP: transferFunds(1, 2, 100) --> 100
+ APP: BEGIN;
+ APP: getAccountBalance(1) --> 900
+ APP: COMMIT;
+ APP: BEGIN;
+ APP: getAccountBalance(2) --> 350
+ APP: COMMIT;
+ APP: getAccountBalance(1) --> 900
+ APP: getAccountBalance(2) --> 350
+
+   To verify that the account balances were updated successfully, start the
+   built-in SQL client:
+
+   copy
+
+ $ cockroach sql --insecure --database=bank
+
+   To check the account balances, issue the following statement:
+
+   copy
+
+ SELECT id, balance FROM accounts;
+
+   id | balance
+ +----+---------+
+    1 |     900
+    2 |     350
+    3 |  314159
+ (3 rows)
+
+Recommended Practices
+
+  Use IMPORT to read in large data sets
+
+   If you are trying to get a large data set into CockroachDB all at once (a
+   bulk import), avoid writing client-side code altogether and use the IMPORT
+   statement instead. It is much faster and more efficient than making a
+   series of INSERTs and UPDATEs. It bypasses the SQL layer altogether and
+   writes directly to the storage layer of the database.
+
+   For more information about importing data from Postgres, see Migrate from
+   Postgres.
+
+   For more information about importing data from MySQL, see Migrate from
+   MySQL.
+
+  Use rewriteBatchedInserts for increased speed
+
+   We strongly recommend setting rewriteBatchedInserts=true; we have seen
+   2-3x performance improvements with it enabled. From the JDBC connection
+   parameters documentation:
+
+     This will change batch inserts from insert into foo (col1, col2, col3)
+     values (1,2,3) into insert into foo (col1, col2, col3) values (1,2,3),
+     (4,5,6) this provides 2-3x performance improvement
+
+  Retrieve large data sets in chunks using cursors
+
+   CockroachDB now supports the Postgres wire-protocol cursors for implicit
+   transactions and explicit transactions executed to completion. This means
+   the PGJDBC driver can use this protocol to stream queries with large
+   result sets. This is much faster than paginating through results in SQL
+   using LIMIT .. OFFSET.
+
+   For instructions showing how to use cursors in your Java code, see Getting
+   results based on a cursor from the PGJDBC documentation.
+
+   Note that interleaved execution (partial execution of multiple statements
+   within the same connection and transaction) is not supported when
+   Statement.setFetchSize() is used.
+
+What's next?
+
+   Read more about using the Hibernate ORM, or check out a more realistic
+   implementation of Hibernate with CockroachDB in our examples-orms
+   repository.
+
+   You might also be interested in the following pages:
+
+     * Client Connection Parameters
+     * Data Replication
+     * Fault Tolerance & Recovery
+     * Automatic Rebalancing
+     * Cross-Cloud Migration
+     * Follow-the-Workload
+     * Automated Operations
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

@@ -1,0 +1,293 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                 cockroach quit
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+   Warning:
+
+   cockroach quit is deprecated. To stop a node, it's best to first run
+   cockroach node drain and then do one of the following:
+
+     * If the node was started with a process manager like systemd, stop the
+       node using the process manager. The process manager should be
+       configured to send SIGTERM and then, after about 1 minute, SIGKILL.
+     * If the node was started using cockroach start and is running in the
+       foreground, press ctrl-c in the terminal.
+     * If the node was started using cockroach start and the --background and
+       --pid-file flags, run kill <pid>, where <pid> is the process ID of the
+       node.
+
+   This page shows you how to use the cockroach quit command to temporarily
+   stop a node that you plan to restart.
+
+   You might do this, for example, during the process of upgrading your
+   cluster's version of CockroachDB or to perform planned maintenance (e.g.,
+   upgrading system software).
+
+   Note:
+
+   In other scenarios, such as when downsizing a cluster or reacting to
+   hardware failures, it's best to remove nodes from your cluster entirely.
+   For information about this, see Decommission Nodes.
+
+Overview
+
+  How it works
+
+   When you stop a node, it performs the following steps:
+
+     * Finishes in-flight requests. Note that this is a best effort that
+       times out after the duration specified by the
+       server.shutdown.query_wait cluster setting.
+     * Gossips its draining state to the cluster, so that other nodes do not
+       try to distribute query planning to the draining node. Note that this
+       is a best effort that times out after the duration specified by the
+       server.shutdown.drain_wait cluster setting, so other nodes may not
+       receive the gossip info in time.
+
+   If the node then stays offline for a certain amount of time (5 minutes by
+   default), the cluster considers the node dead and starts to transfer its
+   range replicas to other nodes as well.
+
+   After that, if the node comes back online, its range replicas will
+   determine whether or not they are still valid members of replica groups.
+   If a range replica is still valid and any data in its range has changed,
+   it will receive updates from another replica in the group. If a range
+   replica is no longer valid, it will be removed from the node.
+
+   Basic terms:
+
+     * Range: CockroachDB stores all user data and almost all system data in
+       a giant sorted map of key value pairs. This keyspace is divided into
+       "ranges", contiguous chunks of the keyspace, so that every key can
+       always be found in a single range.
+     * Range Replica: CockroachDB replicates each range (3 times by default)
+       and stores each replica on a different node.
+
+  Considerations
+
+   By default, if a node stays offline for more than 5 minutes, the cluster
+   will consider it dead and will rebalance its data to other nodes. Before
+   temporarily stopping nodes for planned maintenance (e.g., upgrading system
+   software), if you expect any nodes to be offline for longer than 5
+   minutes, you can prevent the cluster from unnecessarily rebalancing data
+   off the nodes by increasing the server.time_until_store_dead cluster
+   setting to match the estimated maintenance window.
+
+   For example, let's say you want to maintain a group of servers, and the
+   nodes running on the servers may be offline for up to 15 minutes as a
+   result. Before shutting down the nodes, you would change the
+   server.time_until_store_dead cluster setting as follows:
+
+   copy
+
+ > SET CLUSTER SETTING server.time_until_store_dead = '15m0s';
+
+   After completing the maintenance work and restarting the nodes, you would
+   then change the setting back to its default:
+
+   copy
+
+ > RESET CLUSTER SETTING server.time_until_store_dead;
+
+   It's also important to ensure that load balancers do not send client
+   traffic to a node about to be shut down, even if it will only be down for
+   a few seconds. If you find that your load balancer's health check is not
+   always recognizing a node as unready before the node shuts down, you can
+   increase the server.shutdown.drain_wait setting, which tells the node to
+   wait in an unready state for the specified duration. For example:
+
+   copy
+
+  > SET CLUSTER SETTING server.shutdown.drain_wait = '10s';
+
+Synopsis
+
+   Temporarily stop a node:
+
+ $ cockroach quit <flags>
+
+   View help:
+
+ $ cockroach quit --help
+
+Flags
+
+   The quit command supports the following general-use, client connection,
+   and logging flags.
+
+  General
+
+   Flag           Description                                                 
+                  If specified, the node will be removed from the cluster     
+                  instead of temporarily stopped.                             
+                                                                              
+   --decommission The --decommission flag is deprecated. If you want to       
+                  remove a node from the cluster, start with the cockroach    
+                  node decommission command. See Decommission Nodes for more  
+                  details.                                                    
+                  Amount of time to wait for the node to drain before         
+                  stopping the node. See cockroach node drain for more        
+   --drain-wait   details.                                                    
+                                                                              
+                  Default: 10m                                                
+
+  Client connection
+
+   Flag        Description                                                    
+               The server host and port number to connect to. This can be the 
+               address of any node in the cluster.                            
+   --host                                                                     
+               Env Variable: COCKROACH_HOST                                   
+               Default: localhost:26257                                       
+               The server port to connect to. Note: The port number can also  
+   --port      be specified via --host.                                       
+   -p                                                                         
+               Env Variable: COCKROACH_PORT                                   
+               Default: 26257                                                 
+               The SQL user that will own the client session.                 
+   --user                                                                     
+   -u          Env Variable: COCKROACH_USER                                   
+               Default: root                                                  
+               Use an insecure connection.                                    
+   --insecure                                                                 
+               Env Variable: COCKROACH_INSECURE                               
+               Default: false                                                 
+               The path to the certificate directory containing the CA and    
+               client certificates and client key.                            
+   --certs-dir                                                                
+               Env Variable: COCKROACH_CERTS_DIR                              
+               Default: ${HOME}/.cockroach-certs/                             
+               A connection URL to use instead of the other arguments.        
+   --url                                                                      
+               Env Variable: COCKROACH_URL                                    
+               Default: no URL                                                
+
+   See Client Connection Parameters for more details.
+
+  Logging
+
+   By default, the quit command logs errors to stderr.
+
+   If you need to troubleshoot this command's behavior, you can change its
+   logging behavior.
+
+Examples
+
+  Stop a node from the machine where it's running
+
+    1. SSH to the machine where the node is running.
+
+    2. If the node is running in the background and you are using a process
+       manager for automatic restarts, use the process manager to stop the
+       cockroach process without restarting it.
+
+       If the node is running in the background and you are not using a
+       process manager, send a kill signal to the cockroach process, for
+       example:
+
+       copy
+
+ $ pkill cockroach
+
+       If the node is running in the foreground, press CTRL-C.
+
+    3. Verify that the cockroach process has stopped:
+
+       copy
+
+ $ ps aux | grep cockroach
+
+       Alternately, you can check the node's logs for the message server
+       drained and shutdown completed.
+
+  Stop a node from another machine
+
+   Secure Insecure
+    1. Install the cockroach binary on a machine separate from the node.
+
+    2. Create a certs directory and copy the CA certificate and the client
+       certificate and key for the root user into the directory.
+
+    3. Run the cockroach quit command:
+
+       copy
+
+ $ cockroach quit --certs-dir=certs --host=<address of node to stop>
+
+    1. Install the cockroach binary on a machine separate from the node.
+
+    2. Run the cockroach quit command:
+
+       copy
+
+ $ cockroach quit --insecure --host=<address of node to stop>
+
+See also
+
+     * Other Cockroach Commands
+     * Decommission Nodes
+     * Upgrade a Cluster's Version
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

@@ -1,0 +1,93 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                 Orchestration
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   Orchestration systems automate the deployment, scaling, and management of
+   containerized applications. Combined with CockroachDB's automated sharding
+   and fault tolerance, they have the potential to lower operator overhead to
+   almost nothing.
+
+   Use the following guides to run CockroachDB with popular open-source
+   orchestration systems:
+
+     * Kubernetes Single-Cluster Deployment
+     * Kubernetes Multi-Cluster Deployment
+     * Kubernetes Performance Optimization
+     * Docker Swarm Deployment
+     * Mesosphere DC/OS Deployment
+   Tip:
+   If you're just getting started with CockroachDB, you might want to
+   orchestrate a local cluster to learn the basics of the database.
+
+See also
+
+     * Production Checklist
+     * Manual Deployment
+     * Monitoring and Alerting
+     * Test Deployment
+     * Local Deployment
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

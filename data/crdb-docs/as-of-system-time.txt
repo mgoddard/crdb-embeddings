@@ -1,0 +1,284 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                               AS OF SYSTEM TIME
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The AS OF SYSTEM TIME timestamp clause causes statements to execute using
+   the database contents "as of" a specified time in the past.
+
+   This clause can be used to read historical data (also known as "time
+   travel queries") and can also be advantageous for performance as it
+   decreases transaction conflicts. For more details, see SQL Performance
+   Best Practices.
+
+   Note:
+
+   Historical data is available only within the garbage collection window,
+   which is determined by the ttlseconds field in the replication zone
+   configuration.
+
+Synopsis
+
+   The AS OF SYSTEM TIME clause is supported in multiple SQL contexts,
+   including but not limited to:
+
+     * In SELECT clauses, at the very end of the FROM sub-clause.
+     * In BACKUP, after the parameters of the TO sub-clause.
+     * In RESTORE, after the parameters of the FROM sub-clause.
+     * In BEGIN, after the BEGIN keyword.
+     * In SET, after the SET TRANSACTION keyword.
+
+Parameters
+
+   The timestamp argument supports the following formats:
+
+   Format                                 Notes                               
+   INT                                    Nanoseconds since the Unix epoch.   
+   negative INTERVAL                      Added to statement_timestamp(), and 
+                                          thus must be negative.              
+   STRING                                 A TIMESTAMP, INT of nanoseconds, or 
+                                          negative INTERVAL.                  
+                                          A function that runs your queries   
+                                          at a time as close as possible to   
+   experimental_follower_read_timestamp() the present time known as the       
+                                          follower read timestamp, while      
+                                          remaining safe for follower reads.  
+
+Examples
+
+  Select historical data (time-travel)
+
+   Imagine this example represents the database's current data:
+
+   copy
+
+ > SELECT name, balance
+     FROM accounts
+    WHERE name = 'Edna Barath';
+
+ +-------------+---------+
+ |    name     | balance |
+ +-------------+---------+
+ | Edna Barath |     750 |
+ | Edna Barath |    2200 |
+ +-------------+---------+
+
+   We could instead retrieve the values as they were on October 3, 2016 at
+   12:45 UTC:
+
+   copy
+
+ > SELECT name, balance
+     FROM accounts
+          AS OF SYSTEM TIME '2016-10-03 12:45:00'
+    WHERE name = 'Edna Barath';
+
+ +-------------+---------+
+ |    name     | balance |
+ +-------------+---------+
+ | Edna Barath |     450 |
+ | Edna Barath |    2000 |
+ +-------------+---------+
+
+  Using different timestamp formats
+
+   Assuming the following statements are run at 2016-01-01 12:00:00, they
+   would execute as of 2016-01-01 08:00:00:
+
+   copy
+
+ > SELECT * FROM t AS OF SYSTEM TIME '2016-01-01 08:00:00'
+
+   copy
+
+ > SELECT * FROM t AS OF SYSTEM TIME 1451635200000000000
+
+   copy
+
+ > SELECT * FROM t AS OF SYSTEM TIME '1451635200000000000'
+
+   copy
+
+ > SELECT * FROM t AS OF SYSTEM TIME '-4h'
+
+   copy
+
+ > SELECT * FROM t AS OF SYSTEM TIME INTERVAL '-4h'
+
+  Selecting from multiple tables
+
+   Note:
+
+   It is not yet possible to select from multiple tables at different
+   timestamps. The entire query runs at the specified time in the past.
+
+   When selecting over multiple tables in a single FROM clause, the AS OF
+   SYSTEM TIME clause must appear at the very end and applies to the entire
+   SELECT clause.
+
+   For example:
+
+   copy
+
+ > SELECT * FROM t, u, v AS OF SYSTEM TIME '-4h';
+
+   copy
+
+ > SELECT * FROM t JOIN u ON t.x = u.y AS OF SYSTEM TIME '-4h';
+
+   copy
+
+ > SELECT * FROM (SELECT * FROM t), (SELECT * FROM u) AS OF SYSTEM TIME '-4h';
+
+  Using AS OF SYSTEM TIME in subqueries
+
+   To enable time travel, the AS OF SYSTEM TIME clause must appear in at
+   least the top-level statement. It is not valid to use it only in a
+   subquery.
+
+   For example, the following is invalid:
+
+ SELECT * FROM (SELECT * FROM t AS OF SYSTEM TIME '-4h'), u
+
+   To facilitate the composition of larger queries from simpler queries,
+   CockroachDB allows AS OF SYSTEM TIME in sub-queries under the following
+   conditions:
+
+     * The top level query also specifies AS OF SYSTEM TIME.
+     * All the AS OF SYSTEM TIME clauses specify the same timestamp.
+
+   For example:
+
+   copy
+
+ > SELECT * FROM (SELECT * FROM t AS OF SYSTEM TIME '-4h') tp
+            JOIN u ON tp.x = u.y
+            AS OF SYSTEM TIME '-4h'  -- same timestamp as above - OK.
+      WHERE x < 123;
+
+  Using AS OF SYSTEM TIME in transactions
+
+   You can use the BEGIN statement to execute the transaction using the
+   database contents "as of" a specified time in the past.
+
+   copy
+
+ > BEGIN AS OF SYSTEM TIME '2019-04-09 18:02:52.0+00:00';
+
+   copy
+
+ > SELECT * FROM orders;
+
+   copy
+
+ > SELECT * FROM products;
+
+   copy
+
+ > COMMIT;
+
+   Alternatively, you can use the SET statement to execute the transaction
+   using the database contents "as of" a specified time in the past.
+
+   copy
+
+ > BEGIN;
+
+   copy
+
+ > SET TRANSACTION AS OF SYSTEM TIME '2019-04-09 18:02:52.0+00:00';
+
+   copy
+
+ > SELECT * FROM orders;
+
+   copy
+
+ > SELECT * FROM products;
+
+   copy
+
+ > COMMIT;
+
+See also
+
+     * Select Historical Data
+     * Time-Travel Queries
+     * Follower Reads
+     * Follower Reads Topology Pattern
+
+Tech note
+
+   Note:
+
+   Although the following format is supported, it is not intended to be used
+   by most users.
+
+   HLC timestamps can be specified using a DECIMAL. The integer part is the
+   wall time in nanoseconds. The fractional part is the logical counter, a
+   10-digit integer. This is the same format as produced by the
+   cluster_logical_timestamp() function.
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

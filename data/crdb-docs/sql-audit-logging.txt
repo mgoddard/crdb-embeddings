@@ -1,0 +1,285 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                               SQL Audit Logging
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   SQL audit logging gives you detailed information about queries being
+   executed against your system. This feature is especially useful when you
+   want to log all queries that are run against a table containing personally
+   identifiable information (PII).
+
+   This page has an example showing:
+
+     * How to turn audit logging on and off.
+     * Where the audit log files live.
+     * What the audit log files look like.
+
+   For reference material, including a detailed description of the audit log
+   file format, see ALTER TABLE ... EXPERIMENTAL_AUDIT.
+
+   Warning:
+
+   This is an experimental feature. The interface and output are subject to
+   change.
+
+Step 1. Create sample tables
+
+   Use the statements below to create:
+
+     * A customers table which contains PII such as name, address, etc.
+     * An orders table with a foreign key into customers, which does not
+       expose any PII
+
+   Later, we'll show how to turn on audit logs for the customers table.
+
+   copy
+
+ > CREATE TABLE customers (
+     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+     name STRING NOT NULL,
+     address STRING NOT NULL,
+     national_id INT NOT NULL,
+     telephone INT NOT NULL,
+     email STRING UNIQUE NOT NULL
+ );
+
+   copy
+
+ > CREATE TABLE orders (
+     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+     product_id INT NOT NULL,
+     delivery_status STRING check (delivery_status='processing' or delivery_status='in-transit' or delivery_status='delivered') NOT NULL,
+     customer_id UUID NOT NULL REFERENCES customers (id)
+ );
+
+Step 2. Turn on auditing for the customers table
+
+   We turn on auditing for a table using the EXPERIMENTAL_AUDIT subcommand of
+   ALTER TABLE.
+
+   copy
+
+ > ALTER TABLE customers EXPERIMENTAL_AUDIT SET READ WRITE;
+
+   Note:
+
+   To turn on auditing for more than one table, issue a separate ALTER
+   statement for each table.
+
+Step 3. Populate the customers table
+
+   Now that we have auditing turned on, let's add some customer data:
+
+   copy
+
+ > INSERT INTO customers (name, address, national_id, telephone, email) VALUES (
+     'Pritchard M. Cleveland',
+     '23 Crooked Lane, Garden City, NY USA 11536',
+     778124477,
+     12125552000,
+     'pritchmeister@aol.com'
+ );
+
+   copy
+
+ > INSERT INTO customers (name, address, national_id, telephone, email) VALUES (
+     'Vainglorious K. Snerptwiddle III',
+     '44 Straight Narrows, Garden City, NY USA 11536',
+     899127890,
+     16465552000,
+     'snerp@snerpy.net'
+ );
+
+   Now let's verify that our customers were added successfully:
+
+   copy
+
+ > SELECT * FROM customers;
+
+ +--------------------------------------+----------------------------------+------------------------------------------------+-------------+-------------+-----------------------+
+ |                  id                  |               name               |                    address                     | national_id |  telephone  |         email         |
+ +--------------------------------------+----------------------------------+------------------------------------------------+-------------+-------------+-----------------------+
+ | 4bd266fc-0b62-4cc4-8c51-6997675884cd | Vainglorious K. Snerptwiddle III | 44 Straight Narrows, Garden City, NY USA 11536 |   899127890 | 16465552000 | snerp@snerpy.net      |
+ | 988f54f0-b4a5-439b-a1f7-284358633250 | Pritchard M. Cleveland           | 23 Crooked Lane, Garden City, NY USA 11536     |   778124477 | 12125552000 | pritchmeister@aol.com |
+ +--------------------------------------+----------------------------------+------------------------------------------------+-------------+-------------+-----------------------+
+ (2 rows)
+
+Step 4. Check the audit log
+
+   By default, the active audit log file is prefixed cockroach-sql-audit and
+   is stored in CockroachDB's standard log directory. To store the audit log
+   files in a specific directory, pass the --sql-audit-dir flag to cockroach
+   start. Like the other log files, it's rotated according to the
+   --log-file-max-size setting.
+
+   When we look at the audit log for this example, we see the following lines
+   showing every command we've run so far, as expected.
+
+ I180321 20:54:21.381565 351 sql/exec_log.go:163  [n1,client=127.0.0.1:60754,user=root] 2 exec "cockroach sql" {"customers"[76]:READWRITE} "ALTER TABLE customers EXPERIMENTAL_AUDIT SET READ WRITE" {} 4.811 0 OK
+ I180321 20:54:26.315985 351 sql/exec_log.go:163  [n1,client=127.0.0.1:60754,user=root] 3 exec "cockroach sql" {"customers"[76]:READWRITE} "INSERT INTO customers(\"name\", address, national_id, telephone, email) VALUES ('Pritchard M. Cleveland', '23 Crooked Lane, Garden City, NY USA 11536', 778124477, 12125552000, 'pritchmeister@aol.com')" {} 6.319 1 OK
+ I180321 20:54:30.080592 351 sql/exec_log.go:163  [n1,client=127.0.0.1:60754,user=root] 4 exec "cockroach sql" {"customers"[76]:READWRITE} "INSERT INTO customers(\"name\", address, national_id, telephone, email) VALUES ('Vainglorious K. Snerptwiddle III', '44 Straight Narrows, Garden City, NY USA 11536', 899127890, 16465552000, 'snerp@snerpy.net')" {} 2.809 1 OK
+ I180321 20:54:39.377395 351 sql/exec_log.go:163  [n1,client=127.0.0.1:60754,user=root] 5 exec "cockroach sql" {"customers"[76]:READ} "SELECT * FROM customers" {} 1.236 2 OK
+
+   Note:
+
+   For reference documentation of the audit log file format, see ALTER TABLE
+   ... EXPERIMENTAL_AUDIT.
+
+   Tip:
+
+   Log files can be accessed using the Admin UI, which displays them in JSON
+   format.
+
+    1. Access the Admin UI and then click Advanced Debug in the left-hand
+       navigation.
+
+    2. Under Raw Status Endpoints (JSON), click Log Files to view the JSON of
+       all collected logs.
+
+    3. Copy one of the log filenames. Then click Specific Log File and
+       replace the cockroach.log placeholder in the URL with the filename.
+
+Step 5. Populate the orders table
+
+   Unlike the customers table, orders doesn't have any PII, just a Product ID
+   and a delivery status. (Note the use of the CHECK constraint as a
+   workaround for the as-yet-unimplemented ENUM - see SQL feature support for
+   more information.)
+
+   Let's populate the orders table with some placeholder data using CREATE
+   SEQUENCE:
+
+   copy
+
+ > CREATE SEQUENCE product_ids_asc START 1 INCREMENT 1;
+
+   Evaluate the below a few times to generate data; note that this would
+   error if SELECT returned multiple results, but it doesn't in this case.
+
+   copy
+
+ > INSERT INTO orders (product_id, delivery_status, customer_id) VALUES (
+     nextval('product_ids_asc'),
+     'processing',
+     (SELECT id FROM customers WHERE name ~ 'Cleve')
+ );
+
+   Let's verify that our orders were added successfully:
+
+   copy
+
+ > SELECT * FROM orders ORDER BY product_id;
+
+ +--------------------------------------+------------+-----------------+--------------------------------------+
+ |                  id                  | product_id | delivery_status |             customer_id              |
+ +--------------------------------------+------------+-----------------+--------------------------------------+
+ | 6e85c390-3bbf-48da-9c2f-a73a0ab9c2ce |          1 | processing      | df053c68-fcb0-4a80-ad25-fef9d3b408ca |
+ | e93cdaee-d5eb-428c-bc1b-a7367f334f99 |          2 | processing      | df053c68-fcb0-4a80-ad25-fef9d3b408ca |
+ | f05a1b0f-5847-424d-b8c8-07faa6b6e46b |          3 | processing      | df053c68-fcb0-4a80-ad25-fef9d3b408ca |
+ | 86f619d6-9f18-4c84-8ead-68cd07a1ee37 |          4 | processing      | df053c68-fcb0-4a80-ad25-fef9d3b408ca |
+ | 882c0fc8-64e7-4fab-959d-a4ff74f170c0 |          5 | processing      | df053c68-fcb0-4a80-ad25-fef9d3b408ca |
+ +--------------------------------------+------------+-----------------+--------------------------------------+
+ (5 rows)
+
+Step 6. Check the audit log again
+
+   Because we used a SELECT against the customers table to generate the
+   placeholder data for orders, those queries will also show up in the audit
+   log as follows:
+
+ I180321 21:01:59.677273 351 sql/exec_log.go:163  [n1,client=127.0.0.1:60754,user=root] 7 exec "cockroach sql" {"customers"[76]:READ, "customers"[76]:READ} "INSERT INTO orders(product_id, delivery_status, customer_id) VALUES (nextval('product_ids_asc'), 'processing', (SELECT id FROM customers WHERE \"name\" ~ 'Cleve'))" {} 5.183 1 OK
+ I180321 21:04:07.497555 351 sql/exec_log.go:163  [n1,client=127.0.0.1:60754,user=root] 8 exec "cockroach sql" {"customers"[76]:READ, "customers"[76]:READ} "INSERT INTO orders(product_id, delivery_status, customer_id) VALUES (nextval('product_ids_asc'), 'processing', (SELECT id FROM customers WHERE \"name\" ~ 'Cleve'))" {} 5.219 1 OK
+ I180321 21:04:08.730379 351 sql/exec_log.go:163  [n1,client=127.0.0.1:60754,user=root] 9 exec "cockroach sql" {"customers"[76]:READ, "customers"[76]:READ} "INSERT INTO orders(product_id, delivery_status, customer_id) VALUES (nextval('product_ids_asc'), 'processing', (SELECT id FROM customers WHERE \"name\" ~ 'Cleve'))" {} 5.392 1 OK
+
+   Note:
+
+   For reference documentation of the audit log file format, see ALTER TABLE
+   ... EXPERIMENTAL_AUDIT.
+
+   Tip:
+
+   Log files can be accessed using the Admin UI, which displays them in JSON
+   format.
+
+    1. Access the Admin UI and then click Advanced Debug in the left-hand
+       navigation.
+
+    2. Under Raw Status Endpoints (JSON), click Log Files to view the JSON of
+       all collected logs.
+
+    3. Copy one of the log filenames. Then click Specific Log File and
+       replace the cockroach.log placeholder in the URL with the filename.
+
+See also
+
+     * ALTER TABLE ... EXPERIMENTAL_AUDIT
+     * cockroach start logging flags
+     * SQL FAQ - generating unique row IDs
+     * CREATE SEQUENCE
+     * SQL Feature Support
+     * Authentication logs
+     * Slow query logs
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

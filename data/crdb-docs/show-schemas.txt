@@ -1,0 +1,111 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                  SHOW SCHEMAS
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The SHOW SCHEMAS statement lists all schemas in a database.
+
+Required privileges
+
+   No privileges are required to list the schemas in a database.
+
+Synopsis
+
+   SHOW SCHEMAS FROM name
+
+Parameters
+
+   Parameter Description                                                      
+   name      The name of the database for which to show schemas. When         
+             omitted, the schemas in the current database are listed.         
+
+Example
+
+   copy
+
+ > SET DATABASE = bank;
+
+   copy
+
+ > SHOW SCHEMAS;
+
+ +--------------------+
+ |    schema_name     |
+ +--------------------+
+ | crdb_internal      |
+ | information_schema |
+ | pg_catalog         |
+ | public             |
+ +--------------------+
+ (4 rows)
+
+See also
+
+     * Logical Schemas and Namespaces
+     * SHOW DATABASES
+     * Information Schema
+     * Other SQL Statements
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

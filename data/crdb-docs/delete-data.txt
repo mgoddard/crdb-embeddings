@@ -1,0 +1,206 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                  Delete Data
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   This page has instructions for deleting data from CockroachDB (using the
+   DELETE statement) using various programming languages.
+
+Before you begin
+
+   Make sure you have already:
+
+     * Set up a local cluster.
+     * Installed a Postgres client.
+     * Connected to the database.
+     * Inserted data that you now want to delete.
+   Note:
+
+   Your application should use a retry loop to handle transaction errors that
+   can occur under contention.
+
+Delete a single row
+
+   SQL Go Java Python
+   copy
+
+ DELETE from accounts WHERE id = 1;
+
+   For more information about how to use the built-in SQL client, see the
+   cockroach sql reference docs.
+
+   copy
+
+ // 'db' is an open database connection
+
+ if _, err := db.Exec("DELETE FROM accounts WHERE id = 1"); err != nil {
+     return err
+ }
+
+   For complete examples, see:
+
+     * Build a Go App with CockroachDB (pq)
+     * Build a Go App with CockroachDB and GORM
+   copy
+
+ // ds is an org.postgresql.ds.PGSimpleDataSource
+
+ try (Connection connection = ds.getConnection()) {
+     connection.createStatement().executeUpdate("DELETE FROM accounts WHERE id = 1");
+
+ } catch (SQLException e) {
+     System.out.printf("sql state = [%s]\ncause = [%s]\nmessage = [%s]\n",
+                       e.getSQLState(), e.getCause(), e.getMessage());
+ }
+
+   For complete examples, see:
+
+     * Build a Java App with CockroachDB (JDBC)
+     * Build a Java App with CockroachDB and Hibernate
+   copy
+
+ # conn is a psycopg2 connection
+ with conn.cursor() as cur:
+     cur.execute("DELETE FROM accounts WHERE id = 1",
+ conn.commit()
+
+   For complete examples, see:
+
+     * Build a Python App with CockroachDB (psycopg2)
+     * Build a Python App with CockroachDB and SQLAlchemy
+     * Build a Python App with CockroachDB and Django
+     * Build a Python App with CockroachDB and PonyORM
+
+Delete multiple rows
+
+   You can delete multiple rows from a table in several ways:
+
+     * Using a WHERE clause to limit the number of rows based on one or more
+       predicates:
+
+       copy
+
+ DELETE FROM student_loan_accounts WHERE loan_amount < 30000;
+
+     * Using a WHERE clause to specify multiple records by a specific
+       column's value (in this case, id):
+
+       copy
+
+ DELETE FROM accounts WHERE id IN (1, 2, 3, 4, 5);
+
+     * Using TRUNCATE instead of DELETE to delete all of the rows from a
+       table, as recommended in our performance best practices.
+
+   Note:
+
+   Before deleting large amounts of data, see Performance considerations.
+
+Performance considerations
+
+   Because of the way CockroachDB works under the hood, deleting data from
+   the database does not immediately reduce disk usage. Instead, records are
+   marked as "deleted" and processed asynchronously by a background garbage
+   collection process. This process runs every 25 hours by default to allow
+   sufficient time for running backups and running time travel queries using
+   AS OF SYSTEM TIME. The garbage collection interval is controlled by the
+   gc.ttlseconds setting.
+
+   The practical implications of the above are:
+
+     * Deleting data will not immediately decrease disk usage.
+     * If you issue multiple DELETE statements in sequence that each delete
+       large amounts of data, each subsequent DELETE statement will run more
+       slowly, for reasons explained in this FAQ entry.
+     * To delete all of the rows in a table, it's faster to use TRUNCATE
+       instead of DELETE.
+
+   For more information about how the storage layer of CockroachDB works, see
+   the storage layer reference documentation.
+
+See also
+
+   Reference information related to this task:
+
+     * DELETE
+     * Disk space usage after deletes
+     * Why are my deletes getting slower over time?
+     * TRUNCATE
+     * DROP TABLE
+     * Understanding and Avoiding Transaction Contention
+     * Delete Multiple Rows
+
+   Other common tasks:
+
+     * Connect to the Database
+     * Insert Data
+     * Query Data
+     * Update Data
+     * Run Multi-Statement Transactions
+     * Error Handling and Troubleshooting
+     * Make Queries Fast
+     * Hello World Example apps
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

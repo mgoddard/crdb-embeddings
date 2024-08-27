@@ -1,0 +1,745 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                 Build a Python App with CockroachDB and Django
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+   Use psycopg2 Use SQLAlchemy Use Django Use PonyORM Use peewee
+
+   This tutorial shows you how build a simple Python application with
+   CockroachDB and the Django framework.
+
+   CockroachDB supports Django versions 2.2 and 3.0.
+
+Before you begin
+
+    1. Install CockroachDB.
+    2. Start up a secure or insecure local cluster.
+    3. Choose the instructions that correspond to whether your cluster is
+       secure or insecure:
+   Secure Insecure
+   Note:
+
+   The example code and instructions on this page use Python 3 and Django
+   3.0.
+
+Step 1. Install Django and the CockroachDB backend for Django
+
+   Install Django:
+
+   copy
+
+ $ python -m pip install django==3.0.*
+
+   Before installing the CockroachDB backend for Django, you must install one
+   of the following psycopg2 prerequisites:
+
+     * psycopg2, which has some prerequisites of its own. This package is
+       recommended for production environments.
+
+     * psycopg2-binary. This package is recommended for development and
+       testing.
+
+   After you install the psycopg2 prerequisite, install the CockroachDB
+   Django backend:
+
+   copy
+
+ $ python -m pip install django-cockroachdb==3.0.*
+
+   Note:
+
+   The major version of django-cockroachdb must correspond to the major
+   version of django. The minor release numbers do not need to match.
+
+Step 2. Create the django user and bank database and generate certificates
+
+   Open a SQL shell to the running CockroachDB cluster:
+
+   copy
+
+ $ cockroach sql --certs-dir=certs --host=localhost:26257
+
+   In the SQL shell, issue the following statements to create the django user
+   and bank database:
+
+   copy
+
+ > CREATE USER IF NOT EXISTS django;
+
+   copy
+
+ > CREATE DATABASE bank;
+
+   Give the django user the necessary permissions:
+
+   copy
+
+ > GRANT ALL ON DATABASE bank TO django;
+
+   Exit the SQL shell:
+
+   copy
+
+ > \q
+
+   Create a certificate and key for the django user by running the following
+   command:
+
+   copy
+
+ $ cockroach cert create-client django --certs-dir=certs --ca-key=my-safe-directory/ca.key
+
+Step 2. Create the django user and bank database
+
+   Open a SQL shell to the running CockroachDB cluster:
+
+   copy
+
+ $ cockroach sql --insecure --host=localhost:26257
+
+   In the SQL shell, issue the following statements to create the django user
+   and bank database:
+
+   copy
+
+ > CREATE USER IF NOT EXISTS django;
+
+   copy
+
+ > CREATE DATABASE bank;
+
+   Give the django user the necessary permissions:
+
+   copy
+
+ > GRANT ALL ON DATABASE bank TO django;
+
+   Exit the SQL shell:
+
+   copy
+
+ > \q
+
+Step 3. Create a Django project
+
+   In the directory where you'd like to store your code, use the django-admin
+   command-line tool to create an application project:
+
+   copy
+
+ $ django-admin startproject myproject
+
+   This creates a new project directory called myproject. myproject contains
+   the manage.py script and a subdirectory, also named myproject, that
+   contains some .py files.
+
+   Open myproject/myproject/settings.py, and add 0.0.0.0 to the ALLOWED_HOSTS
+   in your settings.py file, so that it reads as follows:
+
+   copy
+
+ ALLOWED_HOSTS = ['0.0.0.0']
+
+   In myproject/myproject/settings.py, add myproject to the list of
+   INSTALLED_APPS, so that it reads as follows:
+
+   copy
+
+ INSTALLED_APPS = [
+     'django.contrib.admin',
+     'django.contrib.auth',
+     'django.contrib.contenttypes',
+     'django.contrib.sessions',
+     'django.contrib.messages',
+     'django.contrib.staticfiles',
+     'myproject',
+ ]
+
+   The other installed applications listed are added to all starter Django
+   applications by default.
+
+   In myproject/myproject/settings.py, change DATABASES to the following:
+
+   copy
+
+ DATABASES = {
+     'default': {
+         'ENGINE': 'django_cockroachdb',
+         'NAME': 'bank',
+         'USER': 'django',
+         'HOST': 'localhost',
+         'PORT': '26257',
+         'OPTIONS': {
+             'sslmode': 'require',
+             'sslrootcert': '<path>/certs/ca.crt',
+             'sslcert': '<path>/certs/client.django.crt',
+             'sslkey': '<path>/certs/client.django.key',
+         },
+     },
+ }
+
+   copy
+
+ DATABASES = {
+     'default': {
+         'ENGINE': 'django_cockroachdb',
+         'NAME': 'bank',
+         'USER': 'django',
+         'HOST': 'localhost',
+         'PORT': '26257',
+     }
+ }
+
+Step 4. Write the application logic
+
+   After you generate the initial Django project files, you need to build out
+   the application with a few .py files in myproject/myproject.
+
+  Models
+
+   Start by building some models, defined in a file called models.py. You can
+   copy the sample code below and paste it into a new file, or you can
+   download the file directly.
+
+   copy
+
+ from django.db import models
+
+ class Customers(models.Model):
+     id = models.AutoField(primary_key=True)
+     name = models.CharField(max_length=250)
+
+ class Products(models.Model):
+     id = models.AutoField(primary_key=True)
+     name = models.CharField(max_length=250)
+     price = models.DecimalField(max_digits=18, decimal_places=2)
+
+ class Orders(models.Model):
+     id = models.AutoField(primary_key=True)
+     subtotal = models.DecimalField(max_digits=18, decimal_places=2)
+     customer = models.ForeignKey(Customers, on_delete=models.CASCADE, null=True)
+     product = models.ManyToManyField(Products)
+
+
+
+   In this file, we define some simple classes that map to the tables in the
+   example database bank.
+
+  Views
+
+   Next, build out some class-based views for the application in a file
+   called views.py. You can copy the sample code below and paste it into a
+   new file, or you can download the file directly.
+
+   copy
+
+ from django.http import JsonResponse, HttpResponse
+ from django.utils.decorators import method_decorator
+ from django.views.generic import View
+ from django.views.decorators.csrf import csrf_exempt
+ from django.db import Error, IntegrityError
+ from django.db.transaction import atomic
+
+ import json
+ import sys
+ import time
+
+ from .models import *
+
+ # Warning: Do not use retry_on_exception in an inner nested transaction.
+ def retry_on_exception(num_retries=3, on_failure=HttpResponse(status=500), delay_=0.5, backoff_=1.5):
+     def retry(view):
+         def wrapper(*args, **kwargs):
+             delay = delay_
+             for i in range(num_retries):
+                 try:
+                     return view(*args, **kwargs)
+                 except IntegrityError as ex:
+                     if i == num_retries - 1:
+                         return on_failure
+                     elif getattr(ex.__cause__, 'pgcode', '') == errorcodes.SERIALIZATION_FAILURE:
+                         time.sleep(delay)
+                         delay *= backoff_
+                 except Error as ex:
+                     return on_failure
+         return wrapper
+     return retry
+
+ class PingView(View):
+     def get(self, request, *args, **kwargs):
+         return HttpResponse("python/django", status=200)
+
+ @method_decorator(csrf_exempt, name='dispatch')
+ class CustomersView(View):
+     def get(self, request, id=None, *args, **kwargs):
+         if id is None:
+             customers = list(Customers.objects.values())
+         else:
+             customers = list(Customers.objects.filter(id=id).values())
+         return JsonResponse(customers, safe=False)
+
+     @retry_on_exception(3)
+     @atomic
+     def post(self, request, *args, **kwargs):
+         form_data = json.loads(request.body.decode())
+         name = form_data['name']
+         c = Customers(name=name)
+         c.save()
+         return HttpResponse(status=200)
+
+     @retry_on_exception(3)
+     @atomic
+     def delete(self, request, id=None, *args, **kwargs):
+         if id is None:
+             return HttpResponse(status=404)
+         Customers.objects.filter(id=id).delete()
+         return HttpResponse(status=200)
+
+     # The PUT method is shadowed by the POST method, so there doesn't seem
+     # to be a reason to include it.
+ @method_decorator(csrf_exempt, name='dispatch')
+ class ProductView(View):
+     def get(self, request, id=None, *args, **kwargs):
+         if id is None:
+             products = list(Products.objects.values())
+         else:
+             products = list(Products.objects.filter(id=id).values())
+         return JsonResponse(products, safe=False)
+
+     @retry_on_exception(3)
+     @atomic
+     def post(self, request, *args, **kwargs):
+         form_data = json.loads(request.body.decode())
+         name, price = form_data['name'], form_data['price']
+         p = Products(name=name, price=price)
+         p.save()
+         return HttpResponse(status=200)
+
+     # The REST API outlined in the github does not say that /product/ needs
+     # a PUT and DELETE method
+ @method_decorator(csrf_exempt, name='dispatch')
+ class OrdersView(View):
+     def get(self, request, id=None, *args, **kwargs):
+         if id is None:
+             orders = list(Orders.objects.values())
+         else:
+             orders = list(Orders.objects.filter(id=id).values())
+         return JsonResponse(orders, safe=False)
+
+     @retry_on_exception(3)
+     @atomic
+     def post(self, request, *args, **kwargs):
+         form_data = json.loads(request.body.decode())
+         c = Customers.objects.get(id=form_data['customer']['id'])
+         o = Orders(subtotal=form_data['subtotal'], customer=c)
+         o.save()
+         for p in form_data['products']:
+             p = Products.objects.get(id=p['id'])
+             o.product.add(p)
+         o.save()
+         return HttpResponse(status=200)
+
+
+   This file defines the application's views as classes. Each view class
+   corresponds to one of the table classes defined in models.py. The methods
+   of these classes define read and write transactions on the tables in the
+   database.
+
+   Importantly, the file defines a transaction retry loop in the decorator
+   function retry_on_exception(). This function decorates each view method,
+   ensuring that transaction ordering guarantees meet the ANSI SERIALIZABLE
+   isolation level. For more information about how transactions (and retries)
+   work, see Transactions.
+
+  URL routes
+
+   Lastly, define some URL routes in a file called urls.py. The django-admin
+   command-line tool generated this file when you created the Django project,
+   so it should already exist in myproject/myproject. You can copy the sample
+   code below and paste it into the existing urls.py file, or you can
+   download the file directly and replace the existing one.
+
+   copy
+
+ from django.contrib import admin
+ from django.urls import path
+
+ from .views import CustomersView, OrdersView, PingView, ProductView
+
+ urlpatterns = [
+     path('admin/', admin.site.urls),
+
+     path('ping/', PingView.as_view()),
+
+     # Endpoints for customers URL.
+     path('customer/', CustomersView.as_view(), name='customers'),
+     path('customer/<int:id>/', CustomersView.as_view(), name='customers'),
+
+     # Endpoints for customers URL.
+     path('product/', ProductView.as_view(), name='product'),
+     path('product/<int:id>/', ProductView.as_view(), name='product'),
+
+     path('order/', OrdersView.as_view(), name='order'),
+ ]
+
+
+  Models
+
+   Start by building some models, defined in a file called models.py. You can
+   copy the sample code below and paste it into a new file, or you can
+   download the file directly.
+
+   copy
+
+ from django.db import models
+
+ class Customers(models.Model):
+     id = models.AutoField(primary_key=True)
+     name = models.CharField(max_length=250)
+
+ class Products(models.Model):
+     id = models.AutoField(primary_key=True)
+     name = models.CharField(max_length=250)
+     price = models.DecimalField(max_digits=18, decimal_places=2)
+
+ class Orders(models.Model):
+     id = models.AutoField(primary_key=True)
+     subtotal = models.DecimalField(max_digits=18, decimal_places=2)
+     customer = models.ForeignKey(Customers, on_delete=models.CASCADE, null=True)
+     product = models.ManyToManyField(Products)
+
+
+
+   In this file, we define some simple classes that map to the tables in the
+   example database bank.
+
+  Views
+
+   Next, build out some class-based views for the application in a file
+   called views.py. You can copy the sample code below and paste it into a
+   new file, or you can download the file directly.
+
+   copy
+
+ from django.http import JsonResponse, HttpResponse
+ from django.utils.decorators import method_decorator
+ from django.views.generic import View
+ from django.views.decorators.csrf import csrf_exempt
+ from django.db import Error, IntegrityError
+ from django.db.transaction import atomic
+
+ import json
+ import sys
+ import time
+
+ from .models import *
+
+ # Warning: Do not use retry_on_exception in an inner nested transaction.
+ def retry_on_exception(num_retries=3, on_failure=HttpResponse(status=500), delay_=0.5, backoff_=1.5):
+     def retry(view):
+         def wrapper(*args, **kwargs):
+             delay = delay_
+             for i in range(num_retries):
+                 try:
+                     return view(*args, **kwargs)
+                 except IntegrityError as ex:
+                     if i == num_retries - 1:
+                         return on_failure
+                     elif getattr(ex.__cause__, 'pgcode', '') == errorcodes.SERIALIZATION_FAILURE:
+                         time.sleep(delay)
+                         delay *= backoff_
+                 except Error as ex:
+                     return on_failure
+         return wrapper
+     return retry
+
+ class PingView(View):
+     def get(self, request, *args, **kwargs):
+         return HttpResponse("python/django", status=200)
+
+ @method_decorator(csrf_exempt, name='dispatch')
+ class CustomersView(View):
+     def get(self, request, id=None, *args, **kwargs):
+         if id is None:
+             customers = list(Customers.objects.values())
+         else:
+             customers = list(Customers.objects.filter(id=id).values())
+         return JsonResponse(customers, safe=False)
+
+     @retry_on_exception(3)
+     @atomic
+     def post(self, request, *args, **kwargs):
+         form_data = json.loads(request.body.decode())
+         name = form_data['name']
+         c = Customers(name=name)
+         c.save()
+         return HttpResponse(status=200)
+
+     @retry_on_exception(3)
+     @atomic
+     def delete(self, request, id=None, *args, **kwargs):
+         if id is None:
+             return HttpResponse(status=404)
+         Customers.objects.filter(id=id).delete()
+         return HttpResponse(status=200)
+
+     # The PUT method is shadowed by the POST method, so there doesn't seem
+     # to be a reason to include it.
+ @method_decorator(csrf_exempt, name='dispatch')
+ class ProductView(View):
+     def get(self, request, id=None, *args, **kwargs):
+         if id is None:
+             products = list(Products.objects.values())
+         else:
+             products = list(Products.objects.filter(id=id).values())
+         return JsonResponse(products, safe=False)
+
+     @retry_on_exception(3)
+     @atomic
+     def post(self, request, *args, **kwargs):
+         form_data = json.loads(request.body.decode())
+         name, price = form_data['name'], form_data['price']
+         p = Products(name=name, price=price)
+         p.save()
+         return HttpResponse(status=200)
+
+     # The REST API outlined in the github does not say that /product/ needs
+     # a PUT and DELETE method
+ @method_decorator(csrf_exempt, name='dispatch')
+ class OrdersView(View):
+     def get(self, request, id=None, *args, **kwargs):
+         if id is None:
+             orders = list(Orders.objects.values())
+         else:
+             orders = list(Orders.objects.filter(id=id).values())
+         return JsonResponse(orders, safe=False)
+
+     @retry_on_exception(3)
+     @atomic
+     def post(self, request, *args, **kwargs):
+         form_data = json.loads(request.body.decode())
+         c = Customers.objects.get(id=form_data['customer']['id'])
+         o = Orders(subtotal=form_data['subtotal'], customer=c)
+         o.save()
+         for p in form_data['products']:
+             p = Products.objects.get(id=p['id'])
+             o.product.add(p)
+         o.save()
+         return HttpResponse(status=200)
+
+
+   This file defines the application's views as classes. Each view class
+   corresponds to one of the table classes defined in models.py. The methods
+   of these classes define read and write transactions on the tables in the
+   database.
+
+   Importantly, the file defines a transaction retry loop in the decorator
+   function retry_on_exception(). This function decorates each view method,
+   ensuring that transaction ordering guarantees meet the ANSI SERIALIZABLE
+   isolation level. For more information about how transactions (and retries)
+   work, see Transactions.
+
+  URL routes
+
+   Lastly, define some URL routes in a file called urls.py. The django-admin
+   command-line tool generated this file when you created the Django project,
+   so it should already exist in myproject/myproject. You can copy the sample
+   code below and paste it into the existing urls.py file, or you can
+   download the file directly and replace the existing one.
+
+   copy
+
+ from django.contrib import admin
+ from django.urls import path
+
+ from .views import CustomersView, OrdersView, PingView, ProductView
+
+ urlpatterns = [
+     path('admin/', admin.site.urls),
+
+     path('ping/', PingView.as_view()),
+
+     # Endpoints for customers URL.
+     path('customer/', CustomersView.as_view(), name='customers'),
+     path('customer/<int:id>/', CustomersView.as_view(), name='customers'),
+
+     # Endpoints for customers URL.
+     path('product/', ProductView.as_view(), name='product'),
+     path('product/<int:id>/', ProductView.as_view(), name='product'),
+
+     path('order/', OrdersView.as_view(), name='order'),
+ ]
+
+
+Step 5. Set up and run the Django app
+
+   In the top myproject directory, use the manage.py script to create Django
+   migrations that initialize the database for the application:
+
+   copy
+
+ $ python manage.py makemigrations myproject
+
+   copy
+
+ $ python manage.py migrate
+
+   This initializes the bank database with the tables defined in models.py,
+   in addition to some other tables for the admin functionality included with
+   Django's starter application.
+
+   To verify that the migration succeeded, open a SQL shell to the running
+   CockroachDB cluster:
+
+   copy
+
+ $ cockroach sql --certs-dir=certs --host=localhost:26257
+
+   To verify that the migration succeeded, open a SQL shell to the running
+   CockroachDB cluster:
+
+   copy
+
+ $ cockroach sql --insecure --host=localhost:26257
+
+   copy
+
+ > USE bank;
+
+   copy
+
+ > SHOW TABLES;
+
+           table_name
+ +----------------------------+
+   auth_group
+   auth_group_permissions
+   auth_permission
+   auth_user
+   auth_user_groups
+   auth_user_user_permissions
+   django_admin_log
+   django_content_type
+   django_migrations
+   django_session
+   myproject_customers
+   myproject_orders
+   myproject_orders_product
+   myproject_products
+ (14 rows)
+
+   In a new terminal, navigate to the top of the myproject directory, and
+   start the app:
+
+   copy
+
+ $ python manage.py runserver 0.0.0.0:8000
+
+   To perform simple reads and writes to the database, you can send HTTP
+   requests to the application.
+
+   For example, in a new terminal, you can use curl to send a POST request to
+   the application that inserts a new row into the customers table:
+
+   copy
+
+ $ curl --header "Content-Type: application/json" \
+ --request POST \
+ --data '{"name":"Carl"}' http://0.0.0.0:8000/customer/
+
+   You can then send a GET request to read from that table:
+
+   copy
+
+ $ curl http://0.0.0.0:8000/customer/
+
+ [{"id": 523377322022797313, "name": "Carl"}]
+
+   You can also query the tables directly in the SQL shell to see the
+   changes:
+
+   copy
+
+ > SELECT * FROM myproject_customers;
+
+           id         | name
+ ---------------------+-------
+   523377322022797313 | Carl
+ (1 row)
+
+What's next?
+
+   Read more about writing a Django app.
+
+   You might also be interested in the following pages:
+
+     * Client Connection Parameters
+     * Data Replication
+     * Fault Tolerance & Recovery
+     * Automatic Rebalancing
+     * Cross-Cloud Migration
+     * Follow-the-Workload
+     * Automated Operations
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

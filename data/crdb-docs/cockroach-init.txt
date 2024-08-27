@@ -1,0 +1,218 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                 cockroach init
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   This page explains the cockroach init command, which you use to perform a
+   one-time initialization of a new multi-node cluster. For a full
+   walk-through of the cluster startup and initialization process, see one of
+   the Manual Deployment tutorials.
+
+   Note:
+
+   When starting a single-node cluster with cockroach start-single-node, you
+   do not need to use the cockroach init command.
+
+Synopsis
+
+   Perform a one-time initialization of a cluster:
+
+   copy
+
+ $ cockroach init <flags>
+
+   View help:
+
+   copy
+
+ $ cockroach init --help
+
+Flags
+
+   The cockroach init command supports the following client connection and
+   logging flags.
+
+  Client connection
+
+   Flag        Description                                                    
+               The server host and port number to connect to. This can be the 
+               address of any node in the cluster.                            
+   --host                                                                     
+               Env Variable: COCKROACH_HOST                                   
+               Default: localhost:26257                                       
+               The server port to connect to. Note: The port number can also  
+   --port      be specified via --host.                                       
+   -p                                                                         
+               Env Variable: COCKROACH_PORT                                   
+               Default: 26257                                                 
+               The SQL user that will own the client session.                 
+   --user                                                                     
+   -u          Env Variable: COCKROACH_USER                                   
+               Default: root                                                  
+               Use an insecure connection.                                    
+   --insecure                                                                 
+               Env Variable: COCKROACH_INSECURE                               
+               Default: false                                                 
+               The path to the certificate directory containing the CA and    
+               client certificates and client key.                            
+   --certs-dir                                                                
+               Env Variable: COCKROACH_CERTS_DIR                              
+               Default: ${HOME}/.cockroach-certs/                             
+               A connection URL to use instead of the other arguments.        
+   --url                                                                      
+               Env Variable: COCKROACH_URL                                    
+               Default: no URL                                                
+
+   See Client Connection Parameters for details.
+
+  Logging
+
+   By default, the init command logs errors to stderr.
+
+   If you need to troubleshoot this command's behavior, you can change its
+   logging behavior.
+
+Examples
+
+   These examples assume that nodes have already been started with cockroach
+   start but are waiting to be initialized as a new cluster. For a more
+   detailed walk-through, see one of the Manual Deployment tutorials.
+
+  Initialize a Cluster on a Node's Machine
+
+   Secure Insecure
+    1. SSH to the machine where the node has been started.
+
+    2. Make sure the client.root.crt and client.root.key files for the root
+       user are on the machine.
+
+    3. Run the cockroach init command with the --certs-dir flag set to the
+       directory containing the ca.crt file and the files for the root user,
+       and with the --host flag set to the address of the current node:
+
+       copy
+
+ $ cockroach init --certs-dir=certs --host=<address of this node>
+
+       At this point, all the nodes complete startup and print helpful
+       details to the standard output, such as the CockroachDB version, the
+       URL for the Admin UI, and the SQL URL for clients.
+
+    1. SSH to the machine where the node has been started.
+
+    2. Run the cockroach init command with the --host flag set to the address
+       of the current node:
+
+       copy
+
+ $ cockroach init --insecure --host=<address of this node>
+
+       At this point, all the nodes complete startup and print helpful
+       details to the standard output, such as the CockroachDB version, the
+       URL for the Admin UI, and the SQL URL for clients.
+
+  Initialize a cluster from another machine
+
+   Secure Insecure
+    1. Install the cockroach binary on a machine separate from the node.
+
+    2. Create a certs directory and copy the CA certificate and the client
+       certificate and key for the root user into the directory.
+
+    3. Run the cockroach init command with the --certs-dir flag set to the
+       directory containing the ca.crt file and the files for the root user,
+       and with the --host flag set to the address of any node:
+
+       copy
+
+ $ cockroach init --certs-dir=certs --host=<address of any node>
+
+       At this point, all the nodes complete startup and print helpful
+       details to the standard output, such as the CockroachDB version, the
+       URL for the Admin UI, and the SQL URL for clients.
+
+    1. Install the cockroach binary on a machine separate from the node.
+
+    2. Run the cockroach init command with the --host flag set to the address
+       of any node:
+
+       copy
+
+ $ cockroach init --insecure --host=<address of any node>
+
+       At this point, all the nodes complete startup and print helpful
+       details to the standard output, such as the CockroachDB version, the
+       URL for the Admin UI, and the SQL URL for clients.
+
+See also
+
+     * Manual Deployment
+     * Orchestrated Deployment
+     * Test Deployment
+     * Local Deployment
+     * cockroach start
+     * Other Cockroach Commands
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

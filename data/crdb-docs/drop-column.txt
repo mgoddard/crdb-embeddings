@@ -1,0 +1,167 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                  DROP COLUMN
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The DROP COLUMN statement is part of ALTER TABLE and removes columns from
+   a table.
+
+   Tip:
+
+   This command can be combined with other ALTER TABLE commands in a single
+   statement. For a list of commands that can be combined, see ALTER TABLE.
+   For a demonstration, see Add and rename columns atomically.
+
+Synopsis
+
+   ALTER TABLE IF EXISTS table_name DROP COLUMN IF EXISTS name CASCADE
+   RESTRICT
+
+Required privileges
+
+   The user must have the CREATE privilege on the table.
+
+Parameters
+
+   Parameter  Description                                                     
+   table_name The name of the table with the column you want to drop.         
+              The name of the column you want to drop.                        
+   name                                                                       
+              When a column with a CHECK constraint is dropped, the CHECK     
+              constraint is also dropped.                                     
+              Drop the column even if objects (such as views) depend on it;   
+              drop the dependent objects, as well.                            
+                                                                              
+              CASCADE does not list objects it drops, so should be used       
+   CASCADE    cautiously. However, CASCADE will not drop dependent indexes;   
+              you must use DROP INDEX.                                        
+                                                                              
+              CASCADE will drop a column with a foreign key constraint if it  
+              is the only column in the reference.                            
+   RESTRICT   (Default) Do not drop the column if any objects (such as views) 
+              depend on it.                                                   
+
+Viewing schema changes
+
+   This schema change statement is registered as a job. You can view
+   long-running jobs with SHOW JOBS.
+
+Examples
+
+  Drop columns
+
+   If you no longer want a column in a table, you can drop it.
+
+   copy
+
+ > ALTER TABLE orders DROP COLUMN billing_zip;
+
+  Prevent dropping columns with dependent objects (RESTRICT)
+
+   If the column has dependent objects, such as views, CockroachDB will not
+   drop the column by default; however, if you want to be sure of the
+   behavior you can include the RESTRICT clause.
+
+   copy
+
+ > ALTER TABLE orders DROP COLUMN customer RESTRICT;
+
+ pq: cannot drop column "customer" because view "customer_view" depends on it
+
+  Drop column and dependent objects (CASCADE)
+
+   If you want to drop the column and all of its dependent options, include
+   the CASCADE clause.
+
+   Warning:
+   CASCADE does not list objects it drops, so should be used cautiously.
+   copy
+
+ > SHOW CREATE customer_view;
+
+ +---------------+----------------------------------------------------------------+
+ | table_name    | create_statement                                               |
+ +---------------+----------------------------------------------------------------+
+ | customer_view | CREATE VIEW customer_view AS SELECT customer FROM store.orders |
+ +---------------+----------------------------------------------------------------+
+
+   copy
+
+ > ALTER TABLE orders DROP COLUMN customer CASCADE;
+
+   copy
+
+ > SHOW CREATE customer_view;
+
+ pq: view "customer_view" does not exist
+
+See also
+
+     * DROP CONSTRAINT
+     * DROP INDEX
+     * ALTER TABLE
+     * SHOW JOBS
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

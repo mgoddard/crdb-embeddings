@@ -1,0 +1,110 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                   SHOW ROLES
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The SHOW ROLES statement lists the roles for all databases.
+
+   Note:
+
+   Since the keywords ROLES and USERS can now be used interchangeably in SQL
+   statements for enhanced Postgres compatibility, SHOW ROLES is now an alias
+   for SHOW USERS.
+
+Synopsis
+
+   SHOW ROLES
+
+Required privileges
+
+   The role must have the SELECT privilege on the system.users and
+   system.role_members tables.
+
+Example
+
+   copy
+
+ > SHOW ROLES;
+
+   username |  options   | member_of
+ -----------+------------+------------
+   admin    | CREATEROLE | {}
+   carl     | NOLOGIN    | {}
+   petee    |            | {}
+   root     | CREATEROLE | {admin}
+ (4 rows)
+
+See also
+
+     * Authorization
+     * CREATE ROLE
+     * DROP ROLE
+     * GRANT <privileges>
+     * REVOKE <privileges
+     * GRANT <roles>
+     * REVOKE <roles
+     * Manage Users
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

@@ -1,0 +1,485 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                    RESTORE
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+   Note:
+
+   RESTORE is an enterprise-only feature. For non-enterprise restores, see
+   Perform core backup and restore.
+
+   The RESTORE statement restores your cluster's schemas and data from an
+   enterprise BACKUP stored on a services such as AWS S3, Google Cloud
+   Storage, NFS, or HTTP storage.
+
+   Because CockroachDB is designed with high fault tolerance, restores are
+   designed primarily for disaster recovery, i.e., restarting your cluster if
+   it loses a majority of its nodes. Isolated issues (such as small-scale
+   node outages) do not require any intervention.
+
+   You can restore:
+
+     * A full cluster
+     * Databases
+     * Tables
+
+Required privileges
+
+   Only members of the admin role can run RESTORE. By default, the root user
+   belongs to the admin role.
+
+Synopsis
+
+   RESTORE TABLE table_pattern , DATABASE database_name , FROM
+   full_backup_location incremental_backup_location , AS OF SYSTEM TIME
+   timestamp WITH kv_option_list
+
+Parameters
+
+   Parameter                   Description                                    
+   table_pattern               The table or view you want to restore.         
+                               The name of the database you want to restore   
+   database_name               (i.e., restore all tables and views in the     
+                               database). You can restore an entire database  
+                               only if you had backed up the entire database. 
+                               The URL where the full backup is stored.       
+   full_backup_location                                                       
+                               For information about this URL structure, see  
+                               Backup File URLs.                              
+                               The URL where an incremental backup is stored. 
+                                                                              
+                               Lists of incremental backups must be sorted    
+                               from oldest to newest. The newest incremental  
+                               backup's timestamp must be within the table's  
+   incremental_backup_location garbage collection period.                     
+                                                                              
+                               For information about this URL structure, see  
+                               Backup File URLs.                              
+                                                                              
+                               For more information about garbage collection, 
+                               see Configure Replication Zones.               
+                               Restore data as it existed as of timestamp.    
+   AS OF SYSTEM TIME timestamp You can restore point-in-time data only if you 
+                               had taken full or incremental backup with      
+                               revision history.                              
+   kv_option_list              Control your backup's behavior with these      
+                               options.                                       
+
+   Note:
+
+   The RESTORE statement cannot be used within a transaction.
+
+  Options
+
+   You can include the following options as key-value pairs in the
+   kv_option_list to control the restore process's behavior:
+
+   Option                    Value           Description                      
+                                             Use to change the target         
+                                             database. This is useful if you  
+                                             want to restore a table that     
+   into_db                   Database name   currently exists, but do not     
+                                             want to drop it.                 
+                                                                              
+                                             Example: WITH into_db = 'newdb'  
+                                             Use to remove the foreign key    
+                                             constraints before restoring.    
+   skip_missing_foreign_keys N/A                                              
+                                             Example: WITH                    
+                                             skip_missing_foreign_keys        
+                                             Use to ignore sequence           
+                                             dependencies (i.e., the DEFAULT  
+                                             expression that uses the         
+   skip_missing_sequences    N/A             sequence).                       
+                                                                              
+                                             Example: WITH                    
+                                             skip_missing_sequences           
+                                             Use to skip restoring views that 
+                                             cannot be restored because their 
+   skip_missing_views        N/A             dependencies are not being       
+                                             restored at the same time.       
+                                                                              
+                                             Example: WITH skip_missing_views 
+                             Passphrase used The passphrase used to decrypt   
+   encryption_passphrase     to create the   the file(s) that were encrypted  
+                             encrypted       by the BACKUP statement.         
+                             backup          
+
+  Backup file URLs
+
+   The URL for your backup's locations must use the following format:
+
+ [scheme]://[host]/[path]?[parameters]
+
+   Location        Scheme    Host         Parameters                          
+                                          AUTH ^1 (optional; can be implicit  
+   Amazon          s3        Bucket name  or specified), AWS_ACCESS_KEY_ID,   
+                                          AWS_SECRET_ACCESS_KEY,              
+                                          AWS_SESSION_TOKEN                   
+                             N/A (see     AZURE_ACCOUNT_KEY,                  
+   Azure           azure     Example file AZURE_ACCOUNT_NAME                  
+                             URLs         
+                                          AUTH (optional; can be default,     
+   Google Cloud ^2 gs        Bucket name  implicit, or specified),            
+                                          CREDENTIALS                         
+   HTTP ^3         http      Remote host  N/A                                 
+                             nodeID or                                        
+   NFS/Local ^4    nodelocal self ^5 (see N/A
+                             Example file 
+                             URLs)        
+                                          AWS_ACCESS_KEY_ID,                  
+   S3-compatible   s3        Bucket name  AWS_SECRET_ACCESS_KEY,              
+   services ^6                            AWS_SESSION_TOKEN, AWS_REGION ^7    
+                                          (optional), AWS_ENDPOINT            
+
+   Note:
+
+   The location parameters often contain special characters that need to be
+   URI-encoded. Use Javascript's encodeURIComponent function or Go language's
+   url.QueryEscape function to URI-encode the parameters. Other languages
+   provide similar functions to URI-encode special characters.
+
+   Note:
+
+   If your environment requires an HTTP or HTTPS proxy server for outgoing
+   connections, you can set the standard HTTP_PROXY and HTTPS_PROXY
+   environment variables when starting CockroachDB.
+
+   If you cannot run a full proxy, you can disable external HTTP(S) access
+   (as well as custom HTTP(S) endpoints) when performing bulk operations
+   (e.g., BACKUP, RESTORE, etc.) by using the --external-io-disable-http
+   flag. You can also disable the use of implicit credentials when accessing
+   external cloud storage services for various bulk operations by using the
+   --external-io-disable-implicit-credentials flag.
+
+     * ^1 If the AUTH parameter is not provided, AWS connections default to
+       specified and the access keys must be provided in the URI parameters.
+       If the AUTH parameter is implicit, the access keys can be ommitted and
+       the credentials will be loaded from the environment.
+
+     * ^2 If the AUTH parameter is not specified, the
+       cloudstorage.gs.default.key cluster setting will be used if it is
+       non-empty, otherwise the implicit behavior is used. If the AUTH
+       parameter is implicit, all GCS connections use Google's default
+       authentication strategy. If the AUTH parameter is default, the
+       cloudstorage.gs.default.key cluster setting must be set to the
+       contents of a service account file which will be used during
+       authentication. If the AUTH parameter is specified, GCS connections
+       are authenticated on a per-statement basis, which allows the JSON key
+       object to be sent in the CREDENTIALS parameter. The JSON key object
+       should be base64-encoded (using the standard encoding in RFC 4648).
+
+     * ^3 You can create your own HTTP server with Caddy or nginx. A custom
+       root CA can be appended to the system's default CAs by setting the
+       cloudstorage.http.custom_ca cluster setting, which will be used when
+       verifying certificates from HTTPS URLs.
+
+     * ^4 The file system backup location on the NFS drive is relative to the
+       path specified by the --external-io-dir flag set while starting the
+       node. If the flag is set to disabled, then imports from local
+       directories and NFS drives are disabled.
+
+     * ^5 Using a nodeID is required and the data files will be in the extern
+       directory of the specified node. In most cases (including single-node
+       clusters), using nodelocal://1/<path> is sufficient. Use self if you
+       do not want to specify a nodeID, and the individual data files will be
+       in the extern directories of arbitrary nodes; however, to work
+       correctly, each node must have the --external-io-dir flag point to the
+       same NFS mount or other network-backed, shared storage.
+
+     * ^6 A custom root CA can be appended to the system's default CAs by
+       setting the cloudstorage.http.custom_ca cluster setting, which will be
+       used when verifying certificates from an S3-compatible service.
+
+     * ^7 The AWS_REGION parameter is optional since it is not a required
+       parameter for most S3-compatible services. Specify the parameter only
+       if your S3-compatible service requires it.
+
+    Example file URLs
+
+Location  Example                                                                    
+Amazon S3 s3://acme-co/employees.sql?AWS_ACCESS_KEY_ID=123&AWS_SECRET_ACCESS_KEY=456 
+Azure     azure://employees.sql?AZURE_ACCOUNT_KEY=123&AZURE_ACCOUNT_NAME=acme-co     
+Google    gs://acme-co/employees.sql                                                 
+Cloud     
+HTTP      http://localhost:8080/employees.sql                                        
+NFS/Local nodelocal://1/path/employees,                                              
+          nodelocal://self/nfsmount/backups/employees ^5                             
+
+Functional details
+
+  Restore targets
+
+   You can restore:
+
+     * A full cluster
+     * Databases
+     * Tables
+
+    Full cluster
+
+   A full cluster restore can only be run on a target cluster with no
+   user-created databases or tables. Restoring a full cluster includes:
+
+     * All user tables
+     * Relevant system tables
+     * All databases
+     * All tables (which automatically includes their indexes)
+     * All views
+   Note:
+
+   When you do a full cluster restore, it will restore the enterprise license
+   of the cluster you are restoring from. If you want to use a different
+   license in the new cluster, make sure to update the license after the
+   restore is complete.
+
+    Databases
+
+   To restore a database, the database cannot already exist in the target
+   cluster. Restoring a database will create the database and restore all of
+   its tables and views. By default, tables and views are restored into a
+   database with the name of the database from which they were backed up.
+   However, also consider:
+
+     * You can choose to change the target database.
+     * If it no longer exists, you must create the target database.
+
+   The target database must have not have tables or views with the same name
+   as the tables or views you're restoring.
+
+    Tables
+
+   You can also restore individual tables (which automatically includes their
+   indexes) or views from a backup. This process uses the data stored in the
+   backup to create entirely new tables or views in the target database.
+
+   To restore individual tables, the tables can not already exist in the
+   target database. This means the target database must not have tables or
+   views with the same name as the restored table or view. If any of the
+   restore target's names are being used, you can:
+
+     * DROP TABLE, DROP VIEW, or DROP SEQUENCE and then restore them. Note
+       that a sequence cannot be dropped while it is being used in a column's
+       DEFAULT expression, so those expressions must be dropped before the
+       sequence is dropped, and recreated after the sequence is recreated.
+       The setval function can be used to set the value of the sequence to
+       what it was previously.
+     * Restore the table or view into a different database.
+   Note:
+
+   RESTORE only offers table-level granularity; it does not support restoring
+   subsets of a table.
+
+  Object dependencies
+
+   Dependent objects must be restored at the same time as the objects they
+   depend on.
+
+   Object                 Depends On                                          
+   Table with foreign key The table it REFERENCES (however, this dependency   
+   constraints            can be removed during the restore).                 
+   Table with a sequence  The sequence.                                       
+   Views                  The tables used in the view's SELECT statement.     
+   Interleaved tables     The parent table in the interleaved hierarchy.      
+
+  Users and privileges
+
+   To restore your users and privilege grants, you can do a cluster backup
+   and restore the cluster to a fresh cluster with no user data.
+
+   If you are not doing a full cluster restore, the table-level privileges
+   need to be granted to the users after the restore is complete. To do this,
+   backup the system.users table, restore users and their passwords, and then
+   grant the table-level privileges.
+
+  Restore types
+
+   You can either restore from a full backup or from a full backup with
+   incremental backups, based on the backup files you include:
+
+   Restore Type        Parameters                                             
+   Full backup         Include only the path to the full backup.              
+                       If the full backup and incremental backups were sent   
+                       to the same destination, include only the path to the  
+                       full backup (e.g., RESTORE FROM                        
+                       'full_backup_location';).                              
+                                                                              
+   Full backup +       If the incremental backups were sent to a different    
+   incremental backups destination from the full backup, include the path to  
+                       the full backup as the first argument and the          
+                       subsequent incremental backups from oldest to newest   
+                       as the following arguments (e.g., RESTORE FROM         
+                       'full_backup_location', 'incremental_location_1',      
+                       'incremental_location_2';).                            
+
+Performance
+
+   The RESTORE process minimizes its impact to the cluster's performance by
+   distributing work to all nodes. Subsets of the restored data (known as
+   ranges) are evenly distributed among randomly selected nodes, with each
+   range initially restored to only one node. Once the range is restored, the
+   node begins replicating it others.
+
+   Note:
+
+   When a RESTORE fails or is canceled, partially restored data is properly
+   cleaned up. This can have a minor, temporary impact on cluster
+   performance.
+
+Viewing and controlling restore jobs
+
+   After CockroachDB successfully initiates a restore, it registers the
+   restore as a job, which you can view with SHOW JOBS.
+
+   After the restore has been initiated, you can control it with PAUSE JOB,
+   RESUME JOB, and CANCEL JOB.
+
+   Note:
+
+   If initiated correctly, the statement returns when the restore is finished
+   or if it encounters an error. In some cases, the restore can continue
+   after an error has been returned (the error message will tell you that the
+   restore has resumed in background).
+
+Examples
+
+  Restore a cluster
+
+   To restore a full cluster:
+
+   copy
+
+ > RESTORE FROM 'gs://acme-co-backup/test-cluster';
+
+  Restore a database
+
+   copy
+
+ > RESTORE DATABASE bank FROM 'gs://acme-co-backup/database-bank-2017-03-27-weekly';
+
+   Note:
+
+   RESTORE DATABASE can only be used if the entire database was backed up.
+
+  Restore a table
+
+   To restore a single table:
+
+   copy
+
+ > RESTORE bank.customers FROM 'gs://acme-co-backup/database-bank-2017-03-27-weekly';
+
+   To restore multiple tables:
+
+   copy
+
+ > RESTORE bank.customers, bank.accounts FROM 'gs://acme-co-backup/database-bank-2017-03-27-weekly';
+
+  Restore from incremental backups
+
+   Restoring from incremental backups requires previous full and incremental
+   backups. To restore from a destination containing the full backup, as well
+   as the incremental backups (stored as subdirectories):
+
+   copy
+
+ > RESTORE FROM 'gs://acme-co-backup/test-cluster';
+
+   To explicitly point to where your incremental backups are, provide the
+   previous full and incremental backup locations in a comma-separated list.
+   In this example, -weekly is the full backup and the two -nightly are
+   incremental backups.
+
+   copy
+
+ > RESTORE bank.customers \
+ FROM 'gs://acme-co-backup/database-bank-2017-03-27-weekly', 'gs://acme-co-backup/database-bank-2017-03-28-nightly', 'gs://acme-co-backup/database-bank-2017-03-29-nightly';
+
+   Note:
+
+   If you are restoring from HTTP storage, provide the previous full and
+   incremental backup locations in a comma-separated list. You cannot use the
+   simplified syntax.
+
+  Advanced examples
+
+   For examples of advanced BACKUP and RESTORE use cases, see Back up and
+   Restore Data - Advanced Options. Advanced examples include:
+
+     * Incremental backups with a specified destination
+     * Backup with revision history and point-in-time restore
+     * Locality-aware backup and restore
+     * Encrypted backup and restore
+     * Restore into a different database
+     * Remove the foreign key before restore
+     * Restoring users from system.users backup
+
+See also
+
+     * BACKUP
+     * Backup and Restore Data
+     * Back up and Restore Data - Advanced Options
+     * Configure Replication Zones
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

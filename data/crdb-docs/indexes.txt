@@ -1,0 +1,296 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                    Indexes
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   Indexes improve your database's performance by helping SQL locate data
+   without having to look through every row of a table.
+
+How do indexes work?
+
+   When you create an index, CockroachDB "indexes" the columns you specify,
+   which creates a copy of the columns and then sorts their values (without
+   sorting the values in the table itself).
+
+   After a column is indexed, SQL can easily filter its values using the
+   index instead of scanning each row one-by-one. On large tables, this
+   greatly reduces the number of rows SQL has to use, executing queries
+   exponentially faster.
+
+   For example, if you index an INT column and then filter it WHERE <indexed
+   column> = 10, SQL can use the index to find values starting at 10 but less
+   than 11. In contrast, without an index, SQL would have to evaluate every
+   row in the table for values equaling 10. This is also known as a "full
+   table scan", and it can be very bad for query performance.
+
+  Creation
+
+   Each table automatically has an index created called primary, which
+   indexes either its primary key or—if there is no primary key—a unique
+   value for each row known as rowid. We recommend always defining a primary
+   key because the index it creates provides much better performance than
+   letting CockroachDB use rowid.
+
+   The primary index helps filter a table's primary key but doesn't help SQL
+   find values in any other columns. However, you can use secondary indexes
+   to improve the performance of queries using columns not in a table's
+   primary key. You can create them:
+
+     * At the same time as the table with the INDEX clause of CREATE TABLE.
+       In addition to explicitly defined indexes, CockroachDB automatically
+       creates secondary indexes for columns with the UNIQUE constraint.
+     * For existing tables with CREATE INDEX.
+     * By applying the UNIQUE constraint to columns with ALTER TABLE, which
+       automatically creates an index of the constrained columns.
+
+   To create the most useful secondary indexes, you should also check out our
+   best practices.
+
+  Selection
+
+   Because each query can use only a single index, CockroachDB selects the
+   index it calculates will scan the fewest rows (i.e., the fastest). For
+   more detail, check out our blog post Index Selection in CockroachDB, which
+   will show you how to use the EXPLAIN statement for your query to see which
+   index is being used.
+
+   To override CockroachDB's index selection, you can also force queries to
+   use a specific index (also known as "index hinting"). Index hinting is
+   supported for SELECT, DELETE, and UPDATE statements.
+
+  Storage
+
+   CockroachDB stores indexes directly in your key-value store. You can find
+   more information in our blog post Mapping Table Data to Key-Value Storage.
+
+  Locking
+
+   Tables are not locked during index creation thanks to CockroachDB's schema
+   change procedure.
+
+  Performance
+
+   Indexes create a trade-off: they greatly improve the speed of queries, but
+   may slightly slow down writes to an affected column (because new values
+   have to be written for both the table and the index).
+
+   To maximize your indexes' performance, we recommend following a few best
+   practices.
+
+Hash-sharded indexes
+
+   Warning:
+
+   This is an experimental feature. The interface and output are subject to
+   change.
+
+   CockroachDB automatically splits ranges of data in the key-value store
+   based on the size of the range, and on the load streaming to the range. To
+   split a range based on load, the system looks for a point in the range
+   that evenly divides incoming traffic. If the range is indexed on a column
+   of data that is sequential in nature (e.g., an ordered sequence, or a
+   series of increasing, non-repeating TIMESTAMPs), then all incoming writes
+   to the range will be the last (or first) item in the index and appended to
+   the end of the range. As a result, the system cannot find a point in the
+   range that evenly divides the traffic, and the range cannot benefit from
+   load-based splitting, creating a hotspot on the single range.
+
+   If you are working with a table that must be indexed on sequential keys,
+   you should use hash-sharded indexes. Hash-sharded indexes distribute
+   sequential traffic uniformly across ranges, eliminating single-range
+   hotspots and improving write performance on sequentially-keyed indexes at
+   a small cost to read performance. For details about the mechanics and
+   performance improvements of hash-sharded indexes in CockroachDB, see our
+   Hash Sharded Indexes Unlock Linear Scaling for Sequential Workloads blog
+   post.
+
+   To create a hash-sharded index, set the
+   experimental_enable_hash_sharded_indexes session variable to on. Then, add
+   the optional USING HASH WITH BUCKET_COUNT = n_buckets clause to a CREATE
+   INDEX statement, to an INDEX definition in a CREATE TABLE statement, or to
+   an ALTER PRIMARY KEY statement. When this clause is used, CockroachDB
+   creates n_buckets computed columns, shards the index into n_buckets
+   shards, and then stores each index shard in the underlying key-value store
+   with one of the computed column's hash as its prefix.
+
+   Note:
+
+   Hash-sharded indexes cannot be interleaved.
+
+Best practices
+
+   We recommend creating indexes for all of your common queries. To design
+   the most useful indexes, look at each query's WHERE and SELECT clauses,
+   and create indexes that:
+
+     * Index all columns in the WHERE clause.
+     * Store columns that are only in the SELECT clause.
+   Tip:
+
+   For more information about how to tune CockroachDB's performance, see SQL
+   Performance Best Practices and the Performance Tuning tutorial.
+
+  Indexing columns
+
+   When designing indexes, it's important to consider which columns you index
+   and the order in which you list them. Here are a few guidelines to help
+   you make the best choices:
+
+     * Queries can benefit from an index even if they only filter a prefix of
+       its columns. For example, if you create an index of columns (A, B, C),
+       queries filtering (A) or (A, B) can still use the index. However,
+       queries that do not filter (A) will not benefit from the index.
+
+       This feature also lets you avoid using single-column indexes. Instead,
+       use the column as the first column in a multiple-column index, which
+       is useful to more queries.
+     * Columns filtered in the WHERE clause with the equality operators (= or
+       IN) should come first in the index, before those referenced with
+       inequality operators (<, >).
+     * Indexes of the same columns in different orders can produce different
+       results for each query. For more information, see our blog post on
+       index selection—specifically the section "Restricting the search
+       space."
+     * Avoid indexing on sequential values. Writes to indexes with sequential
+       keys can result in range hotspots that negatively affect performance.
+       Instead, use randomly generated unique IDs, or multi-column keys.
+     * Avoid creating secondary indexes that you do not need, as they can
+       slow down write performance and take up node memory. For example, if
+       you want to change a primary key, and you do not plan to filter
+       queries on the old primary key column(s), do not use ALTER PRIMARY
+       KEY, which creates a secondary index from the old primary key.
+       Instead, use DROP CONSTRAINT ... PRIMARY KEY/ADD CONSTRAINT ...
+       PRIMARY KEY, which does not create a secondary index.
+
+  Storing columns
+
+   The STORING clause specifies columns which are not part of the index key
+   but should be stored in the index. This optimizes queries which retrieve
+   those columns without filtering on them, because it prevents the need to
+   read the primary index.
+
+  Example
+
+   Say we have a table with three columns, two of which are indexed:
+
+   copy
+
+ > CREATE TABLE tbl (col1 INT, col2 INT, col3 INT, INDEX (col1, col2));
+
+   If we filter on the indexed columns but retrieve the unindexed column,
+   this requires reading col3 from the primary index via an "index join."
+
+   copy
+
+ > EXPLAIN SELECT col3 FROM tbl WHERE col1 = 10 AND col2 > 1;
+
+        tree       |    field    |      description
+ ------------------+-------------+------------------------
+                   | distributed | false
+                   | vectorized  | false
+   render          |             |
+    └── index-join |             |
+         │         | table       | tbl@primary
+         │         | key columns | rowid
+         └── scan  |             |
+                   | table       | tbl@tbl_col1_col2_idx
+                   | spans       | /10/2-/11
+ (9 rows)
+
+
+   However, if we store col3 in the index, the index join is no longer
+   necessary. This means our query only needs to read from the secondary
+   index, so it will be more efficient.
+
+   copy
+
+ > CREATE TABLE tbl (col1 INT, col2 INT, col3 INT, INDEX (col1, col2) STORING (col3));
+
+   copy
+
+ > EXPLAIN SELECT col3 FROM tbl WHERE col1 = 10 AND col2 > 1;
+
+     tree    |    field    |      description
+ ------------+-------------+------------------------
+             | distributed | false
+             | vectorized  | false
+   render    |             |
+    └── scan |             |
+             | table       | tbl@tbl_col1_col2_idx
+             | spans       | /10/2-/11
+ (6 rows)
+
+See also
+
+     * Inverted Indexes
+     * SQL Performance Best Practices
+     * Select from a specific index
+     * CREATE INDEX
+     * DROP INDEX
+     * RENAME INDEX
+     * SHOW INDEX
+     * SQL Statements
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

@@ -1,0 +1,298 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                    SQL Feature Support in CockroachDB v20.2
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   Making CockroachDB easy to use is a top priority for us, so we chose to
+   implement SQL. However, even though SQL has a standard, no database
+   implements all of it, nor do any of them have standard implementations of
+   all features.
+
+   To understand which standard SQL features we support (as well as common
+   extensions to the standard), use the table below.
+
+     * Component lists the components that are commonly considered part of
+       SQL.
+     * Supported shows CockroachDB's level of support for the component.
+     * Type indicates whether the component is part of the SQL Standard or is
+       an Extension created by ourselves or others.
+     * Details provides greater context about the component.
+
+Features
+
+  Row values
+
+   Component         Supported   Type              Details                    
+   Identifiers       ✓           Standard          Identifiers documentation  
+   INT               ✓           Standard          INT documentation          
+   FLOAT, REAL       ✓           Standard          FLOAT documentation        
+   BOOLEAN           ✓           Standard          BOOL documentation         
+   DECIMAL, NUMERIC  ✓           Standard          DECIMAL documentation      
+   NULL              ✓           Standard          NULL-handling              
+                                                   documentation              
+   BYTES             ✓           CockroachDB       BYTES documentation        
+                                 Extension         
+   Automatic key     ✓           Common Extension  Automatic key generation   
+   generation                                      FAQ                        
+   STRING, CHARACTER ✓           Standard          STRING documentation       
+   COLLATE           ✓           Standard          COLLATE documentation      
+   AUTO INCREMENT    Alternative Common Extension  Automatic key generation   
+                                                   FAQ                        
+   Key-value pairs   Alternative Extension         Key-Value FAQ              
+   ARRAY             ✓           Standard          ARRAY documentation        
+   UUID              ✓           PostgreSQL        UUID documentation         
+                                 Extension         
+   JSON              ✓           Common Extension  JSONB documentation        
+   TIME              ✓           Standard          TIME documentation         
+                                                   XML data can be stored as  
+   XML               ✗           Standard          BYTES, but we do not offer 
+                                                   XML parsing.               
+                                                   UNSIGNED INT causes        
+   UNSIGNED INT      ✗           Common Extension  numerous casting issues,   
+                                                   so we do not plan to       
+                                                   support it.                
+                                 MySQL, PostgreSQL Only allow rows to contain 
+   SET, ENUM         ✗           Extension         values from a defined set  
+                                                   of terms.                  
+   INET              ✓           PostgreSQL        INET documentation         
+                                 Extension         
+
+  Constraints
+
+   Component     Supported Type     Details                     
+   Not Null      ✓         Standard Not Null documentation      
+   Unique        ✓         Standard Unique documentation        
+   Primary Key   ✓         Standard Primary Key documentation   
+   Check         ✓         Standard Check documentation         
+   Foreign Key   ✓         Standard Foreign Key documentation   
+   Default Value ✓         Standard Default Value documentation 
+
+  Transactions
+
+   Component          Supported Type          Details                         
+   Transactions (ACID ✓         Standard      Transactions documentation      
+   semantics)         
+   BEGIN              ✓         Standard      BEGIN documentation             
+   COMMIT             ✓         Standard      COMMIT documentation            
+   ROLLBACK           ✓         Standard      ROLLBACK documentation          
+                                Standard with CockroachDB supports nested     
+   SAVEPOINT          ✓         CockroachDB   transactions using SAVEPOINT    
+                                extensions    
+
+  Indexes
+
+   Component            Supported Type      Details                           
+   Indexes              ✓         Common    Indexes documentation             
+                                  Extension 
+   Multi-column indexes ✓         Common    We do not limit on the number of  
+                                  Extension columns indexes can include       
+   Covering indexes     ✓         Common    Storing Columns documentation     
+                                  Extension 
+   Inverted indexes     ✓         Common    Inverted Indexes documentation    
+                                  Extension 
+   Multiple indexes per           Common    Use multiple indexes to filter    
+   query                Planned   Extension the table's values for a single   
+                                            query                             
+   Full-text indexes    Planned   Common    GitHub issue tracking full-text   
+                                  Extension index support                     
+   Prefix/Expression              Common    Apply expressions (such as        
+   Indexes              Potential Extension LOWER()) to values before         
+                                            indexing them                     
+   Geospatial indexes   Potential Common    Improves performance of queries   
+                                  Extension calculating geospatial data       
+   Hash indexes         ✗         Common    Improves performance of queries   
+                                  Extension looking for single, exact values  
+   Partial indexes      ✗         Common    Only index specific rows from     
+                                  Extension indexed columns                   
+
+  Schema changes
+
+   Component            Supported Type     Details                       
+   ALTER TABLE          ✓         Standard ALTER TABLE documentation     
+   Database renames     ✓         Standard RENAME DATABASE documentation 
+   Table renames        ✓         Standard RENAME TABLE documentation    
+   Column renames       ✓         Standard RENAME COLUMN documentation   
+   Adding columns       ✓         Standard ADD COLUMN documentation      
+   Removing columns     ✓         Standard DROP COLUMN documentation     
+   Adding constraints   ✓         Standard ADD CONSTRAINT documentation  
+   Removing constraints ✓         Standard DROP CONSTRAINT documentation 
+   Index renames        ✓         Standard RENAME INDEX documentation    
+   Adding indexes       ✓         Standard CREATE INDEX documentation    
+   Removing indexes     ✓         Standard DROP INDEX documentation      
+
+  Statements
+
+   Component   Supported   Type              Details                          
+   Common      ✓           Standard          SQL Statements documentation     
+   statements  
+   UPSERT      ✓           PostgreSQL, MSSQL UPSERT documentation             
+                           Extension         
+   EXPLAIN     ✓           Common Extension  EXPLAIN documentation            
+                                             You can replicate similar        
+   SELECT INTO Alternative Common Extension  functionality using CREATE TABLE 
+                                             and then INSERT INTO ... SELECT  
+                                             ....                             
+   SELECT FOR  ✓           Common Extension  SELECT FOR UPDATE documentation  
+   UPDATE      
+
+  Clauses
+
+   Component         Supported Type             Details                       
+   Common clauses    ✓         Standard         SQL Grammar documentation     
+   LIMIT             ✓         Common Extension Limit the number of rows a    
+                                                statement returns.            
+                                                Skip a number of rows, and    
+   LIMIT with OFFSET ✓         Common Extension then limit the size of the    
+                                                return set.                   
+   RETURNING         ✓         Common Extension Retrieve a table of rows      
+                                                statements affect.            
+
+  Table expressions
+
+   Component           Supported  Type        Details                         
+   Table and View      ✓          Standard    Table expressions documentation 
+   references          
+   AS in table         ✓          Standard    Aliased table expressions       
+   expressions                                documentation                   
+   JOIN (INNER, LEFT,  Functional Standard    Join expressions documentation  
+   RIGHT, FULL, CROSS) 
+   Sub-queries as                             Non-correlated subqueries are   
+   table expressions   Partial    Standard    supported, as are most          
+                                              correlated subqueries.          
+   Table generator     Partial    PostgreSQL  Table generator functions       
+   functions                      Extension   documentation                   
+   WITH ORDINALITY     ✓          CockroachDB Ordinality annotation           
+                                  Extension   documentation                   
+
+  Scalar expressions and boolean formulas
+
+   Component              Supported Type        Details                       
+   Common functions       ✓         Standard    Functions calls and SQL       
+                                                special forms documentation   
+   Common operators       ✓         Standard    Operators documentation       
+   IF/CASE/NULLIF         ✓         Standard    Conditional expressions       
+                                                documentation                 
+   COALESCE/IFNULL        ✓         Standard    Conditional expressions       
+                                                documentation                 
+   AND/OR                 ✓         Standard    Conditional expressions       
+                                                documentation                 
+   LIKE/ILIKE             ✓         Standard    String pattern matching       
+                                                documentation                 
+   SIMILAR TO             ✓         Standard    SQL regexp pattern matching   
+                                                documentation                 
+   Matching using POSIX   ✓         Common      POSIX regexp pattern matching 
+   regular expressions              Extension   documentation                 
+                                                Non-correlated subqueries are 
+                                                supported, as are most        
+   EXISTS                 Partial   Standard    correlated subqueries.        
+                                                Currently works only with     
+                                                small data sets.              
+                                                Non-correlated subqueries are 
+                                                supported, as are most        
+   Scalar subqueries      Partial   Standard    correlated subqueries.        
+                                                Currently works only with     
+                                                small data sets.              
+   Bitwise arithmetic     ✓         Common      Operators documentation       
+                                    Extension   
+   Array constructors and           PostgreSQL  Array expression              
+   subscripting           Partial   Extension   documentation: Constructor    
+                                                syntax and Subscripting       
+   COLLATE                ✓         Standard    Collation expressions         
+                                                documentation                 
+   Column ordinal         ✓         CockroachDB Column references             
+   references                       Extension   documentation                 
+   Type annotations       ✓         CockroachDB Type annotations              
+                                    Extension   documentation                 
+
+  Permissions
+
+   Component  Supported Type     Details                  
+   Users      ✓         Standard GRANT documentation      
+   Privileges ✓         Standard Privileges documentation 
+
+  Miscellaneous
+
+   Component          Supported Type             Details                      
+   Column families    ✓         CockroachDB      Column Families              
+                                Extension        documentation                
+   Interleaved tables ✓         CockroachDB      Interleaved Tables           
+                                Extension        documentation                
+   Information Schema ✓         Standard         Information Schema           
+                                                 documentation                
+   Views              ✓         Standard         Views documentation          
+   Window functions   ✓         Standard         Window Functions             
+                                                 documentation                
+   Common Table       Partial   Common Extension Common Table Expressions     
+   Expressions                                   documentation                
+   Stored Procedures  Planned   Common Extension Execute a procedure          
+                                                 explicitly.                  
+   Cursors            ✗         Standard         Traverse a table's rows.     
+                                                 Execute a set of commands    
+   Triggers           ✗         Standard         whenever a specified event   
+                                                 occurs.                      
+   Sequences          ✓         Common Extension CREATE SEQUENCE              
+                                                 documentation                
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

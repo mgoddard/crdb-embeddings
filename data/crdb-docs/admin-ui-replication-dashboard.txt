@@ -1,0 +1,287 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                             Replication Dashboard
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The Replication dashboard in the CockroachDB Admin UI enables you to
+   monitor the replication metrics for your cluster.
+
+   To view this dashboard, access the Admin UI, click Metrics in the
+   left-hand navigation, and select Dashboard > Replication.
+
+Review of CockroachDB terminology
+
+     * Range: CockroachDB stores all user data and almost all system data in
+       a giant sorted map of key-value pairs. This keyspace is divided into
+       "ranges", contiguous chunks of the keyspace, so that every key can
+       always be found in a single range.
+     * Range Replica: CockroachDB replicates each range (3 times by default)
+       and stores each replica on a different node.
+     * Range Lease: For each range, one of the replicas holds the "range
+       lease". This replica, referred to as the "leaseholder", is the one
+       that receives and coordinates all read and write requests for the
+       range.
+     * Under-replicated Ranges: When a cluster is first initialized, the few
+       default starting ranges will only have a single replica, but as soon
+       as other nodes are available, they will replicate to them until
+       they've reached their desired replication factor, the default being 3.
+       If a range does not have enough replicas, the range is said to be
+       "under-replicated".
+     * Unavailable Ranges: If a majority of a range's replicas are on nodes
+       that are unavailable, then the entire range is unavailable and will be
+       unable to process queries.
+
+   For more details, see Scalable SQL Made Easy: How CockroachDB Automates
+   Operations
+
+Dashboard navigation
+
+   Use the Graph menu to display metrics for your entire cluster or for a
+   specific node.
+
+   To the right of the Graph and Dashboard menus, a range selector allows you
+   to filter the view for a predefined timeframe or custom date/time range.
+   Use the navigation buttons to move to the previous, next, or current
+   timeframe. Note that the active timeframe is reflected in the URL and can
+   be easily shared.
+
+   The Replication dashboard displays the following time series graphs:
+
+Ranges
+
+   CockroachDB Admin UI Replicas per Store
+
+   The Ranges graph shows you various details about the status of ranges.
+
+     * In the node view, the graph shows details about ranges on the node.
+
+     * In the cluster view, the graph shows details about ranges across all
+       nodes in the cluster.
+
+   On hovering over the graph, the values for the following metrics are
+   displayed:
+
+   Metric             Description                                             
+   Ranges             The number of ranges.                                   
+                      The number of ranges with leaders. If the number does   
+   Leaders            not match the number of ranges for a long time,         
+                      troubleshoot your cluster.                              
+   Lease Holders      The number of ranges that have leases.                  
+                      The number of Raft leaders without leases. If the       
+   Leaders w/o Leases number if non-zero for a long time, troubleshoot your   
+                      cluster.                                                
+   Unavailable        The number of unavailable ranges. If the number if      
+                      non-zero for a long time, troubleshoot your cluster.    
+   Under-replicated   The number of under-replicated ranges.                  
+
+Logical Bytes per Store
+
+   CockroachDB Admin UI Replicas per Store
+
+   Metric                  Description                                        
+                           Number of logical bytes stored in key-value pairs  
+   Logical Bytes per Store on each node. This includes historical and deleted 
+                           data.                                              
+
+   Note:
+
+   Logical bytes reflect the approximate number of bytes stored in the
+   database. This value may deviate from the number of physical bytes on
+   disk, due to factors such as compression and write amplification.
+
+Replicas Per Store
+
+   CockroachDB Admin UI Replicas per Store
+
+     * In the node view, the graph shows the number of range replicas on the
+       store.
+
+     * In the cluster view, the graph shows the number of range replicas on
+       each store.
+
+   You can Configure replication zones to set the number and location of
+   replicas. You can monitor the configuration changes using the Admin UI, as
+   described in Fault tolerance and recovery.
+
+Replica Quiescence
+
+   CockroachDB Admin UI Replica Quiescence
+
+     * In the node view, the graph shows the number of replicas on the node.
+
+     * In the cluster view, the graph shows the number of replicas across all
+       nodes.
+
+   On hovering over the graph, the values for the following metrics are
+   displayed:
+
+   Metric    Description                                                    
+   Replicas  The number of replicas.                                        
+   Quiescent The number of replicas that haven't been accessed for a while. 
+
+Snapshots
+
+   CockroachDB Admin UI Replica Snapshots
+
+   Usually the nodes in a Raft group stay synchronized by following along the
+   log message by message. However, if a node is far enough behind the log
+   (e.g., if it was offline or is a new node getting up to speed), rather
+   than send all the individual messages that changed the range, the cluster
+   can send it a snapshot of the range and it can start following along from
+   there. Commonly this is done preemptively, when the cluster can predict
+   that a node will need to catch up, but occasionally the Raft protocol
+   itself will request the snapshot.
+
+   Metric                   Description                                       
+   Generated                The number of snapshots created per second.       
+   Applied (Raft-initiated) The number of snapshots applied to nodes per      
+                            second that were initiated within Raft.           
+                            The number of snapshots applied to nodes per      
+                            second that were anticipated ahead of time (e.g., 
+   Applied (Learner)        because a node was about to be added to a Raft    
+                            group). This metric replaces the Applied          
+                            (Preemptive) metric in 19.2 and onwards.          
+                            The number of snapshots applied to nodes per      
+                            second that were anticipated ahead of time (e.g., 
+   Applied (Preemptive)     because a node was about to be added to a Raft    
+                            group). This metric was used in pre-v19.2         
+                            releases and will be removed in future releases.  
+   Reserved                 The number of slots reserved per second for       
+                            incoming snapshots that will be sent to a node.   
+
+Other graphs
+
+   The Replication dashboard shows other time series graphs that are
+   important for CockroachDB developers:
+
+     * Leaseholders per Store
+     * Average Queries per Store
+     * Range Operations
+
+   For monitoring CockroachDB, it is sufficient to use the Ranges, Replicas
+   per Store, and Replica Quiescence graphs.
+
+Summary and events
+
+  Summary panel
+
+   A Summary panel of key metrics is displayed to the right of the timeseries
+   graphs.
+
+   CockroachDB Admin UI Summary Panel
+
+   Metric             Description                                             
+   Total Nodes        The total number of nodes in the cluster.               
+                      Decommissioned nodes are not included in this count.    
+   Capacity Used      The storage capacity used as a percentage of usable     
+                      capacity allocated across all nodes.                    
+   Unavailable Ranges The number of unavailable ranges in the cluster. A      
+                      non-zero number indicates an unstable cluster.          
+   Queries per second The total number of SELECT, UPDATE, INSERT, and DELETE  
+                      queries executed per second across the cluster.         
+   P99 Latency        The 99th percentile of service latency.                 
+
+   Note:
+
+   If you are testing your deployment locally with multiple CockroachDB nodes
+   running on a single machine (this is not recommended in production), you
+   must explicitly set the store size per node in order to display the
+   correct capacity. Otherwise, the machine's actual disk capacity will be
+   counted as a separate store for each node, thus inflating the computed
+   capacity.
+
+  Events panel
+
+   Underneath the Summary panel, the Events panel lists the 5 most recent
+   events logged for all nodes across the cluster. To list all events, click
+   View all events.
+
+   CockroachDB Admin UI Events
+
+   The following types of events are listed:
+
+     * Database created
+     * Database dropped
+     * Table created
+     * Table dropped
+     * Table altered
+     * Index created
+     * Index dropped
+     * View created
+     * View dropped
+     * Schema change reversed
+     * Schema change finished
+     * Node joined
+     * Node decommissioned
+     * Node restarted
+     * Cluster setting changed
+
+See also
+
+     * Troubleshooting Overview
+     * Support Resources
+     * Raw Status Endpoints
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

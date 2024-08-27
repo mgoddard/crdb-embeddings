@@ -1,0 +1,201 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                              SHOW CLUSTER SETTING
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The SHOW CLUSTER SETTING statement displays the values of cluster
+   settings.
+
+   To configure cluster settings, use SET CLUSTER SETTING.
+
+   Note:
+
+   The SHOW statement for cluster settings is unrelated to the other SHOW
+   statements: SHOW (session variable), SHOW CREATE, SHOW USERS, SHOW
+   DATABASES, SHOW COLUMNS, SHOW GRANTS, and SHOW CONSTRAINTS.
+
+Details
+
+     * To display the value of a specific cluster setting, use the following
+       syntax:
+
+ SHOW CLUSTER SETTING <setting>;
+
+     * To display the values of public cluster settings (i.e., cluster
+       settings that are documented and for which tuning is supported), use
+       one of the following:
+
+ SHOW CLUSTER SETTINGS;
+
+ SHOW PUBLIC CLUSTER SETTINGS;
+
+     * To display the values of all cluster settings use one of the
+       following:
+
+ SHOW ALL CLUSTER SETTINGS;
+
+ SHOW CLUSTER SETTING ALL;
+
+       When you display all cluster settings, the table output includes a
+       public column that denotes whether a setting is public or not.
+
+Required privileges
+
+   Only members of the admin role can display cluster settings. By default,
+   the root user belongs to the admin role.
+
+Synopsis
+
+   SHOW CLUSTER SETTING var_name ALL SETTINGS ALL PUBLIC CLUSTER SETTINGS
+
+Parameters
+
+   Parameter Description                                                      
+   var_name  The name of the cluster setting (case-insensitive).              
+   ALL       Display all cluster settings.                                    
+             Display only the public cluster settings.                        
+   PUBLIC    By default, only public settings are listed by SHOW CLUSTER      
+             SETTINGS. SHOW PUBLIC CLUSTER SETTINGS and SHOW CLUSTER SETTINGS 
+             are equivalent.                                                  
+
+Response
+
+   When you query multiple cluster settings (e.g., with SHOW CLUSTER
+   SETTINGS, or with SHOW ALL CLUSTER SETTINGS), the following fields are
+   returned:
+
+   Field        Description                                                   
+   variable     The name of the cluster setting.                              
+   value        The value of the cluster setting.                             
+                The type of the cluster setting.                              
+                Possible values for setting_type include:                     
+                  * b (true or false)                                         
+                  * z (size, in bytes)                                        
+   setting_type   * d (duration)                                              
+                  * e (one of a set of possible values)                       
+                  * f (floating-point value)                                  
+                  * i (integer)                                               
+                  * s (string)                                                
+   description  A brief description of the cluster setting, including         
+                possible values.                                              
+                true if the cluster setting is public.                        
+   public       This field is only included only if all cluster settings are  
+                displayed.                                                    
+
+Examples
+
+  Show the value of a single cluster setting
+
+   copy
+
+ > SHOW CLUSTER SETTING diagnostics.reporting.enabled;
+
+   diagnostics.reporting.enabled
+ ---------------------------------
+               true
+ (1 row)
+
+  Show the values of all public cluster settings
+
+   copy
+
+ > SHOW CLUSTER SETTINGS;
+
+               variable              |     value      | setting_type |                                                   description
+ ------------------------------------+----------------+--------------+-------------------------------------------------------------------------------------------------------------------
+   cloudstorage.gs.default.key       |                | s            | if set, JSON key to use during Google Cloud Storage operations
+   cloudstorage.http.custom_ca       |                | s            | custom root CA (appended to system's default CAs) for verifying certificates when interacting with HTTPS storage
+   cloudstorage.timeout              | 10m0s          | d            | the timeout for import/export storage operations
+   ...
+
+  Show the values of all cluster settings
+
+   copy
+
+ > SHOW ALL CLUSTER SETTINGS;
+
+                 variable                |     value      | setting_type | public |                                                   description
+ ----------------------------------------+----------------+--------------+--------+-------------------------------------------------------------------------------------------------------------------
+   changefeed.experimental_poll_interval | 1s             | d            | false  | polling interval for the table descriptors
+   cloudstorage.gs.default.key           |                | s            |  true  | if set, JSON key to use during Google Cloud Storage operations
+   cloudstorage.http.custom_ca           |                | s            |  true  | custom root CA (appended to system's default CAs) for verifying certificates when interacting with HTTPS storage
+   cloudstorage.timeout                  | 10m0s          | d            |  true  | the timeout for import/export storage operations
+   ...
+
+See also
+
+     * SET CLUSTER SETTING
+     * RESET CLUSTER SETTING
+     * Cluster settings
+     * SHOW (session variable)
+     * SHOW COLUMNS
+     * SHOW CONSTRAINTS
+     * SHOW CREATE
+     * SHOW DATABASES
+     * SHOW GRANTS
+     * SHOW INDEX
+     * SHOW USERS
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

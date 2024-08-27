@@ -1,0 +1,924 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                     Known Limitations in CockroachDB v20.2
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   This page describes newly identified limitations in the CockroachDB
+   v20.2.0-alpha.2 release as well as unresolved limitations identified in
+   earlier releases.
+
+New limitations
+
+  Primary key changes and zone configs
+
+   When you change a table's primary key with ALTER PRIMARY KEY, any zone
+   configurations for that table or its secondary indexes will no longer
+   apply.
+
+   As a workaround, recreate the zone configurations after changing the
+   table's primary key.
+
+   Tracking Github Issue
+
+  ROLLBACK TO SAVEPOINT in high-priority transactions containing DDL
+
+   Transactions with priority HIGH that contain DDL and ROLLBACK TO SAVEPOINT
+   are not supported, as they could result in a deadlock. For example:
+
+ > BEGIN PRIORITY HIGH; SAVEPOINT s; CREATE TABLE t(x INT); ROLLBACK TO SAVEPOINT s;
+
+ ERROR: unimplemented: cannot use ROLLBACK TO SAVEPOINT in a HIGH PRIORITY transaction containing DDL
+ SQLSTATE: 0A000
+ HINT: You have attempted to use a feature that is not yet implemented.
+ See: https://github.com/cockroachdb/cockroach/issues/46414
+
+   Tracking Github Issue
+
+  Column name from an outer column inside a subquery differs from PostgreSQL
+
+   CockroachDB returns the column name from an outer column inside a subquery
+   as ?column?, unlike PostgreSQL. For example:
+
+ > SELECT (SELECT t.*) FROM (VALUES (1)) t(x);
+
+   CockroachDB:
+
+   ?column?
+ ------------
+          1
+
+   PostgreSQL:
+
+  x
+ ---
+  1
+
+   Tracking Github Issue
+
+  Privileges required to access to certain virtual tables differs from
+  PostgreSQL
+
+   Access to certain virtual tables in the pg_catalog and information_schema
+   schemas require more privileges than in PostgreSQL. For example, in
+   CockroachDB, access to pg_catalog.pg_types requires the SELECT privilege
+   on the current database, whereas this privilege is not required in
+   PostgreSQL.
+
+   Tracking Github Issue
+
+  Concurrent SQL shells overwrite each other's history
+
+   The built-in SQL shell stores its command history in a single file by
+   default (.cockroachsql_history). When running multiple instances of the
+   SQL shell on the same machine, therefore, each shell's command history can
+   get overwritten in unexpected ways.
+
+   As a workaround, set the COCKROACH_SQL_CLI_HISTORY environment variable to
+   different values for the two different shells, for example:
+
+   copy
+
+ $ export COCKROACH_SQL_CLI_HISTORY=.cockroachsql_history_shell_1
+
+   copy
+
+ $ export COCKROACH_SQL_CLI_HISTORY=.cockroachsql_history_shell_2
+
+Unresolved limitations
+
+  Subqueries in SET statements
+
+   It is not currently possible to use a subquery in a SET or SET CLUSTER
+   SETTING statement. For example:
+
+   copy
+
+ > SET application_name = (SELECT 'a' || 'b');
+
+ ERROR: invalid value for parameter "application_name": "(SELECT 'a' || 'b')"
+ SQLSTATE: 22023
+ DETAIL: subqueries are not allowed in SET
+
+   Tracking Github Issue
+
+  Filtering by now() results in a full table scan
+
+   When filtering a query by now(), the cost-based optimizer currently cannot
+   constrain an index on the filtered timestamp column. This results in a
+   full table scan. For example:
+
+   copy
+
+ > CREATE TABLE bydate (a TIMESTAMP NOT NULL, INDEX (a));
+
+   copy
+
+ > EXPLAIN SELECT * FROM bydate WHERE a > (now() - '1h'::interval);
+
+   tree |    field    |       description
+ -------+-------------+---------------------------
+        | distributed | true
+        | vectorized  | false
+   scan |             |
+        | table       | bydate@primary
+        | spans       | FULL SCAN
+        | filter      | a > (now() - '01:00:00')
+ (6 rows)
+
+   As a workaround, pass the correct date into the query as a parameter to a
+   prepared query with a placeholder, which will allow the optimizer to
+   constrain the index correctly:
+
+   copy
+
+ > PREPARE q AS SELECT * FROM bydate WHERE a > ($1::timestamp - '1h'::interval);
+
+   copy
+
+ > EXECUTE q ('2020-05-12 00:00:00');
+
+   Tracking Github Issue
+
+  Enterprise BACKUP does not capture database/table/column comments
+
+   The COMMENT ON statement associates comments to databases, tables, or
+   columns. However, the internal table (system.comments) in which these
+   comments are stored is not captured by enterprise BACKUP.
+
+   As a workaround, alongside a BACKUP, run the cockroach dump command with
+   --dump-mode=schema for each table in the backup. This will emit COMMENT ON
+   statements alongside CREATE statements.
+
+   Tracking Github Issue
+
+  Adding stores to a node
+
+   After a node has initially joined a cluster, it is not possible to add
+   additional stores to the node. Stopping the node and restarting it with
+   additional stores causes the node to not reconnect to the cluster.
+
+   To work around this limitation, decommission the node, remove its data
+   directory, and then run cockroach start to join the cluster again as a new
+   node.
+
+   Tracking GitHub Issue
+
+  CHECK constraint validation for INSERT ON CONFLICT differs from PostgreSQL
+
+   CockroachDB validates CHECK constraints on the results of INSERT ON
+   CONFLICT statements, preventing new or changed rows from violating the
+   constraint. Unlike PostgreSQL, CockroachDB does not also validate CHECK
+   constraints on the input rows of INSERT ON CONFLICT statements.
+
+   If this difference matters to your client, you can INSERT ON CONFLICT from
+   a SELECT statement and check the inserted value as part of the SELECT. For
+   example, instead of defining CHECK (x > 0) on t.x and using INSERT INTO
+   t(x) VALUES (3) ON CONFLICT (x) DO UPDATE SET x = excluded.x, you could do
+   the following:
+
+   copy
+
+ > INSERT INTO t (x)
+     SELECT if (x <= 0, crdb_internal.force_error('23514', 'check constraint violated'), x)
+       FROM (values (3)) AS v(x)
+     ON CONFLICT (x)
+       DO UPDATE SET x = excluded.x;
+
+   An x value less than 1 would result in the following error:
+
+ pq: check constraint violated
+
+   Tracking Github Issue
+
+  Cold starts of large clusters may require manual intervention
+
+   If a cluster contains a large amount of data (>500GiB / node), and all
+   nodes are stopped and then started at the same time, clusters can enter a
+   state where they're unable to startup without manual intervention. In this
+   state, logs fill up rapidly with messages like refusing gossip from node
+   x; forwarding to node y, and data and metrics may become inaccessible.
+
+   To exit this state, you should:
+
+    1. Stop all nodes.
+    2. Set the following environment variables: COCKROACH_SCAN_INTERVAL=60m,
+       and COCKROACH_SCAN_MIN_IDLE_TIME=1s.
+    3. Restart the cluster.
+
+   Once restarted, monitor the Replica Quiescence graph on the Replication
+   Dashboard. When >90% of the replicas have become quiescent, conduct a
+   rolling restart and remove the environment variables. Make sure that
+   under-replicated ranges do not increase between restarts.
+
+   Tracking Github Issue
+
+  Requests to restarted node in need of snapshots may hang
+
+   When a node is offline, the Raft logs for the ranges on the node get
+   truncated. When the node comes back online, it therefore often needs Raft
+   snapshots to get many of its ranges back up-to-date. While in this state,
+   requests to a range will hang until its snapshot has been applied, which
+   can take a long time.
+
+   To work around this limitation, you can adjust the
+   kv.snapshot_recovery.max_rate cluster setting to temporarily relax the
+   throughput rate limiting applied to snapshots. For example, changing the
+   rate limiting from the default 8 MB/s, at which 1 GB of snapshots takes at
+   least 2 minutes, to 64 MB/s can result in an 8x speedup in snapshot
+   transfers and, therefore, a much shorter interruption of requests to an
+   impacted node:
+
+   copy
+
+ > SET CLUSTER SETTING kv.snapshot_recovery.max_rate = '64mb';
+
+   Before increasing this value, however, verify that you will not end up
+   saturating your network interfaces, and once the problem has resolved, be
+   sure to reset to the original value.
+
+   Tracking GitHub Issue
+
+  Location-based time zone names
+
+   Certain features of CockroachDB require time zone data, for example, to
+   support using location-based names as time zone identifiers. When starting
+   a CockroachDB node on a machine missing time zone data, the node will not
+   start.
+
+   To resolve this issue on Linux, install the tzdata library (sometimes
+   called tz or zoneinfo).
+
+   To resolve this issue on Windows, download Go's official zoneinfo.zip and
+   set the ZONEINFO environment variable to point to the zip file. For
+   step-by-step guidance on setting environment variables on Windows, see
+   this external article.
+
+   Make sure to do this across all nodes in the cluster and to keep this time
+   zone data up-to-date.
+
+   Tracking GitHub Issue
+
+  Database and table renames are not transactional
+
+   Database and table renames using RENAME DATABASE and RENAME TABLE are not
+   transactional.
+
+   Specifically, when run inside a BEGIN ... COMMIT block, it’s possible for
+   a rename to be half-done - not persisted in storage, but visible to other
+   nodes or other transactions. For more information, see Table renaming
+   considerations. For an issue tracking this limitation, see
+   cockroach#12123.
+
+  Change data capture
+
+   Change data capture (CDC) provides efficient, distributed, row-level
+   change feeds into Apache Kafka for downstream processing such as
+   reporting, caching, or full-text indexing.
+
+     * Changefeeds only work on tables with a single column family (which is
+       the default for new tables).
+     * Changefeeds do not share internal buffers, so each running changefeed
+       will increase total memory usage. To watch multiple tables, we
+       recommend creating a changefeed with a comma-separated list of tables.
+     * Many DDL queries (including TRUNCATE and DROP TABLE) will cause errors
+       on a changefeed watching the affected tables. You will need to start a
+       new changefeed.
+     * Changefeeds cannot be backed up or restored.
+     * Partial or intermittent sink unavailability may impact changefeed
+       stability; however, ordering guarantees will still hold for as long as
+       a changefeed remains active.
+     * Changefeeds cannot be altered. To alter, cancel the changefeed and
+       create a new one with updated settings from where it left off.
+     * Additional target options will be added, including partitions and
+       ranges of primary key rows.
+     * There is an open correctness issue with changefeeds connected to cloud
+       storage sinks where new row information will display with a lower
+       timestamp than what has already been emitted, which violates our
+       ordering guarantees.
+     * Changefeeds do not pick up data ingested with the IMPORT INTO
+       statement.
+     * Using a cloud storage sink only works with JSON and emits
+       newline-delimited json files.
+
+  Admin UI may become inaccessible for secure clusters
+
+   Accessing the Admin UI for a secure cluster now requires login information
+   (i.e., username and password). This login information is stored in a
+   system table that is replicated like other data in the cluster. If a
+   majority of the nodes with the replicas of the system table data go down,
+   users will be locked out of the Admin UI.
+
+  AS OF SYSTEM TIME in SELECT statements
+
+   AS OF SYSTEM TIME can only be used in a top-level SELECT statement. That
+   is, we do not support statements like INSERT INTO t SELECT * FROM t2 AS OF
+   SYSTEM TIME <time> or two subselects in the same statement with differing
+   AS OF SYSTEM TIME arguments.
+
+   Tracking GitHub Issue
+
+  Large index keys can impair performance
+
+   The use of tables with very large primary or secondary index keys (>32KB)
+   can result in excessive memory usage. Specifically, if the primary or
+   secondary index key is larger than 32KB the default indexing scheme for
+   RocksDB SSTables breaks down and causes the index to be excessively large.
+   The index is pinned in memory by default for performance.
+
+   To work around this issue, we recommend limiting the size of primary and
+   secondary keys to 4KB, which you must account for manually. Note that most
+   columns are 8B (exceptions being STRING and JSON), which still allows for
+   very complex key structures.
+
+   Tracking GitHub Issue
+
+  Admin UI: Statements page latency reports
+
+   The Statements page does not correctly report "mean latency" or "latency
+   by phase" for statements that result in schema changes or other background
+   jobs.
+
+   Tracking GitHub Issue
+
+  Using LIKE...ESCAPE in WHERE and HAVING constraints
+
+   CockroachDB tries to optimize most comparisons operators in WHERE and
+   HAVING clauses into constraints on SQL indexes by only accessing selected
+   rows. This is done for LIKE clauses when a common prefix for all selected
+   rows can be determined in the search pattern (e.g., ... LIKE 'Joe%').
+   However, this optimization is not yet available if the ESCAPE keyword is
+   also used.
+
+   Tracking GitHub Issue
+
+  Using SQLAlchemy with CockroachDB
+
+   Users of the SQLAlchemy adapter provided by Cockroach Labs must upgrade
+   the adapter to the latest release before upgrading to CockroachDB v20.2.
+
+  Admin UI: CPU percentage calculation
+
+   For multi-core systems, the user CPU percent can be greater than 100%.
+   Full utilization of one core is considered as 100% CPU usage. If you have
+   n cores, then the user CPU percent can range from 0% (indicating an idle
+   system) to (n*100)% (indicating full utilization).
+
+   Tracking GitHub Issue
+
+  Admin UI: CPU count in containerized environments
+
+   When CockroachDB is run in a containerized environment (e.g., Kubernetes),
+   the Admin UI does not detect CPU limits applied to a container. Instead,
+   the UI displays the actual number of CPUs provisioned on a VM.
+
+   Tracking GitHub Issue
+
+  TRUNCATE does not behave like DELETE
+
+   TRUNCATE is not a DML statement, but instead works as a DDL statement. Its
+   limitations are the same as other DDL statements, which are outlined in
+   Online Schema Changes: Limitations
+
+   Tracking GitHub Issue
+
+  DISTINCT operations cannot operate over JSON values
+
+   CockroachDB does not currently key-encode JSON values, which prevents
+   DISTINCT filters from working on them.
+
+   As a workaround, you can return the JSON field's values to a string using
+   the ->> operator, e.g., SELECT DISTINCT col->>'field'....
+
+   Tracking GitHub Issue
+
+  Current sequence value not checked when updating min/max value
+
+   Altering the minimum or maximum value of a series does not check the
+   current value of a series. This means that it is possible to silently set
+   the maximum to a value less than, or a minimum value greater than, the
+   current value.
+
+   Tracking GitHub Issue
+
+  Using default_int_size session variable in batch of statements
+
+   When setting the default_int_size session variable in a batch of
+   statements such as SET default_int_size='int4'; SELECT 1::IN, the
+   default_int_size variable will not take affect until the next statement.
+   This happens because statement parsing takes place asynchronously from
+   statement execution.
+
+   As a workaround, set default_int_size via your database driver, or ensure
+   that SET default_int_size is in its own statement.
+
+   Tracking GitHub Issue
+
+  Importing data using the PostgreSQL COPY protocol
+
+   Currently, the built-in SQL shell provided with CockroachDB (cockroach sql
+   / cockroach demo) does not support importing data using the COPY
+   statement. Users can use the psql client command provided with PostgreSQL
+   to load this data into CockroachDB instead. For details, see Import from
+   generic SQL dump.
+
+   Tracking GitHub Issue
+
+  Dumping a table with no user-visible columns
+
+   It is not currently possible to use cockroach dump to dump the schema and
+   data of a table with no user-defined columns. See #35462 for more details.
+
+  Dumping a table with collations
+
+   When using cockroach dump to dump the data of a table containing
+   collations, the resulting INSERTs do not include the relevant collation
+   clauses. For example:
+
+   copy
+
+ $ cockroach start-single-node --insecure
+
+   copy
+
+ $ cockroach sql --insecure
+
+   copy
+
+ > CREATE TABLE de_names (name STRING COLLATE de PRIMARY KEY);
+
+   copy
+
+ > INSERT INTO de_names VALUES
+     ('Backhaus' COLLATE de),
+     ('Bär' COLLATE de),
+     ('Baz' COLLATE de)
+   ;
+
+   copy
+
+ > q
+
+   copy
+
+ $ cockroach dump defaultdb de_names --insecure > dump.sql
+
+   copy
+
+ $ cat dump.sql
+
+ CREATE TABLE de_names (
+     name STRING COLLATE de NOT NULL,
+     CONSTRAINT "primary" PRIMARY KEY (name ASC),
+     FAMILY "primary" (name)
+ );
+
+ INSERT INTO de_names (name) VALUES
+     ('Backhaus'),
+     (e'B\u00E4r'),
+     ('Baz');
+
+   Tracking GitHub Issue
+
+  Import with a high amount of disk contention
+
+   IMPORT can sometimes fail with a "context canceled" error, or can restart
+   itself many times without ever finishing. If this is happening, it is
+   likely due to a high amount of disk contention. This can be mitigated by
+   setting the kv.bulk_io_write.max_rate cluster setting to a value below
+   your max disk write speed. For example, to set it to 10MB/s, execute:
+
+   copy
+
+ > SET CLUSTER SETTING kv.bulk_io_write.max_rate = '10MB';
+
+  Assigning latitude/longitude for the Node Map
+
+   You cannot assign latitude/longitude coordinates to localities if the
+   components of your localities have the same name. For example, consider
+   the following partial configuration:
+
+   Node  Region  Datacenter   
+   Node1 us-east datacenter-1 
+   Node2 us-west datacenter-1 
+
+   In this case, if you try to set the latitude/longitude coordinates to the
+   datacenter level of the localities, you will get the "primary key exists"
+   error and the Node Map will not be displayed. You can, however, set the
+   latitude/longitude coordinates to the region components of the localities,
+   and the Node Map will be displayed.
+
+  Placeholders in PARTITION BY
+
+   When defining a table partition, either during table creation or table
+   alteration, it is not possible to use placeholders in the PARTITION BY
+   clause.
+
+  Adding a column with sequence-based DEFAULT values
+
+   It is currently not possible to add a column to a table when the column
+   uses a sequence as the DEFAULT value, for example:
+
+   copy
+
+ > CREATE TABLE t (x INT);
+
+   copy
+
+ > INSERT INTO t(x) VALUES (1), (2), (3);
+
+   copy
+
+ > CREATE SEQUENCE s;
+
+   copy
+
+ > ALTER TABLE t ADD COLUMN y INT DEFAULT nextval('s');
+
+ ERROR: nextval(): unimplemented: cannot evaluate scalar expressions containing sequence operations in this context
+ SQLSTATE: 0A000
+
+   Tracking GitHub Issue
+
+  Available capacity metric in the Admin UI
+
+   If you are testing your deployment locally with multiple CockroachDB nodes
+   running on a single machine (this is not recommended in production), you
+   must explicitly set the store size per node in order to display the
+   correct capacity. Otherwise, the machine's actual disk capacity will be
+   counted as a separate store for each node, thus inflating the computed
+   capacity.
+
+  Schema changes within transactions
+
+   Within a single transaction:
+
+     * DDL statements cannot be mixed with DML statements. As a workaround,
+       you can split the statements into separate transactions. For more
+       details, see examples of unsupported statements.
+     * As of version v2.1, you can run schema changes inside the same
+       transaction as a CREATE TABLE statement. For more information, see
+       this example.
+     * A CREATE TABLE statement containing FOREIGN KEY or INTERLEAVE clauses
+       cannot be followed by statements that reference the new table.
+     * A table cannot be dropped and then recreated with the same name. This
+       is not possible within a single transaction because DROP TABLE does
+       not immediately drop the name of the table. As a workaround, split the
+       DROP TABLE and CREATE TABLE statements into separate transactions.
+     * Schema change DDL statements inside a multi-statement transaction can
+       fail while other statements succeed.
+     * As of v19.1, some schema changes can be used in combination in a
+       single ALTER TABLE statement. For a list of commands that can be
+       combined, see ALTER TABLE. For a demonstration, see Add and rename
+       columns atomically.
+   Note:
+
+   If a schema change within a transaction fails, manual intervention may be
+   needed to determine which has failed. After determining which schema
+   change(s) failed, you can then retry the schema changes.
+
+  Schema change DDL statements inside a multi-statement transaction can fail
+  while other statements succeed
+
+   Schema change DDL statements that run inside a multi-statement transaction
+   with non-DDL statements can fail at COMMIT time, even if other statements
+   in the transaction succeed. This leaves such transactions in a "partially
+   committed, partially aborted" state that may require manual intervention
+   to determine whether the DDL statements succeeded.
+
+   If such a failure occurs, CockroachDB will emit a new CockroachDB-specific
+   error code, XXA00, and the following error message:
+
+ transaction committed but schema change aborted with error: <description of error>
+ HINT: Some of the non-DDL statements may have committed successfully, but some of the DDL statement(s) failed.
+ Manual inspection may be required to determine the actual state of the database.
+
+   Note:
+
+   This limitation exists in versions of CockroachDB prior to 19.2. In these
+   older versions, CockroachDB returned the Postgres error code 40003,
+   "statement completion unknown".
+
+   Warning:
+
+   If you must execute schema change DDL statements inside a multi-statement
+   transaction, we strongly recommend checking for this error code and
+   handling it appropriately every time you execute such transactions.
+
+   This error will occur in various scenarios, including but not limited to:
+
+     * Creating a unique index fails because values aren't unique.
+     * The evaluation of a computed value fails.
+     * Adding a constraint (or a column with a constraint) fails because the
+       constraint is violated for the default/computed values in the column.
+
+   To see an example of this error, start by creating the following table.
+
+   copy
+
+ CREATE TABLE T(x INT);
+ INSERT INTO T(x) VALUES (1), (2), (3);
+
+   Then, enter the following multi-statement transaction, which will trigger
+   the error.
+
+   copy
+
+ BEGIN;
+ ALTER TABLE t ADD CONSTRAINT unique_x UNIQUE(x);
+ INSERT INTO T(x) VALUES (3);
+ COMMIT;
+
+ pq: transaction committed but schema change aborted with error: (23505): duplicate key value (x)=(3) violates unique constraint "unique_x"
+ HINT: Some of the non-DDL statements may have committed successfully, but some of the DDL statement(s) failed.
+ Manual inspection may be required to determine the actual state of the database.
+
+   In this example, the INSERT statement committed, but the ALTER TABLE
+   statement adding a UNIQUE constraint failed. We can verify this by looking
+   at the data in table t and seeing that the additional non-unique value 3
+   was successfully inserted.
+
+   copy
+
+ SELECT * FROM t;
+
+   x
+ +---+
+   1
+   2
+   3
+   3
+ (4 rows)
+
+  Schema changes between executions of prepared statements
+
+   When the schema of a table targeted by a prepared statement changes before
+   the prepared statement is executed, CockroachDB allows the prepared
+   statement to return results based on the changed table schema, for
+   example:
+
+   copy
+
+ > CREATE TABLE users (id INT PRIMARY KEY);
+
+   copy
+
+ > PREPARE prep1 AS SELECT * FROM users;
+
+   copy
+
+ > ALTER TABLE users ADD COLUMN name STRING;
+
+   copy
+
+ > INSERT INTO users VALUES (1, 'Max Roach');
+
+   copy
+
+ > EXECUTE prep1;
+
+ +----+-----------+
+ | id |   name    |
+ +----+-----------+
+ |  1 | Max Roach |
+ +----+-----------+
+ (1 row)
+
+   It's therefore recommended to not use SELECT * in queries that will be
+   repeated, via prepared statements or otherwise.
+
+   Also, a prepared INSERT, UPSERT, or DELETE statement acts inconsistently
+   when the schema of the table being written to is changed before the
+   prepared statement is executed:
+
+     * If the number of columns has increased, the prepared statement returns
+       an error but nonetheless writes the data.
+     * If the number of columns remains the same but the types have changed,
+       the prepared statement writes the data and does not return an error.
+
+  INSERT ON CONFLICT vs. UPSERT
+
+   When inserting/updating all columns of a table, and the table has no
+   secondary indexes, we recommend using an UPSERT statement instead of the
+   equivalent INSERT ON CONFLICT statement. Whereas INSERT ON CONFLICT always
+   performs a read to determine the necessary writes, the UPSERT statement
+   writes without reading, making it faster.
+
+   This issue is particularly relevant when using a simple SQL table of two
+   columns to simulate direct KV access. In this case, be sure to use the
+   UPSERT statement.
+
+  Using \| to perform a large input in the SQL shell
+
+   In the built-in SQL shell, using the \| operator to perform a large number
+   of inputs from a file can cause the server to close the connection. This
+   is because \| sends the entire file as a single query to the server, which
+   can exceed the upper bound on the size of a packet the server can accept
+   from any client (16MB).
+
+   As a workaround, execute the file from the command line with cat data.sql
+   | cockroach sql instead of from within the interactive shell.
+
+  New values generated by DEFAULT expressions during ALTER TABLE ADD COLUMN
+
+   When executing an ALTER TABLE ADD COLUMN statement with a DEFAULT
+   expression, new values generated:
+
+     * use the default search path regardless of the search path configured
+       in the current session via SET SEARCH_PATH.
+     * use the UTC time zone regardless of the time zone configured in the
+       current session via SET TIME ZONE.
+     * have no default database regardless of the default database configured
+       in the current session via SET DATABASE, so you must specify the
+       database of any tables they reference.
+     * use the transaction timestamp for the statement_timestamp() function
+       regardless of the time at which the ALTER statement was issued.
+
+  Load-based lease rebalancing in uneven latency deployments
+
+   When nodes are started with the --locality flag, CockroachDB attempts to
+   place the replica lease holder (the replica that client requests are
+   forwarded to) on the node closest to the source of the request. This means
+   as client requests move geographically, so too does the replica lease
+   holder.
+
+   However, you might see increased latency caused by a consistently high
+   rate of lease transfers between datacenters in the following case:
+
+     * Your cluster runs in datacenters which are very different distances
+       away from each other.
+     * Each node was started with a single tier of --locality, e.g.,
+       --locality=datacenter=a.
+     * Most client requests get sent to a single datacenter because that's
+       where all your application traffic is.
+
+   To detect if this is happening, open the Admin UI, select the Queues
+   dashboard, hover over the Replication Queue graph, and check the Leases
+   Transferred / second data point. If the value is consistently larger than
+   0, you should consider stopping and restarting each node with additional
+   tiers of locality to improve request latency.
+
+   For example, let's say that latency is 10ms from nodes in datacenter A to
+   nodes in datacenter B but is 100ms from nodes in datacenter A to nodes in
+   datacenter C. To ensure A's and B's relative proximity is factored into
+   lease holder rebalancing, you could restart the nodes in datacenter A and
+   B with a common region, --locality=region=foo,datacenter=a and
+   --locality=region=foo,datacenter=b, while restarting nodes in datacenter C
+   with a different region, --locality=region=bar,datacenter=c.
+
+  Overload resolution for collated strings
+
+   Many string operations are not properly overloaded for collated strings,
+   for example:
+
+   copy
+
+ > SELECT 'string1' || 'string2';
+
+ +------------------------+
+ | 'string1' || 'string2' |
+ +------------------------+
+ | string1string2         |
+ +------------------------+
+ (1 row)
+
+   copy
+
+ > SELECT ('string1' collate en) || ('string2' collate en);
+
+ pq: unsupported binary operator: <collatedstring{en}> || <collatedstring{en}>
+
+   Tracking GitHub Issue
+
+  Max size of a single column family
+
+   When creating or updating a row, if the combined size of all values in a
+   single column family exceeds the max range size (512 MiB by default) for
+   the table, the operation may fail, or cluster performance may suffer.
+
+   As a workaround, you can either manually split a table's columns into
+   multiple column families, or you can create a table-specific zone
+   configuration with an increased max range size.
+
+  Simultaneous client connections and running queries on a single node
+
+   When a node has both a high number of client connections and running
+   queries, the node may crash due to memory exhaustion. This is due to
+   CockroachDB not accurately limiting the number of clients and queries
+   based on the amount of available RAM on the node.
+
+   To prevent memory exhaustion, monitor each node's memory usage and ensure
+   there is some margin between maximum CockroachDB memory usage and
+   available system RAM. For more details about memory usage in CockroachDB,
+   see this blog post.
+
+  SQL subexpressions and memory usage
+
+   Many SQL subexpressions (e.g., ORDER BY, UNION/INTERSECT/EXCEPT, GROUP BY,
+   subqueries) accumulate intermediate results in RAM on the node processing
+   the query. If the operator attempts to process more rows than can fit into
+   RAM, the node will either crash or report a memory capacity error. For
+   more details about memory usage in CockroachDB, see this blog post.
+
+  Query planning for OR expressions
+
+   Given a query like SELECT * FROM foo WHERE a > 1 OR b > 2, even if there
+   are appropriate indexes to satisfy both a > 1 and b > 2, the query planner
+   performs a full table or index scan because it cannot use both conditions
+   at once.
+
+  Privileges for DELETE and UPDATE
+
+   Every DELETE or UPDATE statement constructs a SELECT statement, even when
+   no WHERE clause is involved. As a result, the user executing DELETE or
+   UPDATE requires both the DELETE and SELECT or UPDATE and SELECT privileges
+   on the table.
+
+  Correlated common table expressions
+
+   CockroachDB does not support correlated common table expressions. This
+   means that a CTE cannot refer to a variable defined outside the scope of
+   that CTE.
+
+   For example, the following query returns an error:
+
+   copy
+
+ > SELECT * FROM users
+   WHERE id =
+     (WITH rides_home AS
+       (SELECT revenue FROM rides
+        WHERE end_address = address)
+      SELECT rider_id FROM rides_home);
+
+ ERROR: CTEs may not be correlated
+ SQLSTATE: 0A000
+
+   This query returns an error because the WITH rides_home clause references
+   a column (address) returned by the SELECT statement at the top level of
+   the query, outside the rides_home CTE definition.
+
+   For details, see the tracking issue: cockroachdb/cockroach#42540.
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

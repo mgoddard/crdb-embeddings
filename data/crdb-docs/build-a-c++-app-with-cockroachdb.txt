@@ -1,0 +1,561 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                  Build a C++ App with CockroachDB and libpqxx
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   This tutorial shows you how build a simple C++ application with
+   CockroachDB and the C++ libpqxx driver.
+
+   We have tested the C++ libpqxx driver enough to claim beta-level support.
+   If you encounter problems, please open an issue with details to help us
+   make progress toward full support.
+
+Before you begin
+
+    1. Install CockroachDB.
+    2. Start up a secure or insecure local cluster.
+    3. Choose the instructions that correspond to whether your cluster is
+       secure or insecure:
+   Secure Insecure
+
+Step 1. Install the libpqxx driver
+
+   Install the C++ libpqxx driver as described in the official documentation.
+
+   Note:
+
+   If you are running macOS, you need to install version 4.0.1 or higher of
+   the libpqxx driver.
+
+Step 2. Create the maxroach user and bank database
+
+   Start the built-in SQL shell:
+
+   copy
+
+ $ cockroach sql --certs-dir=certs
+
+   In the SQL shell, issue the following statements to create the maxroach
+   user and bank database:
+
+   copy
+
+ > CREATE USER IF NOT EXISTS maxroach;
+
+   copy
+
+ > CREATE DATABASE bank;
+
+   Give the maxroach user the necessary permissions:
+
+   copy
+
+ > GRANT ALL ON DATABASE bank TO maxroach;
+
+   Exit the SQL shell:
+
+   copy
+
+ > \q
+
+Step 3. Generate a certificate for the maxroach user
+
+   Create a certificate and key for the maxroach user by running the
+   following command. The code samples will run as this user.
+
+   copy
+
+ $ cockroach cert create-client maxroach --certs-dir=certs --ca-key=my-safe-directory/ca.key
+
+Step 4. Run the C++ code
+
+   Now that you have a database and a user, you'll run code to create a table
+   and insert some rows, and then you'll run code to read and update values
+   as an atomic transaction.
+
+  Basic statements
+
+   First, use the following code to connect as the maxroach user and execute
+   some basic SQL statements, creating a table, inserting rows, and reading
+   and printing the rows.
+
+   Download the basic-sample.cpp file, or create the file yourself and copy
+   the code into it.
+
+   copy
+
+ #include <cassert>
+ #include <functional>
+ #include <iostream>
+ #include <stdexcept>
+ #include <string>
+ #include <pqxx/pqxx>
+ using namespace std;
+
+ int main() {
+   try {
+     // Connect to the "bank" database.
+     pqxx::connection c("dbname=bank user=maxroach sslmode=require sslkey=certs/client.maxroach.key sslcert=certs/client.maxroach.crt port=26257 host=localhost");
+
+     pqxx::nontransaction w(c);
+
+     // Create the "accounts" table.
+     w.exec("CREATE TABLE IF NOT EXISTS accounts (id INT PRIMARY KEY, balance INT)");
+
+     // Insert two rows into the "accounts" table.
+     w.exec("INSERT INTO accounts (id, balance) VALUES (1, 1000), (2, 250)");
+
+     // Print out the balances.
+     cout << "Initial balances:" << endl;
+     pqxx::result r = w.exec("SELECT id, balance FROM accounts");
+     for (auto row : r) {
+       cout << row[0].as<int>() << ' ' << row[1].as<int>() << endl;
+     }
+
+     w.commit();  // Note this doesn't doesn't do anything
+                  // for a nontransaction, but is still required.
+   }
+   catch (const exception &e) {
+     cerr << e.what() << endl;
+     return 1;
+   }
+   cout << "Success" << endl;
+   return 0;
+ }
+
+
+   To build the basic-sample.cpp source code to an executable file named
+   basic-sample, run the following command from the directory that contains
+   the code:
+
+   copy
+
+ $ g++ -std=c++11 basic-sample.cpp -lpq -lpqxx -o basic-sample
+
+   Then run the basic-sample file from that directory:
+
+   copy
+
+ $ ./basic-sample
+
+  Transaction (with retry logic)
+
+   Next, use the following code to again connect as the maxroach user but
+   this time execute a batch of statements as an atomic transaction to
+   transfer funds from one account to another, where all included statements
+   are either committed or aborted.
+
+   Note:
+
+   CockroachDB may require the client to retry a transaction in case of
+   read/write contention. CockroachDB provides a generic retry function that
+   runs inside a transaction and retries it as needed. You can copy and paste
+   the retry function from here into your code.
+
+   Download the txn-sample.cpp file, or create the file yourself and copy the
+   code into it.
+
+   copy
+
+ #include <cassert>
+ #include <functional>
+ #include <iostream>
+ #include <stdexcept>
+ #include <string>
+ #include <pqxx/pqxx>
+ using namespace std;
+
+ void transferFunds(
+     pqxx::dbtransaction *tx, int from, int to, int amount) {
+   // Read the balance.
+   pqxx::result r = tx->exec(
+       "SELECT balance FROM accounts WHERE id = " + to_string(from));
+   assert(r.size() == 1);
+   int fromBalance = r[0][0].as<int>();
+
+   if (fromBalance < amount) {
+     throw domain_error("insufficient funds");
+   }
+
+   // Perform the transfer.
+   tx->exec("UPDATE accounts SET balance = balance - "
+       + to_string(amount) + " WHERE id = " + to_string(from));
+   tx->exec("UPDATE accounts SET balance = balance + "
+       + to_string(amount) + " WHERE id = " + to_string(to));
+ }
+
+
+ // ExecuteTx runs fn inside a transaction and retries it as needed.
+ // On non-retryable failures, the transaction is aborted and rolled
+ // back; on success, the transaction is committed.
+ //
+ // For more information about CockroachDB's transaction model see
+ // https://cockroachlabs.com/docs/transactions.html.
+ //
+ // NOTE: the supplied exec closure should not have external side
+ // effects beyond changes to the database.
+ void executeTx(
+     pqxx::connection *c, function<void (pqxx::dbtransaction *tx)> fn) {
+   pqxx::work tx(*c);
+   while (true) {
+     try {
+       pqxx::subtransaction s(tx, "cockroach_restart");
+       fn(&s);
+       s.commit();
+       break;
+     } catch (const pqxx::pqxx_exception& e) {
+       // Swallow "transaction restart" errors; the transaction will be retried.
+       // Unfortunately libpqxx doesn't give us access to the error code, so we
+       // do string matching to identify retryable errors.
+       if (string(e.base().what()).find("restart transaction:") == string::npos) {
+         throw;
+       }
+     }
+   }
+   tx.commit();
+ }
+
+ int main() {
+   try {
+     pqxx::connection c("dbname=bank user=maxroach sslmode=require sslkey=certs/client.maxroach.key sslcert=certs/client.maxroach.crt port=26257 host=localhost");
+
+     executeTx(&c, [](pqxx::dbtransaction *tx) {
+           transferFunds(tx, 1, 2, 100);
+       });
+   }
+   catch (const exception &e) {
+     cerr << e.what() << endl;
+     return 1;
+   }
+   cout << "Success" << endl;
+   return 0;
+ }
+
+
+   To build the txn-sample.cpp source code to an executable file named
+   txn-sample, run the following command from the directory that contains the
+   code:
+
+   copy
+
+ $ g++ -std=c++11 txn-sample.cpp -lpq -lpqxx -o txn-sample
+
+   Then run the txn-sample file from that directory:
+
+   copy
+
+ $ ./txn-sample
+
+   After running the code, use the built-in SQL client to verify that funds
+   were transferred from one account to another:
+
+   copy
+
+ $ cockroach sql --certs-dir=certs -e 'SELECT id, balance FROM accounts' --database=bank
+
+ id | balance
+ +----+---------+
+  1 |     900
+  2 |     350
+ (2 rows)
+
+Step 2. Create the maxroach user and bank database
+
+   Start the built-in SQL shell:
+
+   copy
+
+ $ cockroach sql --insecure
+
+   In the SQL shell, issue the following statements to create the maxroach
+   user and bank database:
+
+   copy
+
+ > CREATE USER IF NOT EXISTS maxroach;
+
+   copy
+
+ > CREATE DATABASE bank;
+
+   Give the maxroach user the necessary permissions:
+
+   copy
+
+ > GRANT ALL ON DATABASE bank TO maxroach;
+
+   Exit the SQL shell:
+
+   copy
+
+ > \q
+
+Step 3. Run the C++ code
+
+   Now that you have a database and a user, you'll run code to create a table
+   and insert some rows, and then you'll run code to read and update values
+   as an atomic transaction.
+
+  Basic statements
+
+   First, use the following code to connect as the maxroach user and execute
+   some basic SQL statements, creating a table, inserting rows, and reading
+   and printing the rows.
+
+   Download the basic-sample.cpp file, or create the file yourself and copy
+   the code into it.
+
+   copy
+
+ #include <cassert>
+ #include <functional>
+ #include <iostream>
+ #include <stdexcept>
+ #include <string>
+ #include <pqxx/pqxx>
+ using namespace std;
+
+ int main() {
+   try {
+     // Connect to the "bank" database.
+     pqxx::connection c("postgresql://maxroach@localhost:26257/bank");
+
+     pqxx::nontransaction w(c);
+
+     // Create the "accounts" table.
+     w.exec("CREATE TABLE IF NOT EXISTS accounts (id INT PRIMARY KEY, balance INT)");
+
+     // Insert two rows into the "accounts" table.
+     w.exec("INSERT INTO accounts (id, balance) VALUES (1, 1000), (2, 250)");
+
+     // Print out the balances.
+     cout << "Initial balances:" << endl;
+     pqxx::result r = w.exec("SELECT id, balance FROM accounts");
+     for (auto row : r) {
+       cout << row[0].as<int>() << ' ' << row[1].as<int>() << endl;
+     }
+
+     w.commit();  // Note this doesn't doesn't do anything
+                  // for a nontransaction, but is still required.
+   }
+   catch (const exception &e) {
+     cerr << e.what() << endl;
+     return 1;
+   }
+   cout << "Success" << endl;
+   return 0;
+ }
+
+
+   To build the basic-sample.cpp source code to an executable file named
+   basic-sample, run the following command from the directory that contains
+   the code:
+
+   copy
+
+ $ g++ -std=c++11 basic-sample.cpp -lpq -lpqxx -o basic-sample
+
+   Then run the basic-sample file from that directory:
+
+   copy
+
+ $ ./basic-sample
+
+  Transaction (with retry logic)
+
+   Next, use the following code to again connect as the maxroach user but
+   this time execute a batch of statements as an atomic transaction to
+   transfer funds from one account to another, where all included statements
+   are either committed or aborted.
+
+   Note:
+
+   CockroachDB may require the client to retry a transaction in case of
+   read/write contention. CockroachDB provides a generic retry function that
+   runs inside a transaction and retries it as needed. You can copy and paste
+   the retry function from here into your code.
+
+   Download the txn-sample.cpp file, or create the file yourself and copy the
+   code into it.
+
+   copy
+
+ #include <cassert>
+ #include <functional>
+ #include <iostream>
+ #include <stdexcept>
+ #include <string>
+ #include <pqxx/pqxx>
+ using namespace std;
+
+ void transferFunds(
+     pqxx::dbtransaction *tx, int from, int to, int amount) {
+   // Read the balance.
+   pqxx::result r = tx->exec(
+       "SELECT balance FROM accounts WHERE id = " + to_string(from));
+   assert(r.size() == 1);
+   int fromBalance = r[0][0].as<int>();
+
+   if (fromBalance < amount) {
+     throw domain_error("insufficient funds");
+   }
+
+   // Perform the transfer.
+   tx->exec("UPDATE accounts SET balance = balance - "
+       + to_string(amount) + " WHERE id = " + to_string(from));
+   tx->exec("UPDATE accounts SET balance = balance + "
+       + to_string(amount) + " WHERE id = " + to_string(to));
+ }
+
+
+ // ExecuteTx runs fn inside a transaction and retries it as needed.
+ // On non-retryable failures, the transaction is aborted and rolled
+ // back; on success, the transaction is committed.
+ //
+ // For more information about CockroachDB's transaction model see
+ // https://cockroachlabs.com/docs/transactions.html.
+ //
+ // NOTE: the supplied exec closure should not have external side
+ // effects beyond changes to the database.
+ void executeTx(
+     pqxx::connection *c, function<void (pqxx::dbtransaction *tx)> fn) {
+   pqxx::work tx(*c);
+   while (true) {
+     try {
+       pqxx::subtransaction s(tx, "cockroach_restart");
+       fn(&s);
+       s.commit();
+       break;
+     } catch (const pqxx::pqxx_exception& e) {
+       // Swallow "transaction restart" errors; the transaction will be retried.
+       // Unfortunately libpqxx doesn't give us access to the error code, so we
+       // do string matching to identify retryable errors.
+       if (string(e.base().what()).find("restart transaction:") == string::npos) {
+         throw;
+       }
+     }
+   }
+   tx.commit();
+ }
+
+ int main() {
+   try {
+     pqxx::connection c("postgresql://maxroach@localhost:26257/bank");
+
+     executeTx(&c, [](pqxx::dbtransaction *tx) {
+           transferFunds(tx, 1, 2, 100);
+       });
+   }
+   catch (const exception &e) {
+     cerr << e.what() << endl;
+     return 1;
+   }
+   cout << "Success" << endl;
+   return 0;
+ }
+
+
+   To build the txn-sample.cpp source code to an executable file named
+   txn-sample, run the following command from the directory that contains the
+   code:
+
+   copy
+
+ $ g++ -std=c++11 txn-sample.cpp -lpq -lpqxx -o txn-sample
+
+   Then run the txn-sample file from that directory:
+
+   copy
+
+ $ ./txn-sample
+
+   After running the code, use the built-in SQL client to verify that funds
+   were transferred from one account to another:
+
+   copy
+
+ $ cockroach sql --insecure -e 'SELECT id, balance FROM accounts' --database=bank
+
+ id | balance
+ +----+---------+
+  1 |     900
+  2 |     350
+ (2 rows)
+
+What's next?
+
+   Read more about using the C++ libpqxx driver.
+
+   You might also be interested in the following pages:
+
+     * Client Connection Parameters
+     * Data Replication
+     * Fault Tolerance & Recovery
+     * Automatic Rebalancing
+     * Cross-Cloud Migration
+     * Follow-the-Workload
+     * Automated Operations
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

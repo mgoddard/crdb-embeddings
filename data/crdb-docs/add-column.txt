@@ -1,0 +1,379 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                   ADD COLUMN
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The ADD COLUMN statement is part of ALTER TABLE and adds columns to
+   tables.
+
+   Tip:
+
+   This command can be combined with other ALTER TABLE commands in a single
+   statement. For a list of commands that can be combined, see ALTER TABLE.
+   For a demonstration, see Add and rename columns atomically.
+
+Synopsis
+
+   ALTER TABLE IF EXISTS table_name ADD COLUMN IF NOT EXISTS column_name
+   typename col_qualification
+
+Required privileges
+
+   The user must have the CREATE privilege on the table.
+
+Parameters
+
+   Parameter         Description                                              
+   table_name        The name of the table to which you want to add the       
+                     column.                                                  
+                     The name of the column you want to add. The column name  
+   column_name       must follow these identifier rules and must be unique    
+                     within the table but can have the same name as indexes   
+                     or constraints.                                          
+   typename          The data type of the new column.                         
+                     An optional list of column definitions, which may        
+                     include column-level constraints, collation, or column   
+                     family assignments.                                      
+   col_qualification                                                          
+                     If the column family is not specified, the column will   
+                     be added to the first column family. For more            
+                     information about how column families are assigned, see  
+                     Column Families.                                         
+
+Viewing schema changes
+
+   This schema change statement is registered as a job. You can view
+   long-running jobs with SHOW JOBS.
+
+Examples
+
+  Setup
+
+   The following examples use the bank demo database schema.
+
+   To follow along, run cockroach demo bank to start a temporary, in-memory
+   cluster with the bank schema and dataset preloaded:
+
+   copy
+
+ $ cockroach demo bank
+
+  Add a single column
+
+   copy
+
+ > ALTER TABLE bank ADD COLUMN active BOOL;
+
+   copy
+
+ > SHOW COLUMNS FROM bank;
+
+   column_name | data_type | is_nullable | column_default | generation_expression |  indices  | is_hidden
+ --------------+-----------+-------------+----------------+-----------------------+-----------+------------
+   id          | INT8      |    false    | NULL           |                       | {primary} |   false
+   balance     | INT8      |    true     | NULL           |                       | {}        |   false
+   payload     | STRING    |    true     | NULL           |                       | {}        |   false
+   active      | BOOL      |    true     | NULL           |                       | {}        |   false
+ (4 rows)
+
+  Add multiple columns
+
+   copy
+
+ > ALTER TABLE bank ADD COLUMN location STRING, ADD COLUMN currency STRING;
+
+   copy
+
+ > SHOW COLUMNS FROM bank;
+
+   column_name | data_type | is_nullable | column_default | generation_expression |  indices  | is_hidden
+ --------------+-----------+-------------+----------------+-----------------------+-----------+------------
+   id          | INT8      |    false    | NULL           |                       | {primary} |   false
+   balance     | INT8      |    true     | NULL           |                       | {}        |   false
+   payload     | STRING    |    true     | NULL           |                       | {}        |   false
+   active      | BOOL      |    true     | NULL           |                       | {}        |   false
+   location    | STRING    |    true     | NULL           |                       | {}        |   false
+   currency    | STRING    |    true     | NULL           |                       | {}        |   false
+ (6 rows)
+
+  Add a column with a NOT NULL constraint and a DEFAULT value
+
+   copy
+
+ > ALTER TABLE bank ADD COLUMN interest DECIMAL NOT NULL DEFAULT (DECIMAL '1.3');
+
+   copy
+
+ > SHOW COLUMNS FROM bank;
+
+   column_name | data_type | is_nullable |     column_default     | generation_expression |  indices  | is_hidden
+ --------------+-----------+-------------+------------------------+-----------------------+-----------+------------
+   id          | INT8      |    false    | NULL                   |                       | {primary} |   false
+   balance     | INT8      |    true     | NULL                   |                       | {}        |   false
+   payload     | STRING    |    true     | NULL                   |                       | {}        |   false
+   active      | BOOL      |    true     | NULL                   |                       | {}        |   false
+   location    | STRING    |    true     | NULL                   |                       | {}        |   false
+   currency    | STRING    |    true     | NULL                   |                       | {}        |   false
+   interest    | DECIMAL   |    false    | 1.3:::DECIMAL::DECIMAL |                       | {}        |   false
+ (7 rows)
+
+  Add a column with a UNIQUE constraint
+
+   copy
+
+ > ALTER TABLE bank ADD COLUMN address STRING UNIQUE;
+
+   copy
+
+ > SHOW COLUMNS FROM bank;
+
+   column_name | data_type | is_nullable |     column_default     | generation_expression |          indices           | is_hidden
+ --------------+-----------+-------------+------------------------+-----------------------+----------------------------+------------
+   id          | INT8      |    false    | NULL                   |                       | {primary,bank_address_key} |   false
+   balance     | INT8      |    true     | NULL                   |                       | {}                         |   false
+   payload     | STRING    |    true     | NULL                   |                       | {}                         |   false
+   active      | BOOL      |    true     | NULL                   |                       | {}                         |   false
+   location    | STRING    |    true     | NULL                   |                       | {}                         |   false
+   currency    | STRING    |    true     | NULL                   |                       | {}                         |   false
+   interest    | DECIMAL   |    false    | 1.3:::DECIMAL::DECIMAL |                       | {}                         |   false
+   address     | STRING    |    true     | NULL                   |                       | {bank_address_key}         |   false
+ (8 rows)
+
+  New in v20.2: Add a column with a FOREIGN KEY constraint
+
+   copy
+
+ > CREATE TABLE customers (
+   id INT PRIMARY KEY,
+   name STRING
+ );
+
+   copy
+
+ > ALTER TABLE bank ADD COLUMN cust_number INT REFERENCES customers(id);
+
+   copy
+
+ > SHOW COLUMNS FROM bank;
+
+   column_name | data_type | is_nullable | column_default | generation_expression |          indices           | is_hidden
+ --------------+-----------+-------------+----------------+-----------------------+----------------------------+------------
+   id          | INT8      |    false    | NULL           |                       | {primary,bank_address_key} |   false
+   balance     | INT8      |    true     | NULL           |                       | {}                         |   false
+   payload     | STRING    |    true     | NULL           |                       | {}                         |   false
+   active      | BOOL      |    true     | NULL           |                       | {}                         |   false
+   location    | STRING    |    true     | NULL           |                       | {}                         |   false
+   currency    | STRING    |    true     | NULL           |                       | {}                         |   false
+   interest    | DECIMAL   |    false    | 1.3:::DECIMAL  |                       | {}                         |   false
+   address     | STRING    |    true     | NULL           |                       | {bank_address_key}         |   false
+   cust_number | INT8      |    true     | NULL           |                       | {}                         |   false
+ (9 rows)
+
+   copy
+
+ > SHOW CONSTRAINTS FROM bank;
+
+   table_name |       constraint_name        | constraint_type |                      details                       | validated
+ -------------+------------------------------+-----------------+----------------------------------------------------+------------
+   bank       | bank_address_key             | UNIQUE          | UNIQUE (address ASC)                               |   true
+   bank       | fk_cust_number_ref_customers | FOREIGN KEY     | FOREIGN KEY (cust_number) REFERENCES customers(id) |   true
+   bank       | primary                      | PRIMARY KEY     | PRIMARY KEY (id ASC)                               |   true
+ (3 rows)
+
+  Add a column with collation
+
+   copy
+
+ > ALTER TABLE bank ADD COLUMN more_names STRING COLLATE en;
+
+   copy
+
+ > SHOW COLUMNS FROM bank;
+
+   column_name |     data_type     | is_nullable | column_default | generation_expression |          indices           | is_hidden
+ --------------+-------------------+-------------+----------------+-----------------------+----------------------------+------------
+   id          | INT8              |    false    | NULL           |                       | {primary,bank_address_key} |   false
+   balance     | INT8              |    true     | NULL           |                       | {}                         |   false
+   payload     | STRING            |    true     | NULL           |                       | {}                         |   false
+   active      | BOOL              |    true     | NULL           |                       | {}                         |   false
+   location    | STRING            |    true     | NULL           |                       | {}                         |   false
+   currency    | STRING            |    true     | NULL           |                       | {}                         |   false
+   interest    | DECIMAL           |    false    | 1.3:::DECIMAL  |                       | {}                         |   false
+   address     | STRING            |    true     | NULL           |                       | {bank_address_key}         |   false
+   cust_number | INT8              |    true     | NULL           |                       | {}                         |   false
+   more_names  | STRING COLLATE en |    true     | NULL           |                       | {}                         |   false
+ (10 rows)
+
+  Add a column and assign it to a column family
+
+    Add a column and assign it to a new column family
+
+   copy
+
+ > ALTER TABLE bank ADD COLUMN location1 STRING CREATE FAMILY f1;
+
+   copy
+
+ > SHOW CREATE TABLE FROM bank;
+
+   table_name |                                                          create_statement
+ -------------+--------------------------------------------------------------------------------------------------------------------------------------
+   bank       | CREATE TABLE bank (
+              |     id INT8 NOT NULL,
+              |     balance INT8 NULL,
+              |     payload STRING NULL,
+              |     active BOOL NULL,
+              |     location STRING NULL,
+              |     currency STRING NULL,
+              |     interest DECIMAL NOT NULL DEFAULT 1.3:::DECIMAL,
+              |     address STRING NULL,
+              |     cust_number INT8 NULL,
+              |     more_names STRING COLLATE en NULL,
+              |     location1 STRING NULL,
+              |     CONSTRAINT "primary" PRIMARY KEY (id ASC),
+              |     CONSTRAINT fk_cust_number_ref_customers FOREIGN KEY (cust_number) REFERENCES customers(id),
+              |     UNIQUE INDEX bank_address_key (address ASC),
+              |     FAMILY fam_0_id_balance_payload (id, balance, payload, active, location, currency, interest, address, cust_number, more_names),
+              |     FAMILY f1 (location1)
+              | )
+ (1 row)
+
+    Add a column and assign it to an existing column family
+
+   copy
+
+ > ALTER TABLE bank ADD COLUMN location2 STRING FAMILY f1;
+
+   copy
+
+ > SHOW CREATE TABLE FROM bank;
+
+   table_name |                                                          create_statement
+ -------------+--------------------------------------------------------------------------------------------------------------------------------------
+   bank       | CREATE TABLE bank (
+              |     id INT8 NOT NULL,
+              |     balance INT8 NULL,
+              |     payload STRING NULL,
+              |     active BOOL NULL,
+              |     location STRING NULL,
+              |     currency STRING NULL,
+              |     interest DECIMAL NOT NULL DEFAULT 1.3:::DECIMAL,
+              |     address STRING NULL,
+              |     cust_number INT8 NULL,
+              |     more_names STRING COLLATE en NULL,
+              |     location1 STRING NULL,
+              |     location2 STRING NULL,
+              |     CONSTRAINT "primary" PRIMARY KEY (id ASC),
+              |     CONSTRAINT fk_cust_number_ref_customers FOREIGN KEY (cust_number) REFERENCES customers(id),
+              |     UNIQUE INDEX bank_address_key (address ASC),
+              |     FAMILY fam_0_id_balance_payload (id, balance, payload, active, location, currency, interest, address, cust_number, more_names),
+              |     FAMILY f1 (location1, location2)
+              | )
+ (1 row)
+
+    Add a column and create a new column family if column family does not exist
+
+   copy
+
+ > ALTER TABLE bank ADD COLUMN new_name STRING CREATE IF NOT EXISTS FAMILY f2;
+
+   copy
+
+ > SHOW CREATE TABLE FROM bank;
+
+   table_name |                                                          create_statement
+ -------------+--------------------------------------------------------------------------------------------------------------------------------------
+   bank       | CREATE TABLE bank (
+              |     id INT8 NOT NULL,
+              |     balance INT8 NULL,
+              |     payload STRING NULL,
+              |     active BOOL NULL,
+              |     location STRING NULL,
+              |     currency STRING NULL,
+              |     interest DECIMAL NOT NULL DEFAULT 1.3:::DECIMAL,
+              |     address STRING NULL,
+              |     cust_number INT8 NULL,
+              |     more_names STRING COLLATE en NULL,
+              |     location1 STRING NULL,
+              |     location2 STRING NULL,
+              |     new_name STRING NULL,
+              |     CONSTRAINT "primary" PRIMARY KEY (id ASC),
+              |     CONSTRAINT fk_cust_number_ref_customers FOREIGN KEY (cust_number) REFERENCES customers(id),
+              |     UNIQUE INDEX bank_address_key (address ASC),
+              |     FAMILY fam_0_id_balance_payload (id, balance, payload, active, location, currency, interest, address, cust_number, more_names),
+              |     FAMILY f1 (location1, location2),
+              |     FAMILY f2 (new_name)
+              | )
+ (1 row)
+
+See also
+
+     * ALTER TABLE
+     * Column-level Constraints
+     * Collation
+     * Column Families
+     * SHOW JOBS
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

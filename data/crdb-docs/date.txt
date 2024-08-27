@@ -1,0 +1,153 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                      DATE
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The DATE data type stores a year, month, and day.
+
+Syntax
+
+   A constant value of type DATE can be expressed using an interpreted
+   literal, or a string literal annotated with type DATE or coerced to type
+   DATE.
+
+   The string format for dates is YYYY-MM-DD. For example: DATE '2016-12-23'.
+
+   CockroachDB also supports using uninterpreted string literals in contexts
+   where a DATE value is otherwise expected.
+
+   Note:
+
+   DATE values in CockroachDB are fully PostgreSQL-compatible, including
+   support for special values (e.g. +/- infinity). Existing dates outside of
+   the PostgreSQL date range (4714-11-24 BC to 5874897-12-31) are converted
+   to +/- infinity dates.
+
+Size
+
+   A DATE column supports values up to 16 bytes in width, but the total
+   storage size is likely to be larger due to CockroachDB metadata.
+
+Examples
+
+   copy
+
+ > CREATE TABLE dates (a DATE PRIMARY KEY, b INT);
+
+   copy
+
+ > SHOW COLUMNS FROM dates;
+
+ +-------------+-----------+-------------+----------------+-----------------------+-------------+
+ | column_name | data_type | is_nullable | column_default | generation_expression |   indices   |
+ +-------------+-----------+-------------+----------------+-----------------------+-------------+
+ | a           | DATE      |    false    | NULL           |                       | {"primary"} |
+ | b           | INT       |    true     | NULL           |                       | {}          |
+ +-------------+-----------+-------------+----------------+-----------------------+-------------+
+ (2 rows)
+
+   Explicitly typed DATE literal:
+   copy
+
+ > INSERT INTO dates VALUES (DATE '2016-03-26', 12345);
+
+   String literal implicitly typed as DATE:
+   copy
+
+ > INSERT INTO dates VALUES ('2016-03-27', 12345);
+
+   copy
+
+ > SELECT * FROM dates;
+
+ +---------------------------+-------+
+ |             a             |   b   |
+ +---------------------------+-------+
+ | 2016-03-26 00:00:00+00:00 | 12345 |
+ | 2016-03-27 00:00:00+00:00 | 12345 |
+ +---------------------------+-------+
+
+Supported casting and conversion
+
+   DATE values can be cast to any of the following data types:
+
+   Type      Details                                                          
+             Converts to number of days since the Unix epoch (Jan. 1, 1970).  
+   DECIMAL   This is a CockroachDB experimental feature which may be changed  
+             without notice.                                                  
+             Converts to number of days since the Unix epoch (Jan. 1, 1970).  
+   FLOAT     This is a CockroachDB experimental feature which may be changed  
+             without notice.                                                  
+   TIMESTAMP Sets the time to 00:00 (midnight) in the resulting timestamp.    
+             Converts to number of days since the Unix epoch (Jan. 1, 1970).  
+   INT       This is a CockroachDB experimental feature which may be changed  
+             without notice.                                                  
+   STRING    ––                                                               
+
+See also
+
+   Data Types
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

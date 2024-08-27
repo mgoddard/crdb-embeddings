@@ -1,0 +1,134 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                 File an Issue
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   If you've tried to troubleshoot an issue yourself, have reached out for
+   help, and are still stumped, you can file an issue in GitHub.
+
+   To file an issue in GitHub, we need the following information:
+
+    1. A summary of the issue.
+
+    2. The steps to reproduce the issue.
+
+    3. The result you expected.
+
+    4. The result that actually occurred.
+
+    5. The first few lines of the log file from each node in the cluster in a
+       timeframe as close as possible to reproducing the issue. On most
+       Unix-based systems running with defaults, you can get this information
+       using the following command:
+
+       copy
+
+ $ grep -F '[config]' cockroach-data/logs/cockroach.log
+
+       Note:
+       You might need to replace cockroach-data/logs with the location of
+       your logs.
+
+       If the logs are not available, please include the output of cockroach
+       version for each node in the cluster.
+
+  Template
+
+   You can use this as a template for filing an issue in GitHub:
+
+ ## Summary
+
+
+
+ ## Steps to reproduce
+
+ 1.
+ 2.
+ 3.
+
+ ## Expected Result
+
+
+
+ ## Actual Result
+
+
+
+ ## Log files/version
+
+ ### Node 1
+
+
+
+ ### Node 2
+
+
+
+ ### Node 3
+
+
+
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

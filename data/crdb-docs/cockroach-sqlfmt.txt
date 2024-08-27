@@ -1,0 +1,203 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                cockroach sqlfmt
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The cockroach sqlfmt command changes the textual formatting of one or more
+   SQL queries. It recognizes all SQL extensions supported by CockroachDB.
+
+   A web interface to this feature is also available.
+
+   Warning:
+
+   This is an experimental feature. The interface and output are subject to
+   change.
+
+Synopsis
+
+   Use the query formatter interactively:
+
+ $ cockroach sqlfmt <flags>
+ <sql stmt>
+ CTRL+D
+
+   Reformat a SQL query given on the command line:
+
+ $ cockroach sqlfmt <flags> -e "<sql stmt>"
+
+   Reformat a SQL query already stored in a file:
+
+ $ cat query.sql | cockroach sqlfmt <flags>
+
+Flags
+
+   The sqlfmt command supports the following flags.
+
+   Flag          Description                         Default value            
+   --execute     Reformat the given SQL query,                                
+   -e            without reading from standard       N/A
+                 input.                              
+   --print-width Desired column width of the output. 80                       
+                 Number of spaces occupied by a tab                           
+   --tab-width   character on the final display      4
+                 device.                             
+   --use-spaces  Always use space characters for     Use tabs.                
+                 formatting; avoid tab characters.   
+   --align       Use vertical alignment during       Do not align vertically. 
+                 formatting.                         
+   --no-simplify Avoid removing optional grouping    Remove unnecessary       
+                 parentheses during formatting.      grouping parentheses.    
+
+Examples
+
+  Reformat a query with constrained column width
+
+   Using the interactive query formatter, output with the default column
+   width (80 columns):
+
+    1. Start the interactive query formatter:
+
+       copy
+
+ $ cockroach sqlfmt
+
+    2. Press Enter.
+
+    3. Run the query:
+
+       copy
+
+ > CREATE TABLE animals (id INT PRIMARY KEY DEFAULT unique_rowid(), name STRING);
+
+    4. Press CTRL+D.
+
+ CREATE TABLE animals (
+         id INT PRIMARY KEY DEFAULT unique_rowid(),
+         name STRING
+ )
+
+   Using the command line, output with the column width set to 40:
+
+   copy
+
+ $ cockroach sqlfmt --print-width 40 -e "CREATE TABLE animals (id INT PRIMARY KEY DEFAULT unique_rowid(), name STRING);"
+
+ CREATE TABLE animals (
+         id
+                 INT
+                 PRIMARY KEY
+                 DEFAULT unique_rowid(),
+         name STRING
+ )
+
+  Reformat a query with vertical alignment
+
+   Output with the default vertical alignment:
+
+ $ cockroach sqlfmt -e "SELECT winner, round(length / (60 * 5)) AS counter FROM players WHERE build = $1 AND (hero = $2 OR region = $3);"
+
+ SELECT
+ winner, round(length / (60 * 5)) AS counter
+ FROM
+ players
+ WHERE
+ build = $1 AND (hero = $2 OR region = $3)
+
+   Output with vertical alignment:
+
+   copy
+
+ $ cockroach sqlfmt --align -e "SELECT winner, round(length / (60 * 5)) AS counter FROM players WHERE build = $1 AND (hero = $2 OR region = $3);"
+
+ SELECT winner, round(length / (60 * 5)) AS counter
+   FROM players
+  WHERE build = $1 AND (hero = $2 OR region = $3);
+
+  Reformat a query with simplification of parentheses
+
+   Output with the default simplification of parentheses:
+
+   copy
+
+ $ cockroach sqlfmt -e "SELECT (1 * 2) + 3, (1 + 2) * 3;"
+
+ SELECT 1 * 2 + 3, (1 + 2) * 3
+
+   Output with no simplification of parentheses:
+
+   copy
+
+ $ cockroach sqlfmt --no-simplify -e "SELECT (1 * 2) + 3, (1 + 2) * 3;"
+
+ SELECT (1 * 2) + 3, (1 + 2) * 3
+
+See also
+
+     * Sequel Fumpt
+     * cockroach demo
+     * cockroach sql
+     * Other Cockroach Commands
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

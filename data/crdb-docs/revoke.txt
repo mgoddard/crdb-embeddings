@@ -1,0 +1,225 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                              REVOKE <privileges>
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The REVOKE <privileges> statement revokes privileges from users and/or
+   roles.
+
+   For the list of privileges that can be granted to and revoked from users
+   and roles, see GRANT.
+
+Synopsis
+
+   REVOKE ALL CREATE GRANT SELECT DROP INSERT DELETE UPDATE , ON TABLE
+   table_name , DATABASE database_name , FROM user_name ,
+
+Required privileges
+
+   The user revoking privileges must have the GRANT privilege on the target
+   databases or tables.
+
+   In addition to the GRANT privilege, the user revoking privileges must have
+   the privilege being revoked on the target database or tables. For example,
+   a user revoking the SELECT privilege on a table to another user must have
+   the GRANT and SELECT privileges on that table.
+
+Parameters
+
+   Parameter     Description                                                  
+                 The name of the table for which you want to revoke           
+   table_name    privileges. To revoke privileges for multiple tables, use a  
+                 comma-separated list of table names. To revoke privileges    
+                 for all tables, use *.                                       
+                 The name of the database for which you want to revoke        
+                 privileges. To revoke privileges for multiple databases, use 
+   database_name a comma-separated list of database names.                    
+                                                                              
+                 Privileges revoked for databases will be revoked for any new 
+                 tables created in the databases.                             
+   user_name     A comma-separated list of users and/or roles from whom you   
+                 want to revoke privileges.                                   
+
+Examples
+
+  Revoke privileges on databases
+
+   copy
+
+ > SHOW GRANTS ON DATABASE db1, db2;
+
+ +----------+------------+------------+
+ | Database |    User    | Privileges |
+ +----------+------------+------------+
+ | db1      | betsyroach | CREATE     |
+ | db1      | maxroach   | CREATE     |
+ | db1      | root       | ALL        |
+ | db2      | betsyroach | CREATE     |
+ | db2      | maxroach   | CREATE     |
+ | db2      | root       | ALL        |
+ +----------+------------+------------+
+ (6 rows)
+
+   copy
+
+ > REVOKE CREATE ON DATABASE db1, db2 FROM maxroach, betsyroach;
+
+   copy
+
+ > SHOW GRANTS ON DATABASE db1, db2;
+
+ +----------+------+------------+
+ | Database | User | Privileges |
+ +----------+------+------------+
+ | db1      | root | ALL        |
+ | db2      | root | ALL        |
+ +----------+------+------------+
+ (2 rows)
+
+   Note:
+   Any tables that previously inherited the database-level privileges retain
+   the privileges.
+
+  Revoke privileges on specific tables in a database
+
+   copy
+
+ > SHOW GRANTS ON TABLE db1.t1, db1.t2;
+
+ +-------+------------+------------+
+ | Table |    User    | Privileges |
+ +-------+------------+------------+
+ | t1    | betsyroach | CREATE     |
+ | t1    | betsyroach | DELETE     |
+ | t1    | maxroach   | CREATE     |
+ | t1    | root       | ALL        |
+ | t2    | betsyroach | CREATE     |
+ | t2    | betsyroach | DELETE     |
+ | t2    | maxroach   | CREATE     |
+ | t2    | root       | ALL        |
+ +-------+------------+------------+
+ (8 rows)
+
+   copy
+
+ > REVOKE CREATE ON TABLE db1.t1, db1,t2 FROM betsyroach;
+
+   copy
+
+ > SHOW GRANTS ON TABLE db1.t1, db1.t2;
+
+ +-------+------------+------------+
+ | Table |    User    | Privileges |
+ +-------+------------+------------+
+ | t1    | betsyroach | DELETE     |
+ | t1    | maxroach   | CREATE     |
+ | t1    | root       | ALL        |
+ | t2    | betsyroach | DELETE     |
+ | t2    | maxroach   | CREATE     |
+ | t2    | root       | ALL        |
+ +-------+------------+------------+
+ (6 rows)
+
+  Revoke privileges on all tables in a database
+
+   copy
+
+ > SHOW GRANTS ON TABLE db2.t1, db2.t2;
+
+ +-------+------------+------------+
+ | Table |    User    | Privileges |
+ +-------+------------+------------+
+ | t1    | betsyroach | DELETE     |
+ | t1    | root       | ALL        |
+ | t2    | betsyroach | DELETE     |
+ | t2    | root       | ALL        |
+ +-------+------------+------------+
+ (4 rows)
+
+   copy
+
+ > REVOKE DELETE ON db2.* FROM betsyroach;
+
+ +-------+------+------------+
+ | Table | User | Privileges |
+ +-------+------+------------+
+ | t1    | root | ALL        |
+ | t2    | root | ALL        |
+ +-------+------+------------+
+ (2 rows)
+
+See also
+
+     * Authorization
+     * GRANT <privileges>
+     * GRANT <roles>
+     * REVOKE <roles>
+     * SHOW GRANTS
+     * SHOW ROLES
+     * CREATE USER
+     * DROP USER
+     * Other SQL Statements
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

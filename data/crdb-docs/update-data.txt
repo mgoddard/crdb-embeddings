@@ -1,0 +1,166 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                  Update Data
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   This page has instructions for updating rows of data (using the UPDATE
+   statement) in CockroachDB from various programming languages.
+
+Before you begin
+
+   Make sure you have already:
+
+     * Set up a local cluster.
+     * Installed a Postgres client.
+     * Connected to the database.
+     * Inserted data that you now want to update.
+   Note:
+
+   Your application should use a retry loop to handle transaction errors that
+   can occur under contention.
+
+Update a row
+
+   SQL Go Java Python
+   copy
+
+ UPDATE accounts SET balance = 900 WHERE id = 1;
+
+   For more information about how to use the built-in SQL client, see the
+   cockroach sql reference docs.
+
+   copy
+
+ // tx is a *sql.Tx from "database/sql"
+
+ transferAmount := 100
+ fromID := 1
+
+ if _, err := tx.Exec("UPDATE accounts SET balance = balance - $1 WHERE id = $2", transferAmount, fromID); err != nil {
+     return err
+ }
+
+   For complete examples, see:
+
+     * Build a Go App with CockroachDB (pq)
+     * Build a Go App with CockroachDB and GORM
+   copy
+
+ // ds is an org.postgresql.ds.PGSimpleDataSource
+
+ int transferAmount = 100;
+ int fromID = 1;
+
+ try (Connection connection = ds.getConnection()) {
+     connection.createStatement().executeUpdate("UPDATE accounts SET balance = balance - "
+                                                + transferAmount + " where id = " + fromID);
+
+ } catch (SQLException e) {
+     System.out.printf("sql state = [%s]\ncause = [%s]\nmessage = [%s]\n",
+                       e.getSQLState(), e.getCause(), e.getMessage());
+ }
+
+   For complete examples, see:
+
+     * Build a Java App with CockroachDB (JDBC)
+     * Build a Java App with CockroachDB and Hibernate
+   copy
+
+ # conn is a psycopg2 connection
+ transferAmount = 100
+ fromID = 1
+
+ with conn.cursor() as cur:
+     cur.execute("UPDATE accounts SET balance = balance - %s WHERE id = %s",
+                 (transferAmount, fromID));
+ conn.commit()
+
+   For complete examples, see:
+
+     * Build a Python App with CockroachDB (psycopg2)
+     * Build a Python App with CockroachDB and SQLAlchemy
+     * Build a Python App with CockroachDB and Django
+     * Build a Python App with CockroachDB and PonyORM
+
+See also
+
+   Reference information related to this task:
+
+     * UPDATE
+     * Understanding and Avoiding Transaction Contention
+     * Selection queries
+
+   Other common tasks:
+
+     * Connect to the Database
+     * Insert Data
+     * Query Data
+     * Delete Data
+     * Run Multi-Statement Transactions
+     * Error Handling and Troubleshooting
+     * Make Queries Fast
+     * Hello World Example apps
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

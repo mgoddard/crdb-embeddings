@@ -1,0 +1,166 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                               SHOW RANGE FOR ROW
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The SHOW RANGE ... FOR ROW statement shows information about a range for a
+   particular row of data. This information is useful for verifying how SQL
+   data maps to underlying ranges, and where the replicas for a range are
+   located.
+
+   Warning:
+
+   This is an experimental feature. The interface and output are subject to
+   change.
+
+   Note:
+
+   To show information about the ranges that comprise the data for a table,
+   index, or entire database, use the SHOW RANGES statement.
+
+Synopsis
+
+   SHOW RANGE FROM TABLE table_name INDEX table_index_name FOR ROW ( row_vals
+   , )
+
+Required privileges
+
+   The user must have the SELECT privilege on the target table.
+
+Parameters
+
+   Parameter        Description                                               
+   table_name       The name of the table that contains the row that you want 
+                    range information about.                                  
+   table_index_name The name of the index for the row that you want range     
+                    information about.                                        
+   row_vals         The values of the row whose range information you want to 
+                    show.                                                     
+
+Response
+
+   The following fields are returned:
+
+   Field                 Description                                     
+   start_key             The start key for the range.                    
+   end_key               The end key for the range.                      
+   range_id              The range ID.                                   
+   lease_holder          The node that contains the range's leaseholder. 
+   lease_holder_locality The locality of the leaseholder.                
+   replicas              The nodes that contain the range replicas.      
+   replica_localities    The locality of the range.                      
+
+Examples
+
+  Setup
+
+   The following examples use MovR, a fictional vehicle-sharing application,
+   to demonstrate CockroachDB SQL statements. For more information about the
+   MovR example application and dataset, see MovR: A Global Vehicle-sharing
+   App.
+
+   To follow along, run cockroach demo with the --geo-partitioned-replicas
+   flag. This command opens an interactive SQL shell to a temporary, 9-node
+   in-memory cluster with the Geo-Partitioned Replicas Topology applied to
+   the movr database.
+
+   copy
+
+ $ cockroach demo --geo-partitioned-replicas
+
+  Show range information for a row in a table
+
+   copy
+
+ > SELECT * FROM [SHOW RANGE FROM TABLE users FOR ROW ('ae147ae1-47ae-4800-8000-000000000022', 'amsterdam', 'Tyler Dalton', '88194 Angela Gardens Suite 94', '4443538758')];
+
+    start_key   |        end_key         | range_id | lease_holder |  lease_holder_locality   | replicas |                                 replica_localities
+ +--------------+------------------------+----------+--------------+--------------------------+----------+------------------------------------------------------------------------------------+
+   /"amsterdam" | /"amsterdam"/PrefixEnd |       47 |            9 | region=europe-west1,az=d | {7,8,9}  | {"region=europe-west1,az=b","region=europe-west1,az=c","region=europe-west1,az=d"}
+ (1 row)
+
+  Show range information for a row by a secondary index
+
+   copy
+
+ > SELECT * FROM [SHOW RANGE FROM INDEX vehicles_auto_index_fk_city_ref_users FOR ROW ('aaaaaaaa-aaaa-4800-8000-00000000000a', 'amsterdam', 'scooter', 'c28f5c28-f5c2-4000-8000-000000000026', '2019-01-02 03:04:05+00:00', 'in_use', '62609 Stephanie Route', '{"color": "red"}')];
+
+    start_key   |        end_key         | range_id | lease_holder |  lease_holder_locality   | replicas |                                 replica_localities
+ +--------------+------------------------+----------+--------------+--------------------------+----------+------------------------------------------------------------------------------------+
+   /"amsterdam" | /"amsterdam"/PrefixEnd |       94 |            8 | region=europe-west1,az=c | {7,8,9}  | {"region=europe-west1,az=b","region=europe-west1,az=c","region=europe-west1,az=d"}
+ (1 row)
+
+See also
+
+     * SHOW RANGES
+     * SPLIT AT
+     * CREATE TABLE
+     * CREATE INDEX
+     * Indexes
+     * Partitioning tables
+     * Follow-the-Workload
+     * Architecture Overview
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

@@ -1,0 +1,499 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+            Build a Ruby App with CockroachDB and the Ruby pg Driver
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+   Use pg Use ActiveRecord
+
+   This tutorial shows you how build a simple Ruby application with
+   CockroachDB and the Ruby pg driver.
+
+   We have tested the Ruby pg driver enough to claim beta-level support. If
+   you encounter problems, please open an issue with details to help us make
+   progress toward full support.
+
+Before you begin
+
+    1. Install CockroachDB.
+    2. Start up a secure or insecure local cluster.
+    3. Choose the instructions that correspond to whether your cluster is
+       secure or insecure:
+   Secure Insecure
+
+Step 1. Install the Ruby pg driver
+
+   To install the Ruby pg driver, run the following command:
+
+   copy
+
+ $ gem install pg
+
+Step 2. Create the maxroach user and bank database
+
+   Start the built-in SQL shell:
+
+   copy
+
+ $ cockroach sql --certs-dir=certs
+
+   In the SQL shell, issue the following statements to create the maxroach
+   user and bank database:
+
+   copy
+
+ > CREATE USER IF NOT EXISTS maxroach;
+
+   copy
+
+ > CREATE DATABASE bank;
+
+   Give the maxroach user the necessary permissions:
+
+   copy
+
+ > GRANT ALL ON DATABASE bank TO maxroach;
+
+   Exit the SQL shell:
+
+   copy
+
+ > \q
+
+Step 3. Generate a certificate for the maxroach user
+
+   Create a certificate and key for the maxroach user by running the
+   following command. The code samples will run as this user.
+
+   copy
+
+ $ cockroach cert create-client maxroach --certs-dir=certs --ca-key=my-safe-directory/ca.key
+
+Step 4. Run the Ruby code
+
+   Now that you have a database and a user, you'll run code to create a table
+   and insert some rows, and then you'll run code to read and update values
+   as an atomic transaction.
+
+  Basic statements
+
+   The following code connects as the maxroach user and executes some basic
+   SQL statements: creating a table, inserting rows, and reading and printing
+   the rows.
+
+   Download the basic-sample.rb file, or create the file yourself and copy
+   the code into it.
+
+   copy
+
+ # Import the driver.
+ require 'pg'
+
+ # Connect to the "bank" database.
+ conn = PG.connect(
+   user: 'maxroach',
+   dbname: 'bank',
+   host: 'localhost',
+   port: 26257,
+   sslmode: 'require',
+   sslrootcert: 'certs/ca.crt',
+   sslkey: 'certs/client.maxroach.key',
+   sslcert: 'certs/client.maxroach.crt'
+ )
+
+ # Create the "accounts" table.
+ conn.exec('CREATE TABLE IF NOT EXISTS accounts (id INT PRIMARY KEY, balance INT)')
+
+ # Insert two rows into the "accounts" table.
+ conn.exec('INSERT INTO accounts (id, balance) VALUES (1, 1000), (2, 250)')
+
+ # Print out the balances.
+ puts 'Initial balances:'
+ conn.exec('SELECT id, balance FROM accounts') do |res|
+   res.each do |row|
+     puts "id: #{row['id']} balance: #{row['balance']}"
+   end
+ end
+
+ # Close the database connection.
+ conn.close()
+
+
+   Then run the code:
+
+   copy
+
+ $ ruby basic-sample.rb
+
+   The output should be:
+
+ Initial balances:
+ id: 1 balance: 1000
+ id: 2 balance: 250
+
+  Transaction (with retry logic)
+
+   Next, use the following code to again connect as the maxroach user but
+   this time execute a batch of statements as an atomic transaction to
+   transfer funds from one account to another, where all included statements
+   are either committed or aborted.
+
+   Download the txn-sample.rb file, or create the file yourself and copy the
+   code into it.
+
+   Note:
+
+   With the default SERIALIZABLE isolation level, CockroachDB may require the
+   client to retry a transaction in case of read/write contention.
+   CockroachDB provides a generic retry function that runs inside a
+   transaction and retries it as needed. The code sample below shows how it
+   is used.
+
+   copy
+
+ # Import the driver.
+ require 'pg'
+
+ # Wrapper for a transaction.
+ # This automatically re-calls "op" with the open transaction as an argument
+ # as long as the database server asks for the transaction to be retried.
+ def run_transaction(conn)
+   conn.transaction do |txn|
+     txn.exec('SAVEPOINT cockroach_restart')
+     while
+       begin
+         # Attempt the work.
+         yield txn
+
+         # If we reach this point, commit.
+         txn.exec('RELEASE SAVEPOINT cockroach_restart')
+         break
+       rescue PG::TRSerializationFailure
+         txn.exec('ROLLBACK TO SAVEPOINT cockroach_restart')
+       end
+     end
+   end
+ end
+
+ def transfer_funds(txn, from, to, amount)
+   txn.exec_params('SELECT balance FROM accounts WHERE id = $1', [from]) do |res|
+     res.each do |row|
+       raise 'insufficient funds' if Integer(row['balance']) < amount
+     end
+   end
+   txn.exec_params('UPDATE accounts SET balance = balance - $1 WHERE id = $2', [amount, from])
+   txn.exec_params('UPDATE accounts SET balance = balance + $1 WHERE id = $2', [amount, to])
+ end
+
+ # Connect to the "bank" database.
+ conn = PG.connect(
+   user: 'maxroach',
+   dbname: 'bank',
+   host: 'localhost',
+   port: 26257,
+   sslmode: 'require',
+
+   # These are the certificate files created in the previous step
+   sslrootcert: 'certs/ca.crt',
+   sslkey: 'certs/client.maxroach.key',
+   sslcert: 'certs/client.maxroach.crt'
+ )
+
+ run_transaction(conn) do |txn|
+   transfer_funds(txn, 1, 2, 100)
+ end
+
+ # Close the database connection.
+ conn.close()
+
+
+   Then run the code:
+
+   copy
+
+ $ ruby txn-sample.rb
+
+   To verify that funds were transferred from one account to another, start
+   the built-in SQL client:
+
+   copy
+
+ $ cockroach sql --certs-dir=certs --database=bank
+
+   To check the account balances, issue the following statement:
+
+   copy
+
+ > SELECT id, balance FROM accounts;
+
+ +----+---------+
+ | id | balance |
+ +----+---------+
+ |  1 |     900 |
+ |  2 |     350 |
+ +----+---------+
+ (2 rows)
+
+Step 2. Create the maxroach user and bank database
+
+   Start the built-in SQL shell:
+
+   copy
+
+ $ cockroach sql --insecure
+
+   In the SQL shell, issue the following statements to create the maxroach
+   user and bank database:
+
+   copy
+
+ > CREATE USER IF NOT EXISTS maxroach;
+
+   copy
+
+ > CREATE DATABASE bank;
+
+   Give the maxroach user the necessary permissions:
+
+   copy
+
+ > GRANT ALL ON DATABASE bank TO maxroach;
+
+   Exit the SQL shell:
+
+   copy
+
+ > \q
+
+Step 3. Run the Ruby code
+
+   Now that you have a database and a user, you'll run code to create a table
+   and insert some rows, and then you'll run code to read and update values
+   as an atomic transaction.
+
+  Basic statements
+
+   The following code connects as the maxroach user and executes some basic
+   SQL statements: creating a table, inserting rows, and reading and printing
+   the rows.
+
+   Download the basic-sample.rb file, or create the file yourself and copy
+   the code into it.
+
+   copy
+
+ # Import the driver.
+ require 'pg'
+
+ # Connect to the "bank" database.
+ conn = PG.connect(
+   user: 'maxroach',
+   dbname: 'bank',
+   host: 'localhost',
+   port: 26257,
+   sslmode: 'disable'
+ )
+
+ # Create the "accounts" table.
+ conn.exec('CREATE TABLE IF NOT EXISTS accounts (id INT PRIMARY KEY, balance INT)')
+
+ # Insert two rows into the "accounts" table.
+ conn.exec('INSERT INTO accounts (id, balance) VALUES (1, 1000), (2, 250)')
+
+ # Print out the balances.
+ puts 'Initial balances:'
+ conn.exec('SELECT id, balance FROM accounts') do |res|
+   res.each do |row|
+     puts "id: #{row['id']} balance: #{row['balance']}"
+   end
+ end
+
+ # Close the database connection.
+ conn.close()
+
+
+   Then run the code:
+
+   copy
+
+ $ ruby basic-sample.rb
+
+   The output should be:
+
+ Initial balances:
+ id: 1 balance: 1000
+ id: 2 balance: 250
+
+  Transaction (with retry logic)
+
+   Next, use the following code to again connect as the maxroach user but
+   this time execute a batch of statements as an atomic transaction to
+   transfer funds from one account to another, where all included statements
+   are either committed or aborted.
+
+   Download the txn-sample.rb file, or create the file yourself and copy the
+   code into it.
+
+   Note:
+
+   With the default SERIALIZABLE isolation level, CockroachDB may require the
+   client to retry a transaction in case of read/write contention.
+   CockroachDB provides a generic retry function that runs inside a
+   transaction and retries it as needed. The code sample below shows how it
+   is used.
+
+   copy
+
+ # Import the driver.
+ require 'pg'
+
+ # Wrapper for a transaction.
+ # This automatically re-calls "op" with the open transaction as an argument
+ # as long as the database server asks for the transaction to be retried.
+ def run_transaction(conn)
+   conn.transaction do |txn|
+     txn.exec('SAVEPOINT cockroach_restart')
+     while
+       begin
+         # Attempt the work.
+         yield txn
+
+         # If we reach this point, commit.
+         txn.exec('RELEASE SAVEPOINT cockroach_restart')
+         break
+       rescue PG::TRSerializationFailure
+         txn.exec('ROLLBACK TO SAVEPOINT cockroach_restart')
+       end
+     end
+   end
+ end
+
+ def transfer_funds(txn, from, to, amount)
+   txn.exec_params('SELECT balance FROM accounts WHERE id = $1', [from]) do |res|
+     res.each do |row|
+       raise 'insufficient funds' if Integer(row['balance']) < amount
+     end
+   end
+   txn.exec_params('UPDATE accounts SET balance = balance - $1 WHERE id = $2', [amount, from])
+   txn.exec_params('UPDATE accounts SET balance = balance + $1 WHERE id = $2', [amount, to])
+ end
+
+ # Connect to the "bank" database.
+ conn = PG.connect(
+   user: 'maxroach',
+   dbname: 'bank',
+   host: 'localhost',
+   port: 26257,
+   sslmode: 'disable'
+ )
+
+ run_transaction(conn) do |txn|
+   transfer_funds(txn, 1, 2, 100)
+ end
+
+ # Close the database connection.
+ conn.close()
+
+
+   Then run the code:
+
+   copy
+
+ $ ruby txn-sample.rb
+
+   To verify that funds were transferred from one account to another, start
+   the built-in SQL client:
+
+   copy
+
+ $ cockroach sql --insecure --database=bank
+
+   To check the account balances, issue the following statement:
+
+   copy
+
+ > SELECT id, balance FROM accounts;
+
+ +----+---------+
+ | id | balance |
+ +----+---------+
+ |  1 |     900 |
+ |  2 |     350 |
+ +----+---------+
+ (2 rows)
+
+What's next?
+
+   Read more about using the Ruby pg driver.
+
+   You might also be interested in the following pages:
+
+     * Client Connection Parameters
+     * Data Replication
+     * Fault Tolerance & Recovery
+     * Automatic Rebalancing
+     * Cross-Cloud Migration
+     * Follow-the-Workload
+     * Automated Operations
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

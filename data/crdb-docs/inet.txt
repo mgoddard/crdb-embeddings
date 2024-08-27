@@ -1,0 +1,157 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                      INET
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The INET data type stores an IPv4 or IPv6 address.
+
+   Note:
+
+   Vectorized execution is currently not supported for this data type.
+
+Syntax
+
+   A constant value of type INET can be expressed using an interpreted
+   literal, or a string literal annotated with type INET or coerced to type
+   INET.
+
+   INET constants can be expressed using the following formats:
+
+   Format Description                                                         
+          Standard RFC791-specified format of 4 octets expressed individually 
+          in decimal numbers and separated by periods. Optionally, the        
+   IPv4   address can be followed by a subnet mask.                           
+                                                                              
+          Examples: '190.0.0.0', '190.0.0.0/24'                               
+          Standard RFC8200-specified format of 8 colon-separated groups of 4  
+          hexadecimal digits. An IPv6 address can be mapped to an IPv4        
+   IPv6   address. Optionally, the address can be followed by a subnet mask.  
+                                                                              
+          Examples: '2001:4f8:3:ba:2e0:81ff:fe22:d1f1',                       
+          '2001:4f8:3:ba:2e0:81ff:fe22:d1f1/120', '::ffff:192.168.0.1/24'     
+
+   Note:
+   IPv4 addresses will sort before IPv6 addresses, including IPv4-mapped IPv6
+   addresses.
+
+Size
+
+   An INET value is 32 bits for IPv4 or 128 bits for IPv6.
+
+Example
+
+   copy
+
+ > CREATE TABLE computers (
+     ip INET PRIMARY KEY,
+     user_email STRING,
+     registration_date DATE
+   );
+
+   copy
+
+ > SHOW COLUMNS FROM computers;
+
+ +-------------------+-----------+-------------+----------------+-----------------------+-------------+
+ |    column_name    | data_type | is_nullable | column_default | generation_expression |   indices   |
+ +-------------------+-----------+-------------+----------------+-----------------------+-------------+
+ | ip                | INET      |    false    | NULL           |                       | {"primary"} |
+ | user_email        | STRING    |    true     | NULL           |                       | {}          |
+ | registration_date | DATE      |    true     | NULL           |                       | {}          |
+ +-------------------+-----------+-------------+----------------+-----------------------+-------------+
+ (3 rows)
+
+   copy
+
+ > INSERT INTO computers
+   VALUES
+     ('192.168.0.1', 'info@cockroachlabs.com', '2018-01-31'),
+     ('192.168.0.2/10', 'lauren@cockroachlabs.com', '2018-01-31'),
+     ('2001:4f8:3:ba:2e0:81ff:fe22:d1f1/120', 'test@cockroachlabs.com', '2018-01-31');
+
+   copy
+
+ > SELECT * FROM computers;
+
+ +--------------------------------------+--------------------------+---------------------------+
+ |                  ip                  |        user_email        |     registration_date     |
+ +--------------------------------------+--------------------------+---------------------------+
+ | 192.168.0.1                          | info@cockroachlabs.com   | 2018-01-31 00:00:00+00:00 |
+ | 192.168.0.2/10                       | lauren@cockroachlabs.com | 2018-01-31 00:00:00+00:00 |
+ | 2001:4f8:3:ba:2e0:81ff:fe22:d1f1/120 | test@cockroachlabs.com   | 2018-01-31 00:00:00+00:00 |
+ +--------------------------------------+--------------------------+---------------------------+
+
+Supported casting and conversion
+
+   INET values can be cast to the following data type:
+
+     * STRING - Converts to format 'Address/subnet'.
+
+See also
+
+     * Data Types
+     * Functions and Operators
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

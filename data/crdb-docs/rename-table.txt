@@ -1,0 +1,236 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                  RENAME TABLE
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The RENAME TABLE statement changes the name of a table. It can also be
+   used to move a table from one database to another.
+
+   Note:
+   It is not possible to rename a table referenced by a view. For more
+   details, see View Dependencies.
+   Warning:
+
+   Table renames are not transactional. For more information, see Table
+   renaming considerations.
+
+Required privileges
+
+   The user must have the DROP privilege on the table and the CREATE on the
+   parent database. When moving a table from one database to another, the
+   user must have the CREATE privilege on both the source and target
+   databases.
+
+Synopsis
+
+   ALTER TABLE IF EXISTS current_name RENAME TO new_name
+
+Parameters
+
+   Parameter    Description                                                   
+   IF EXISTS    Rename the table only if a table with the current name        
+                exists; if one does not exist, do not return an error.        
+   current_name The current name of the table.                                
+                The new name of the table, which must be unique within its    
+                database and follow these identifier rules. When the parent   
+                database is not set as the default, the name must be          
+                formatted as database.name.                                   
+   new_name                                                                   
+                The UPSERT and INSERT ON CONFLICT statements use a temporary  
+                table called excluded to handle uniqueness conflicts during   
+                execution. It's therefore not recommended to use the name     
+                excluded for any of your tables.                              
+
+Table renaming considerations
+
+   Table renames are not transactional. There are two phases during a rename:
+
+    1. The system.namespace table is updated. This phase is transactional,
+       and will be rolled back if the transaction aborts.
+    2. The table descriptor (an internal data structure) is updated, and
+       announced to every other node. This phase is not transactional. The
+       rename will be announced to other nodes only if the transaction
+       commits, but there is no guarantee on how much time this operation
+       will take.
+    3. Once the new name has propagated to every node in the cluster, another
+       internal transaction is run that declares the old name ready for reuse
+       in another context.
+
+   This yields a surprising and undesirable behavior: when run inside a BEGIN
+   ... COMMIT block, it’s possible for a rename to be half-done - not
+   persisted in storage, but visible to other nodes or other transactions.
+   This violates A, C, and I in ACID. Only D is guaranteed: If the
+   transaction commits successfully, the new name will persist after that.
+
+   This is a known limitation. For an issue tracking this limitation, see
+   cockroach#12123.
+
+Viewing schema changes
+
+   This schema change statement is registered as a job. You can view
+   long-running jobs with SHOW JOBS.
+
+Examples
+
+  Rename a table
+
+   copy
+
+ > SHOW TABLES FROM db1;
+
+ +------------+
+ | table_name |
+ +------------+
+ | t1         |
+ | t2         |
+ +------------+
+ (2 rows)
+
+   copy
+
+ > ALTER TABLE db1.t1 RENAME TO db1.t3
+
+   copy
+
+ > SHOW TABLES FROM db1;
+
+ +------------+
+ | table_name |
+ +------------+
+ | t2         |
+ | t3         |
+ +------------+
+ (2 rows)
+
+   To avoid an error in case the table does not exist, you can include IF
+   EXISTS:
+
+   copy
+
+ > ALTER TABLE IF EXISTS db1.table1 RENAME TO db1.table2;
+
+  Move a table
+
+   To move a table from one database to another, use the above syntax but
+   specify the source database after ALTER TABLE and the target database
+   after RENAME TO:
+
+   copy
+
+ > SHOW TABLES FROM db1;
+
+ +------------+
+ | table_name |
+ +------------+
+ | t2         |
+ | t3         |
+ +------------+
+ (2 rows)
+
+   copy
+
+ > SHOW TABLES FROM db2;
+
+ +------------+
+ | table_name |
+ +------------+
+ +------------+
+ (0 rows)
+
+   copy
+
+ > ALTER TABLE db1.t3 RENAME TO db2.t3;
+
+   copy
+
+ > SHOW TABLES FROM db1;
+
+ +--------+
+ | Table  |
+ +--------+
+ | table2 |
+ +--------+
+
+   copy
+
+ > SHOW TABLES FROM db2;
+
+ +------------+
+ | table_name |
+ +------------+
+ | t3         |
+ +------------+
+ (1 row)
+
+See also
+
+     * CREATE TABLE
+     * ALTER TABLE
+     * SHOW TABLES
+     * DROP TABLE
+     * SHOW JOBS
+     * Other SQL Statements
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

@@ -1,0 +1,421 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                CREATE TABLE AS
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The CREATE TABLE ... AS statement creates a new table from a selection
+   query.
+
+Intended use
+
+   Tables created with CREATE TABLE ... AS are intended to persist the result
+   of a query for later reuse.
+
+   This can be more efficient than a view when the following two conditions
+   are met:
+
+     * The result of the query is used as-is multiple times.
+     * The copy needs not be kept up-to-date with the original table over
+       time.
+
+   When the results of a query are reused multiple times within a larger
+   query, a view is advisable instead. The query optimizer can "peek" into
+   the view and optimize the surrounding query using the primary key and
+   indices of the tables mentioned in the view query.
+
+   A view is also advisable when the results must be up-to-date; a view
+   always retrieves the current data from the tables that the view query
+   mentions.
+
+Required privileges
+
+   The user must have the CREATE privilege on the parent database.
+
+Synopsis
+
+   Basic Expanded
+
+   CREATE opt_temp_create_table TABLE IF NOT EXISTS table_name ( column_name
+   create_as_col_qual_list , column_name create_as_col_qual_list family_def
+   create_as_constraint_def ) AS select_stmt
+   CREATE opt_temp_create_table TABLE IF NOT EXISTS table_name ( column_name
+   create_as_col_qual_list , column_name create_as_col_qual_list family_def
+   create_as_constraint_def ) AS select_stmt
+
+   create_as_col_qual_list ::=
+
+   PRIMARY KEY FAMILY family_name
+
+   create_as_constraint_def ::=
+
+   PRIMARY KEY ( create_as_params )
+
+Parameters
+
+   Parameter                Description                                       
+                            Create a new table only if a table of the same    
+                            name does not already exist in the database; if   
+                            one does exist, do not return an error.           
+   IF NOT EXISTS                                                              
+                            Note that IF NOT EXISTS checks the table name     
+                            only; it does not check if an existing table has  
+                            the same columns, indexes, constraints, etc., of  
+                            the new table.                                    
+                            The name of the table to create, which must be    
+                            unique within its database and follow these       
+                            identifier rules. When the parent database is not 
+                            set as the default, the name must be formatted as 
+                            database.name.                                    
+   table_name                                                                 
+                            The UPSERT and INSERT ON CONFLICT statements use  
+                            a temporary table called excluded to handle       
+                            uniqueness conflicts during execution. It's       
+                            therefore not recommended to use the name         
+                            excluded for any of your tables.                  
+   column_name              The name of the column you want to use instead of 
+                            the name of the column from select_stmt.          
+                            An optional column definition, which may include  
+   create_as_col_qual_list  primary key constraints and column family         
+                            assignments.                                      
+                            An optional column family definition. Column      
+   family_def               family names must be unique within the table but  
+                            can have the same name as columns, constraints,   
+                            or indexes.                                       
+   create_as_constraint_def An optional primary key constraint.               
+   select_stmt              A selection query to provide the data.            
+                            Defines the table as a session-scoped temporary   
+                            table. For more information, see Temporary        
+   opt_temp_create_table    Tables.                                           
+                            Support for temporary tables is experimental. The 
+                            interface and output are subject to change.       
+
+Limitations
+
+   Tables created with CREATE TABLE ... AS are not interleaved with other
+   tables. The default rules for column families apply.
+
+   The primary key of tables created with CREATE TABLE ... AS is not
+   automatically derived from the query results. You must specify new primary
+   keys at table creation. For examples, see Specify a primary key and
+   Specify a primary key for partitioning.
+
+Examples
+
+  Setup
+
+   The following examples use MovR, a fictional vehicle-sharing application,
+   to demonstrate CockroachDB SQL statements. For more information about the
+   MovR example application and dataset, see MovR: A Global Vehicle-sharing
+   App.
+
+   To follow along, run cockroach demo to start a temporary, in-memory
+   cluster with the movr dataset preloaded:
+
+   copy
+
+ $ cockroach demo
+
+  Create a table from a SELECT query
+
+   copy
+
+ > SELECT * FROM users WHERE city = 'new york';
+
+                    id                  |   city   |       name       |           address           | credit_card
+ +--------------------------------------+----------+------------------+-----------------------------+-------------+
+   00000000-0000-4000-8000-000000000000 | new york | Robert Murphy    | 99176 Anderson Mills        | 8885705228
+   051eb851-eb85-4ec0-8000-000000000001 | new york | James Hamilton   | 73488 Sydney Ports Suite 57 | 8340905892
+   0a3d70a3-d70a-4d80-8000-000000000002 | new york | Judy White       | 18580 Rosario Ville Apt. 61 | 2597958636
+   0f5c28f5-c28f-4c00-8000-000000000003 | new york | Devin Jordan     | 81127 Angela Ferry Apt. 8   | 5614075234
+   147ae147-ae14-4b00-8000-000000000004 | new york | Catherine Nelson | 1149 Lee Alley              | 0792553487
+   19999999-9999-4a00-8000-000000000005 | new york | Nicole Mcmahon   | 11540 Patton Extensions     | 0303726947
+ (6 rows)
+
+   copy
+
+ > CREATE TABLE users_ny AS SELECT * FROM users WHERE city = 'new york';
+
+   copy
+
+ > SELECT * FROM users_ny;
+
+                    id                  |   city   |       name       |           address           | credit_card
+ +--------------------------------------+----------+------------------+-----------------------------+-------------+
+   00000000-0000-4000-8000-000000000000 | new york | Robert Murphy    | 99176 Anderson Mills        | 8885705228
+   051eb851-eb85-4ec0-8000-000000000001 | new york | James Hamilton   | 73488 Sydney Ports Suite 57 | 8340905892
+   0a3d70a3-d70a-4d80-8000-000000000002 | new york | Judy White       | 18580 Rosario Ville Apt. 61 | 2597958636
+   0f5c28f5-c28f-4c00-8000-000000000003 | new york | Devin Jordan     | 81127 Angela Ferry Apt. 8   | 5614075234
+   147ae147-ae14-4b00-8000-000000000004 | new york | Catherine Nelson | 1149 Lee Alley              | 0792553487
+   19999999-9999-4a00-8000-000000000005 | new york | Nicole Mcmahon   | 11540 Patton Extensions     | 0303726947
+ (6 rows)
+
+  Change column names
+
+   This statement creates a copy of an existing table but with changed column
+   names:
+
+   copy
+
+ > CREATE TABLE users_ny_names (user_id, user_name) AS SELECT id, name FROM users WHERE city = 'new york';
+
+   copy
+
+ > SELECT * FROM users_ny_names;
+
+                 user_id                |    user_name
+ +--------------------------------------+------------------+
+   00000000-0000-4000-8000-000000000000 | Robert Murphy
+   051eb851-eb85-4ec0-8000-000000000001 | James Hamilton
+   0a3d70a3-d70a-4d80-8000-000000000002 | Judy White
+   0f5c28f5-c28f-4c00-8000-000000000003 | Devin Jordan
+   147ae147-ae14-4b00-8000-000000000004 | Catherine Nelson
+   19999999-9999-4a00-8000-000000000005 | Nicole Mcmahon
+ (6 rows)
+
+  Create a table from a VALUES clause
+
+   copy
+
+ > CREATE TABLE drivers (id, city, name) AS VALUES (gen_random_uuid(), 'new york', 'Harry Potter'), (gen_random_uuid(), 'seattle', 'Evelyn Martin');
+
+   copy
+
+ > SELECT * FROM drivers;
+
+                    id                  |   city   |     name
+ +--------------------------------------+----------+---------------+
+   146eebc4-c913-4678-8ea3-c5797d2b7f83 | new york | Harry Potter
+   43cafd3b-2537-4fd8-a987-8138f88a22a4 | seattle  | Evelyn Martin
+ (2 rows)
+
+  Create a copy of an existing table
+
+   copy
+
+ > CREATE TABLE users_ny_copy AS TABLE users_ny;
+
+   copy
+
+ > SELECT * FROM users_ny_copy;
+
+                    id                  |   city   |       name       |           address           | credit_card
+ +--------------------------------------+----------+------------------+-----------------------------+-------------+
+   00000000-0000-4000-8000-000000000000 | new york | Robert Murphy    | 99176 Anderson Mills        | 8885705228
+   051eb851-eb85-4ec0-8000-000000000001 | new york | James Hamilton   | 73488 Sydney Ports Suite 57 | 8340905892
+   0a3d70a3-d70a-4d80-8000-000000000002 | new york | Judy White       | 18580 Rosario Ville Apt. 61 | 2597958636
+   0f5c28f5-c28f-4c00-8000-000000000003 | new york | Devin Jordan     | 81127 Angela Ferry Apt. 8   | 5614075234
+   147ae147-ae14-4b00-8000-000000000004 | new york | Catherine Nelson | 1149 Lee Alley              | 0792553487
+   19999999-9999-4a00-8000-000000000005 | new york | Nicole Mcmahon   | 11540 Patton Extensions     | 0303726947
+ (6 rows)
+
+   When a table copy is created this way, the copy is not associated to any
+   primary key, secondary index, or constraint that was present on the
+   original table.
+
+  Specify a primary key
+
+   You can specify the primary key of a new table created from a selection
+   query:
+
+   copy
+
+ > CREATE TABLE users_ny_pk (id, city, name PRIMARY KEY) AS SELECT id, city, name FROM users WHERE city = 'new york';
+
+   copy
+
+ > SELECT * FROM users_ny_pk;
+
+                    id                  |   city   |       name
+ +--------------------------------------+----------+------------------+
+   147ae147-ae14-4b00-8000-000000000004 | new york | Catherine Nelson
+   0f5c28f5-c28f-4c00-8000-000000000003 | new york | Devin Jordan
+   051eb851-eb85-4ec0-8000-000000000001 | new york | James Hamilton
+   0a3d70a3-d70a-4d80-8000-000000000002 | new york | Judy White
+   19999999-9999-4a00-8000-000000000005 | new york | Nicole Mcmahon
+   00000000-0000-4000-8000-000000000000 | new york | Robert Murphy
+ (6 rows)
+
+   copy
+
+ > SHOW CREATE TABLE users_ny_pk;
+
+     table_name   |                 create_statement
+ +----------------+--------------------------------------------------+
+   users_ny_extra | CREATE TABLE users_ny_extra (
+                  |     id UUID NULL,
+                  |     city VARCHAR NULL,
+                  |     name VARCHAR NOT NULL,
+                  |     CONSTRAINT "primary" PRIMARY KEY (name ASC),
+                  |     FAMILY "primary" (id, city, name)
+                  | )
+ (1 row)
+
+  Define column families
+
+   You can define the column families of a new table created from a selection
+   query:
+
+   copy
+
+ > CREATE TABLE users_ny_alt (id PRIMARY KEY FAMILY ids, name, city FAMILY locs, address, credit_card FAMILY payments) AS SELECT id, name, city, address, credit_card FROM users WHERE city = 'new york';
+
+   copy
+
+ > SELECT * FROM users_ny_alt;
+
+                    id                  |       name       |   city   |           address           | credit_card
+ +--------------------------------------+------------------+----------+-----------------------------+-------------+
+   00000000-0000-4000-8000-000000000000 | Robert Murphy    | new york | 99176 Anderson Mills        | 8885705228
+   051eb851-eb85-4ec0-8000-000000000001 | James Hamilton   | new york | 73488 Sydney Ports Suite 57 | 8340905892
+   0a3d70a3-d70a-4d80-8000-000000000002 | Judy White       | new york | 18580 Rosario Ville Apt. 61 | 2597958636
+   0f5c28f5-c28f-4c00-8000-000000000003 | Devin Jordan     | new york | 81127 Angela Ferry Apt. 8   | 5614075234
+   147ae147-ae14-4b00-8000-000000000004 | Catherine Nelson | new york | 1149 Lee Alley              | 0792553487
+   19999999-9999-4a00-8000-000000000005 | Nicole Mcmahon   | new york | 11540 Patton Extensions     | 0303726947
+ (6 rows)
+
+   copy
+
+ > SHOW CREATE TABLE users_ny_alt;
+
+    table_name  |                create_statement
+ +--------------+------------------------------------------------+
+   users_ny_alt | CREATE TABLE users_ny_alt (
+                |     id UUID NOT NULL,
+                |     name VARCHAR NULL,
+                |     city VARCHAR NULL,
+                |     address VARCHAR NULL,
+                |     credit_card VARCHAR NULL,
+                |     CONSTRAINT "primary" PRIMARY KEY (id ASC),
+                |     FAMILY ids (id, name, address),
+                |     FAMILY locs (city),
+                |     FAMILY payments (credit_card)
+                | )
+ (1 row)
+
+  Specify a primary key for partitioning
+
+   If you are partitioning a table based on a primary key, the primary key
+   must be properly defined. To change the primary key after table creation,
+   you can use an ALTER TABLE ... ALTER PRIMARY KEY statement.
+
+   Suppose that you want to geo-partition the drivers table that you created
+   with the following statement:
+
+   copy
+
+ > CREATE TABLE drivers (id, city, name) AS VALUES (gen_random_uuid(), 'new york', 'Harry Potter'), (gen_random_uuid(), 'seattle', 'Evelyn Martin');
+
+   copy
+
+ > SHOW CREATE TABLE drivers;
+
+   table_name |               create_statement
+ +------------+----------------------------------------------+
+   drivers    | CREATE TABLE drivers (
+              |     id UUID NULL,
+              |     city STRING NULL,
+              |     name STRING NULL,
+              |     FAMILY "primary" (id, city, name, rowid)
+              | )
+ (1 row)
+
+   In order for this table to be properly geo-partitioned with the other
+   tables in the movr dataset, the table must have a composite primary key
+   defined that includes the unique row identifier (id, in this case) and the
+   row locality identifier (city). Use the following statement to change the
+   primary key to a composite primary key:
+
+   copy
+
+ > CREATE TABLE drivers_pk (id, city, name, PRIMARY KEY (id, city)) AS SELECT id, city, name FROM drivers;
+
+   copy
+
+ > SHOW CREATE TABLE drivers_pk;
+
+   table_name |                     create_statement
+ +------------+----------------------------------------------------------+
+   drivers_pk | CREATE TABLE drivers_pk (
+              |     id UUID NOT NULL,
+              |     city STRING NOT NULL,
+              |     name STRING NULL,
+              |     CONSTRAINT "primary" PRIMARY KEY (id ASC, city ASC),
+              |     FAMILY "primary" (id, city, name)
+              | )
+ (1 row)
+
+See also
+
+     * Selection Queries
+     * Simple SELECT Clause
+     * CREATE TABLE
+     * CREATE VIEW
+     * INSERT
+     * DROP TABLE
+     * Other SQL Statements
+     * ALTER PRIMARY KEY
+     * ALTER TABLE
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

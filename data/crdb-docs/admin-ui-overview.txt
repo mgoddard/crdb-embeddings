@@ -1,0 +1,168 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                               Admin UI Overview
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The CockroachDB Admin UI provides details about your cluster and database
+   configuration, and helps you optimize cluster performance.
+
+Admin UI areas
+
+   Area                  Description                                          
+                         Essential metrics about the cluster and nodes,       
+   Cluster Overview      including liveness status, replication status,       
+                         uptime, and hardware usage.                          
+                         Geographical configuration of your cluster and       
+   Node Map              metrics at the locality and node levels, visualized  
+                         on a map.                                            
+   Overview Dashboard    Metrics about SQL performance, replication, and      
+                         storage.                                             
+   Hardware Dashboard    Metrics about CPU usage, disk throughput, network    
+                         traffic, storage capacity, and memory.               
+   Runtime Dashboard     Metrics about node count, CPU time, and memory       
+                         usage.                                               
+   SQL Dashboard         Metrics about SQL connections, byte traffic,         
+                         queries, transactions, and service latency.          
+   Storage Dashboard     Metrics about storage capacity and file descriptors. 
+                         Metrics about how data is replicated across the      
+   Replication Dashboard cluster, e.g., range status, replicas per store, and 
+                         replica quiescence.                                  
+   Changefeeds Dashboard Metrics about the changefeeds created across your    
+                         cluster.                                             
+   Databases             Details about the system and user databases in the   
+                         cluster.                                             
+   Statements            Frequently executed and high latency SQL statements, 
+                         with the option to collect statement diagnostics.    
+   Network Latency       Latencies and lost connections between all nodes in  
+                         your cluster.                                        
+   Jobs                  Details of jobs running in the cluster.              
+                         Advanced monitoring and troubleshooting reports.     
+                         These include details about data distribution, the   
+   Advanced Debug        state of specific queues, and slow query metrics.    
+                         These details are largely intended for use by        
+                         CockroachDB developers.                              
+
+Admin UI access
+
+   The Admin UI is accessible from every node at http://<host>:<http-port>,
+   or http://<host>:8080 by default.
+
+     * If you included the --http-addr flag when starting nodes, use the IP
+       address/hostname and port specified by that flag.
+     * If you didn't include the --http-addr flag when starting nodes, use
+       the IP address/hostname specified by the --listen-addr flag and port
+       8080.
+     * If you are running a secure cluster, use https instead of http.
+   Tip:
+
+   For guidance on accessing the Admin UI in the context of cluster
+   deployment, see Start a Local Cluster and Manual Deployment.
+
+  Admin UI security
+
+   On insecure clusters, all areas of the Admin UI are accessible to all
+   users.
+
+   On secure clusters, for each user who should have access to the Admin UI,
+   you must create a user with a password and optionally grant the user
+   membership to the admin role.
+
+   Note:
+
+   The default root user is a member of the admin role. Use the following
+   command to grant users membership to the admin role:
+
+   GRANT admin TO <sql_user>;
+
+   For security reasons, non-admin users access only the data over which they
+   have privileges (e.g., their tables, jobs, and list of sessions), and data
+   that does not require privileges (e.g., cluster health, node status,
+   metrics).
+
+   The following areas of the Admin UI can only be accessed by admin users.
+   These areas display information from privileged HTTP endpoints that
+   operate with admin privilege.
+
+   Secure area          Privileged information                                
+   Node Map             Database and table names                              
+   Databases            Stored table data                                     
+   Statements           SQL statements                                        
+   Advanced Debug (some Stored table data, operational details, internal IP   
+   reports)             addresses, names, credentials, application data       
+                        (depending on report)                                 
+
+   Note:
+
+   By default, the Admin UI shares anonymous usage details with Cockroach
+   Labs. For information about the details shared and how to opt-out of
+   reporting, see Diagnostics Reporting.
+
+See also
+
+     * Troubleshooting Overview
+     * Support Resources
+     * Raw Status Endpoints
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

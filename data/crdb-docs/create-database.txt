@@ -1,0 +1,160 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                CREATE DATABASE
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The CREATE DATABASE statement creates a new CockroachDB database.
+
+   Note:
+
+   This statement performs a schema change. For more information about how
+   online schema changes work in CockroachDB, see Online Schema Changes.
+
+Required privileges
+
+   Only members of the admin role can create new databases. By default, the
+   root user belongs to the admin role.
+
+Synopsis
+
+   CREATE DATABASE IF NOT EXISTS name WITH ENCODING = encoding
+
+Parameters
+
+   Parameter     Description                                                  
+                 Create a new database only if a database of the same name    
+   IF NOT EXISTS does not already exist; if one does exist, do not return an  
+                 error.                                                       
+   name          The name of the database to create, which must be unique and 
+                 follow these identifier rules.                               
+                 The CREATE DATABASE statement accepts an optional ENCODING   
+                 clause for compatibility with PostgreSQL, but UTF-8 is the   
+                 only supported encoding. The aliases UTF8 and UNICODE are    
+   encoding      also accepted. Values should be enclosed in single quotes    
+                 and are case-insensitive.                                    
+                                                                              
+                 Example: CREATE DATABASE bank ENCODING = 'UTF-8'.            
+
+Example
+
+  Create a database
+
+   copy
+
+ > CREATE DATABASE bank;
+
+   copy
+
+ > SHOW DATABASES;
+
+ +---------------+
+ | database_name |
+ +---------------+
+ | bank          |
+ | defaultdb     |
+ | postgres      |
+ | system        |
+ +---------------+
+ (4 rows)
+
+  Create fails (name already in use)
+
+   copy
+
+ > CREATE DATABASE bank;
+
+ pq: database "bank" already exists
+
+   copy
+
+ > CREATE DATABASE IF NOT EXISTS bank;
+
+   SQL does not generate an error, but instead responds CREATE DATABASE even
+   though a new database wasn't created.
+
+   copy
+
+ > SHOW DATABASES;
+
+ +---------------+
+ | database_name |
+ +---------------+
+ | bank          |
+ | defaultdb     |
+ | postgres      |
+ | system        |
+ +---------------+
+ (4 rows)
+
+See also
+
+     * SHOW DATABASES
+     * RENAME DATABASE
+     * SET DATABASE
+     * DROP DATABASE
+     * Other SQL Statements
+     * Online Schema Changes
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

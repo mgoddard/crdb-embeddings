@@ -1,0 +1,216 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                   ALTER USER
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The ALTER USER statement can be used to add, change, or remove a user's
+   password and to change the login privileges for a user.
+
+   Note:
+
+   Since the keywords ROLE and USER can now be used interchangeably in SQL
+   statements for enhanced Postgres compatibility, ALTER USER is now an alias
+   for ALTER ROLE.
+
+Considerations
+
+     * Password creation and alteration is supported only in secure clusters.
+
+Required privileges
+
+   To alter other users, the user must have the CREATEROLE parameter set.
+
+Synopsis
+
+   ALTER USER IF EXISTS name WITH PASSWORD password
+
+Parameters
+
+   Parameter               Description                                        
+   name                    The name of the user whose password you want to    
+                           create or add.                                     
+                           Let the user authenticate their access to a secure 
+                           cluster using this new password. Passwords should  
+                           be entered as a string literal. For compatibility  
+                           with PostgreSQL, a password can also be entered as 
+   password                an identifier.                                     
+                                                                              
+                           To prevent a user from using password              
+                           authentication and to mandate certificate-based    
+                           client authentication, set the password as NULL.   
+   VALID UNTIL             The date and time (in the timestamp format) after  
+                           which the password is not valid.                   
+                           The LOGIN parameter allows a user to login with    
+   LOGIN/NOLOGIN           one of the client authentication methods. Setting  
+                           the parameter to NOLOGIN prevents the user from    
+                           logging in using any authentication method.        
+                           Allow or disallow the user to create, alter, and   
+                           drop other users.                                  
+   CREATEROLE/NOCREATEROLE                                                    
+                           By default, the parameter is set to NOCREATEROLE   
+                           for all non-admin and non-root users.              
+
+Examples
+
+  Change password using a string literal
+
+   copy
+
+ > ALTER USER carl WITH PASSWORD 'ilov3beefjerky';
+
+ ALTER USER 1
+
+  Change password using an identifier
+
+   The following statement changes the password to ilov3beefjerky, as above:
+
+   copy
+
+ > ALTER USER carl WITH PASSWORD ilov3beefjerky;
+
+   This is equivalent to the example in the previous section because the
+   password contains only lowercase characters.
+
+   In contrast, the following statement changes the password to
+   thereisnotomorrow, even though the password in the syntax contains
+   capitals, because identifiers are normalized automatically:
+
+   copy
+
+ > ALTER USER carl WITH PASSWORD ThereIsNoTomorrow;
+
+   To preserve case in a password specified using identifier syntax, use
+   double quotes:
+
+   copy
+
+ > ALTER USER carl WITH PASSWORD "ThereIsNoTomorrow";
+
+  Set password validity
+
+   The following statement sets the date and time after which the password is
+   not valid:
+
+   copy
+
+ > ALTER USER carl VALID UNTIL '2021-01-01';
+
+  Prevent a user from using password authentication
+
+   The following statement prevents the user from using password
+   authentication and mandates certificate-based client authentication:
+
+   copy
+
+ > ALTER USER carl WITH PASSWORD NULL;
+
+  Change login privileges for a user
+
+   The following statement prevents the user from logging in with any client
+   authentication method:
+
+   copy
+
+ > ALTER USER carl NOLOGIN;
+
+   copy
+
+ > SHOW USERS;
+
+   username |  options   | member_of
+ -----------+------------+------------
+   admin    | CREATEROLE | {}
+   carl     | NOLOGIN    | {}
+   root     | CREATEROLE | {admin}
+ (3 rows)
+
+   The following statement allows the user to log in with one of the client
+   authentication methods:
+
+   copy
+
+ > ALTER USER carl LOGIN;
+
+   copy
+
+ > SHOW USERS;
+
+   username |  options   | member_of
+ -----------+------------+------------
+   admin    | CREATEROLE | {}
+   carl     |            | {}
+   root     | CREATEROLE | {admin}
+ (3 rows)
+
+See also
+
+     * DROP USER
+     * SHOW USERS
+     * GRANT <privileges>
+     * SHOW GRANTS
+     * Create Security Certificates
+     * Other SQL Statements
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

@@ -1,0 +1,160 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                 GRANT <roles>
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The GRANT <roles> statement lets you add a role or user as a member to a
+   role.
+
+   Note:
+
+   GRANT <roles> is no longer an enterprise feature and is now freely
+   available in the core version of CockroachDB.
+
+Synopsis
+
+   GRANT role_name , TO user_name , WITH ADMIN OPTION
+
+Required privileges
+
+   The user granting role membership must be a role admin (i.e., members with
+   the WITH ADMIN OPTION) or a member of the admin role.
+
+   To grant membership to the admin role, the user must have WITH ADMIN
+   OPTION on the admin role.
+
+Considerations
+
+     * Users and roles can be members of roles.
+     * The root user is automatically created as an admin role and assigned
+       the ALL privilege for new databases.
+     * All privileges of a role are inherited by all its members.
+     * Membership loops are not allowed (direct: A is a member of B is a
+       member of A or indirect: A is a member of B is a member of C ... is a
+       member of A).
+
+Parameters
+
+   Parameter         Description                                              
+                     The name of the role to which you want to add members.   
+   role_name         To add members to multiple roles, use a comma-separated  
+                     list of role names.                                      
+                     The name of the user or role to whom you want to grant   
+   user_name         membership. To add multiple members, use a               
+                     comma-separated list of user and/or role names.          
+   WITH ADMIN OPTION Designate the user as an role admin. Role admins can     
+                     grant or revoke membership for the specified role.       
+
+Examples
+
+  Grant role membership
+
+   copy
+
+ > GRANT design TO ernie;
+
+   copy
+
+ > SHOW GRANTS ON ROLE design;
+
+ +--------+---------+---------+
+ |  role  | member  | isAdmin |
+ +--------+---------+---------+
+ | design | barkley | false   |
+ | design | ernie   | false   |
+ | design | lola    | false   |
+ | design | lucky   | false   |
+ +--------+---------+---------+
+
+  Grant the admin option
+
+   copy
+
+ > GRANT design TO ERNIE WITH ADMIN OPTION;
+
+   copy
+
+ > SHOW GRANTS ON ROLE design;
+
+ +--------+---------+---------+
+ |  role  | member  | isAdmin |
+ +--------+---------+---------+
+ | design | barkley | false   |
+ | design | ernie   | true    |
+ | design | lola    | false   |
+ | design | lucky   | false   |
+ +--------+---------+---------+
+
+See also
+
+     * Authorization
+     * REVOKE <roles>
+     * GRANT <privileges>
+     * REVOKE <privileges>
+     * SHOW GRANTS
+     * SHOW ROLES
+     * Manage Users
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

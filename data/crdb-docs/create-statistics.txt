@@ -1,0 +1,216 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                               CREATE STATISTICS
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   Use the CREATE STATISTICS statement to generate table statistics for the
+   cost-based optimizer to use.
+
+   Once you create a table and load data into it (e.g., INSERT, IMPORT),
+   table statistics can be generated. Table statistics help the cost-based
+   optimizer determine the cardinality of the rows used in each query, which
+   helps to predict more accurate costs.
+
+   CREATE STATISTICS automatically figures out which columns to get
+   statistics on — specifically, it chooses:
+
+     * Columns that are part of the primary key or an index (in other words,
+       all indexed columns).
+     * Up to 100 non-indexed columns (unless you specify which columns to
+       create statistics on, as shown in this example).
+   Note:
+
+   Automatic statistics is enabled by default; most users don't need to issue
+   CREATE STATISTICS statements directly.
+
+Synopsis
+
+   CREATE STATISTICS statistics_name opt_stats_columns FROM
+   create_stats_target opt_as_of_clause
+
+Required Privileges
+
+   The user must have the CREATE privilege on the parent database.
+
+Parameters
+
+   Parameter           Description                                            
+   statistics_name     The name of the set of statistics you are creating.    
+   opt_stats_columns   The name of the column(s) you want to create           
+                       statistics for.                                        
+   create_stats_target The name of the table you want to create statistics    
+                       for.                                                   
+                       Used to create historical stats using the AS OF SYSTEM 
+   opt_as_of_clause    TIME clause. For instructions, see Create statistics   
+                       as of a given time.                                    
+
+Examples
+
+  Create statistics on a specific column
+
+   copy
+
+ > CREATE STATISTICS students ON id FROM students_by_list;
+
+   Note:
+
+   Multi-column statistics are not supported yet.
+
+  Create statistics on a default set of columns
+
+   The CREATE STATISTICS statement shown below automatically figures out
+   which columns to get statistics on — specifically, it chooses:
+
+     * Columns that are part of the primary key or an index (in other words,
+       all indexed columns).
+     * Up to 100 non-indexed columns.
+   copy
+
+ > CREATE STATISTICS students FROM students_by_list;
+
+  Create statistics as of a given time
+
+   To create statistics as of a given time (in this example, 1 minute ago to
+   avoid interfering with the production workload), run a statement like the
+   following:
+
+   copy
+
+ > CREATE STATISTICS employee_stats FROM employees AS OF SYSTEM TIME '-1m';
+
+   For more information about how the AS OF SYSTEM TIME clause works,
+   including supported time formats, see AS OF SYSTEM TIME.
+
+  Delete statistics
+
+   To delete statistics for all tables in all databases:
+
+   copy
+
+ > DELETE FROM system.table_statistics WHERE true;
+
+   To delete a named set of statistics (e.g, one named "my_stats"), run a
+   query like the following:
+
+   copy
+
+ > DELETE FROM system.table_statistics WHERE name = 'my_stats';
+
+   After deleting statistics, restart the nodes in your cluster to clear the
+   statistics caches.
+
+   For more information about the DELETE statement, see DELETE.
+
+  View statistics jobs
+
+   Every time the CREATE STATISTICS statement is executed, it kicks off a
+   background job. This is true for queries issued by your application as
+   well as queries issued by the automatic stats feature.
+
+   To view statistics jobs, there are two options:
+
+    1. Use SHOW JOBS to see all statistics jobs that were created by user
+       queries (i.e., someone entering CREATE STATISTICS at the SQL prompt or
+       via application code):
+
+       copy
+
+ > SELECT * FROM [SHOW JOBS] WHERE job_type LIKE '%CREATE STATS%';
+
+        job_id       |   job_type   |                           description                            | statement | user_name |  status   | running_status |          created           |          started           |          finished          |          modified          | fraction_completed | error | coordinator_id
+ --------------------+--------------+------------------------------------------------------------------+-----------+-----------+-----------+----------------+----------------------------+----------------------------+----------------------------+----------------------------+--------------------+-------+----------------
+  441281249412743169 | CREATE STATS | CREATE STATISTICS salary_stats FROM employees.public.salaries    |           | root      | succeeded |                | 2019-04-08 15:52:30.040531 | 2019-04-08 15:52:30.046646 | 2019-04-08 15:52:32.757519 | 2019-04-08 15:52:32.757519 |                  1 |       |              1
+  441281163978637313 | CREATE STATS | CREATE STATISTICS employee_stats FROM employees.public.employees |           | root      | succeeded |                | 2019-04-08 15:52:03.968099 | 2019-04-08 15:52:03.972557 | 2019-04-08 15:52:05.168809 | 2019-04-08 15:52:05.168809 |                  1 |       |              1
+ (2 rows)
+
+    2. Use SHOW AUTOMATIC JOBS to see statistics jobs that were created by
+       the automatic statistics feature:
+
+       copy
+
+ > SELECT * FROM [SHOW AUTOMATIC JOBS] WHERE job_type LIKE '%CREATE STATS%';
+
+        job_id       |     job_type      |                        description                         |                                         statement                                         | user_name |  status   | running_status |          created           |          started           |          finished          |          modified          | fraction_completed | error | coordinator_id
+ --------------------+-------------------+------------------------------------------------------------+-------------------------------------------------------------------------------------------+-----------+-----------+----------------+----------------------------+----------------------------+----------------------------+----------------------------+--------------------+-------+----------------
+  441280366254850049 | AUTO CREATE STATS | Table statistics refresh for employees.public.departments  | CREATE STATISTICS __auto__ FROM [55] WITH OPTIONS THROTTLING 0.9 AS OF SYSTEM TIME '-30s' | root      | succeeded |                | 2019-04-08 15:48:00.522119 | 2019-04-08 15:48:00.52663  | 2019-04-08 15:48:00.541608 | 2019-04-08 15:48:00.541608 |                  1 |       |              1
+  441280364809289729 | AUTO CREATE STATS | Table statistics refresh for employees.public.titles       | CREATE STATISTICS __auto__ FROM [60] WITH OPTIONS THROTTLING 0.9 AS OF SYSTEM TIME '-30s' | root      | succeeded |                | 2019-04-08 15:48:00.080971 | 2019-04-08 15:48:00.083117 | 2019-04-08 15:48:00.515766 | 2019-04-08 15:48:00.515767 |                  1 |       |              1
+  441280356286201857 | AUTO CREATE STATS | Table statistics refresh for employees.public.salaries     | CREATE STATISTICS __auto__ FROM [59] WITH OPTIONS THROTTLING 0.9 AS OF SYSTEM TIME '-30s' | root      | succeeded |                | 2019-04-08 15:47:57.479929 | 2019-04-08 15:47:57.482235 | 2019-04-08 15:48:00.075025 | 2019-04-08 15:48:00.075025 |                  1 |       |              1
+  441280352161693697 | AUTO CREATE STATS | Table statistics refresh for employees.public.employees    | CREATE STATISTICS __auto__ FROM [58] WITH OPTIONS THROTTLING 0.9 AS OF SYSTEM TIME '-30s' | root      | succeeded |                | 2019-04-08 15:47:56.221223 | 2019-04-08 15:47:56.223664 | 2019-04-08 15:47:57.474159 | 2019-04-08 15:47:57.474159 |                  1 |       |              1
+  441280352070434817 | AUTO CREATE STATS | Table statistics refresh for employees.public.dept_manager | CREATE STATISTICS __auto__ FROM [57] WITH OPTIONS THROTTLING 0.9 AS OF SYSTEM TIME '-30s' | root      | succeeded |                | 2019-04-08 15:47:56.193375 | 2019-04-08 15:47:56.195813 | 2019-04-08 15:47:56.215114 | 2019-04-08 15:47:56.215114 |                  1 |       |              1
+  441280350791401473 | AUTO CREATE STATS | Table statistics refresh for employees.public.dept_emp     | CREATE STATISTICS __auto__ FROM [56] WITH OPTIONS THROTTLING 0.9 AS OF SYSTEM TIME '-30s' | root      | succeeded |                | 2019-04-08 15:47:55.803052 | 2019-04-08 15:47:55.806071 | 2019-04-08 15:47:56.187153 | 2019-04-08 15:47:56.187154 |                  1 |       |              1
+  441279760786096129 | AUTO CREATE STATS | Table statistics refresh for test.public.kv                | CREATE STATISTICS __auto__ FROM [53] WITH OPTIONS THROTTLING 0.9 AS OF SYSTEM TIME '-30s' | root      | succeeded |                | 2019-04-08 15:44:55.747725 | 2019-04-08 15:44:55.754582 | 2019-04-08 15:44:55.775664 | 2019-04-08 15:44:55.775665 |                  1 |       |              1
+ (7 rows)
+
+See Also
+
+     * Cost-Based Optimizer
+     * SHOW STATISTICS
+     * CREATE TABLE
+     * INSERT
+     * IMPORT
+     * SHOW JOBS
+     * SQL Statements
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

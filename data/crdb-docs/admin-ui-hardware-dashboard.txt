@@ -1,0 +1,256 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                               Hardware Dashboard
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The Hardware dashboard lets you monitor the hardware utilization of your
+   cluster. This includes CPU usage, disk throughput, network traffic,
+   storage capacity, and memory.
+
+   To view this dashboard, access the Admin UI, click Metrics in the
+   left-hand navigation, and select Dashboard > Hardware.
+
+Dashboard navigation
+
+   Use the Graph menu to display metrics for your entire cluster or for a
+   specific node.
+
+   To the right of the Graph and Dashboard menus, a range selector allows you
+   to filter the view for a predefined timeframe or custom date/time range.
+   Use the navigation buttons to move to the previous, next, or current
+   timeframe. Note that the active timeframe is reflected in the URL and can
+   be easily shared.
+
+   The Hardware dashboard displays the following time series graphs:
+
+CPU Percent
+
+   CockroachDB Admin UI CPU Percent graph
+
+   Note:
+
+   This graph shows the CPU consumption by the CockroachDB process only and
+   is useful as long as there are no other processes consuming significant
+   CPU on the node. In case you have other processes running on the node, use
+   a separate monitoring tool to measure the total CPU consumption across all
+   processes.
+
+     * In the node view, the graph shows the percentage of CPU in use by the
+       CockroachDB process for the selected node.
+
+     * In the cluster view, the graph shows the percentage of CPU in use by
+       the CockroachDB process across all nodes.
+
+   Note:
+
+   For multi-core systems, the percentage of CPU usage is calculated by
+   normalizing the CPU usage across all cores, whereby 100% utilization
+   indicates that all cores are fully utilized.
+
+Memory Usage
+
+   CockroachDB Admin UI Memory Usage graph
+
+   Note:
+
+   This graph shows the memory consumption by the CockroachDB process only
+   and is useful as long as there are no other processes consuming
+   significant memory on the node. In case you have other processes running
+   on the node, use a separate monitoring tool to measure the total memory
+   consumption across all processes.
+
+     * In the node view, the graph shows the memory in use by CockroachDB for
+       the selected node.
+
+     * In the cluster view, the graph shows the memory in use by CockroachDB
+       across all nodes in the cluster.
+
+Disk Read Bytes
+
+   CockroachDB Admin UI Disk Read Bytes graph
+
+     * In the node view, the graph shows the 10-second average of the number
+       of bytes read per second by all processes, including CockroachDB, for
+       the selected node.
+
+     * In the cluster view, the graph shows the 10-second average of the
+       number of bytes read per second by all processes, including
+       CockroachDB, across all nodes.
+
+Disk Write Bytes
+
+   CockroachDB Admin UI Disk Write Bytes graph
+
+     * In the node view, the graph shows the 10-second average of the number
+       of bytes written per second by all processes, including CockroachDB,
+       for the node.
+
+     * In the cluster view, the graph shows the 10-second average of the
+       number of bytes written per second by all processes, including
+       CockroachDB, across all nodes.
+
+Disk Read Ops
+
+   CockroachDB Admin UI Disk Read Ops graph
+
+     * In the node view, the graph shows the 10-second average of the number
+       of disk read ops per second for all processes, including CockroachDB,
+       for the selected node.
+
+     * In the cluster view, the graph shows the 10-second average of the
+       number of disk read ops per second for all processes, including
+       CockroachDB, across all nodes.
+
+Disk Write Ops
+
+   CockroachDB Admin UI Disk Write Ops graph
+
+     * In the node view, the graph shows the 10-second average of the number
+       of disk write ops per second for all processes, including CockroachDB,
+       for the node.
+
+     * In the cluster view, the graph shows the 10-second average of the
+       number of disk write ops per second for all processes, including
+       CockroachDB, across all nodes.
+
+Disk IOPS in Progress
+
+   CockroachDB Admin UI Disk IOPS in Progress graph
+
+     * In the node view, the graph shows the number of disk reads and writes
+       in queue for all processes, including CockroachDB, for the selected
+       node.
+
+     * In the cluster view, the graph shows the number of disk reads and
+       writes in queue for all processes, including CockroachDB, across all
+       nodes in the cluster.
+
+   Note:
+
+   For Mac OS, this graph is not populated and shows zero disk IOPS in
+   progress. This is a known limitation that may be lifted in the future.
+
+Available Disk Capacity
+
+   CockroachDB Admin UI Disk Capacity graph
+
+   Metric                  Description                                        
+   Available Disk Capacity Free disk space available to CockroachDB data on   
+                           each node.                                         
+
+  Capacity metrics
+
+   The available disk capacity equals the amount of empty disk space, up to
+   the value of the maximum store size. The store size is determined as
+   follows:
+
+     * If a store size was specified using the --store flag when starting
+       nodes, this value is used as the limit for CockroachDB data.
+     * If no store size has been explicitly set, the actual disk capacity is
+       used as the limit for CockroachDB data.
+
+   The disk usage of the Cockroach binary, operating system, and other system
+   files is not shown on the Available Disk Capacity graph.
+
+   Note:
+
+   If you are testing your deployment locally with multiple CockroachDB nodes
+   running on a single machine (this is not recommended in production), you
+   must explicitly set the store size per node in order to display the
+   correct capacity. Otherwise, the machine's actual disk capacity will be
+   counted as a separate store for each node, thus inflating the computed
+   capacity.
+
+Network Bytes Received
+
+   CockroachDB Admin UI Network Bytes Received graph
+
+     * In the node view, the graph shows the 10-second average of the number
+       of network bytes received per second for all processes, including
+       CockroachDB, for the node.
+
+     * In the cluster view, the graph shows the 10-second average of the
+       number of network bytes received for all processes, including
+       CockroachDB, per second across all nodes.
+
+Network Bytes Sent
+
+   CockroachDB Admin UI Network Bytes Sent graph
+
+     * In the node view, the graph shows the 10-second average of the number
+       of network bytes sent per second by all processes, including
+       CockroachDB, for the node.
+
+     * In the cluster view, the graph shows the 10-second average of the
+       number of network bytes sent per second by all processes, including
+       CockroachDB, across all nodes.
+
+See also
+
+     * Troubleshooting Overview
+     * Support Resources
+     * Raw Status Endpoints
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

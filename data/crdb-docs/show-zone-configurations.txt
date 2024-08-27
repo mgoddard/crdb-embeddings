@@ -1,0 +1,349 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                            SHOW ZONE CONFIGURATIONS
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   Use the SHOW ZONE CONFIGURATIONS statement to view details about existing
+   replication zones.
+
+Synopsis
+
+   SHOW ZONE CONFIGURATION FOR RANGE zone_name DATABASE database_name TABLE
+   table_name PARTITION partition_name PARTITION partition_name OF TABLE
+   table_name INDEX table_name @ index_name CONFIGURATIONS ALL ZONE
+   CONFIGURATIONS
+
+Required privileges
+
+   No privileges are required to list replication zones.
+
+Parameters
+
+   Parameter      Description                                                 
+   range_name     The name of the system range for which to show replication  
+                  zone configurations.                                        
+   database_name  The name of the database for which to show replication zone 
+                  configurations.                                             
+   table_name     The name of the table for which to show replication zone    
+                  configurations.                                             
+   partition_name The name of the partition for which to show replication     
+                  zone configurations.                                        
+   index_name     The name of the index for which to show replication zone    
+                  configurations.                                             
+
+Examples
+
+  Setup
+
+   The following examples use MovR, a fictional vehicle-sharing application,
+   to demonstrate CockroachDB SQL statements. For more information about the
+   MovR example application and dataset, see MovR: A Global Vehicle-sharing
+   App.
+
+   To follow along, run cockroach demo with the --geo-partitioned-replicas
+   flag. This command opens an interactive SQL shell to a temporary, 9-node
+   in-memory cluster with the Geo-Partitioned Replicas Topology applied to
+   the movr database.
+
+   copy
+
+ $ cockroach demo --geo-partitioned-replicas
+
+  View all replication zones
+
+   copy
+
+ > SHOW ALL ZONE CONFIGURATIONS;
+
+                        target                      |                               raw_config_sql
+ +--------------------------------------------------+-----------------------------------------------------------------------------+
+   RANGE default                                    | ALTER RANGE default CONFIGURE ZONE USING
+                                                    |     range_min_bytes = 134217728,
+                                                    |     range_max_bytes = 536870912,
+                                                    |     gc.ttlseconds = 90000,
+                                                    |     num_replicas = 3,
+                                                    |     constraints = '[]',
+                                                    |     lease_preferences = '[]'
+   DATABASE system                                  | ALTER DATABASE system CONFIGURE ZONE USING
+                                                    |     range_min_bytes = 134217728,
+                                                    |     range_max_bytes = 536870912,
+                                                    |     gc.ttlseconds = 90000,
+                                                    |     num_replicas = 5,
+                                                    |     constraints = '[]',
+                                                    |     lease_preferences = '[]'
+   TABLE system.public.jobs                         | ALTER TABLE system.public.jobs CONFIGURE ZONE USING
+                                                    |     range_min_bytes = 134217728,
+                                                    |     range_max_bytes = 536870912,
+                                                    |     gc.ttlseconds = 600,
+                                                    |     num_replicas = 5,
+                                                    |     constraints = '[]',
+                                                    |     lease_preferences = '[]'
+   RANGE meta                                       | ALTER RANGE meta CONFIGURE ZONE USING
+                                                    |     range_min_bytes = 134217728,
+                                                    |     range_max_bytes = 536870912,
+                                                    |     gc.ttlseconds = 3600,
+                                                    |     num_replicas = 5,
+                                                    |     constraints = '[]',
+                                                    |     lease_preferences = '[]'
+   RANGE system                                     | ALTER RANGE system CONFIGURE ZONE USING
+                                                    |     range_min_bytes = 134217728,
+                                                    |     range_max_bytes = 536870912,
+                                                    |     gc.ttlseconds = 90000,
+                                                    |     num_replicas = 5,
+                                                    |     constraints = '[]',
+                                                    |     lease_preferences = '[]'
+   RANGE liveness                                   | ALTER RANGE liveness CONFIGURE ZONE USING
+                                                    |     range_min_bytes = 134217728,
+                                                    |     range_max_bytes = 536870912,
+                                                    |     gc.ttlseconds = 600,
+                                                    |     num_replicas = 5,
+                                                    |     constraints = '[]',
+                                                    |     lease_preferences = '[]'
+   TABLE system.public.replication_constraint_stats | ALTER TABLE system.public.replication_constraint_stats CONFIGURE ZONE USING
+                                                    |     gc.ttlseconds = 600,
+                                                    |     constraints = '[]',
+                                                    |     lease_preferences = '[]'
+   TABLE system.public.replication_stats            | ALTER TABLE system.public.replication_stats CONFIGURE ZONE USING
+                                                    |     gc.ttlseconds = 600,
+                                                    |     constraints = '[]',
+                                                    |     lease_preferences = '[]'
+ ...
+
+  View the default replication zone for the cluster
+
+   copy
+
+ > SHOW ZONE CONFIGURATION FOR RANGE default;
+
+      target     |              raw_config_sql
+ +---------------+------------------------------------------+
+   RANGE default | ALTER RANGE default CONFIGURE ZONE USING
+                 |     range_min_bytes = 134217728,
+                 |     range_max_bytes = 536870912,
+                 |     gc.ttlseconds = 90000,
+                 |     num_replicas = 3,
+                 |     constraints = '[]',
+                 |     lease_preferences = '[]'
+ (1 row)
+
+  View the replication zone for a database
+
+   To control replication for a specific database, use the ALTER DATABASE ...
+   CONFIGURE ZONE statement to define the relevant values (other values will
+   be inherited from the parent zone):
+
+   copy
+
+ > ALTER DATABASE movr CONFIGURE ZONE USING num_replicas = 5, gc.ttlseconds = 100000;
+
+ CONFIGURE ZONE 1
+
+   copy
+
+ > SHOW ZONE CONFIGURATION FOR DATABASE movr;
+
+      target     |              raw_config_sql
+ +---------------+------------------------------------------+
+   DATABASE movr | ALTER DATABASE movr CONFIGURE ZONE USING
+                 |     range_min_bytes = 134217728,
+                 |     range_max_bytes = 536870912,
+                 |     gc.ttlseconds = 100000,
+                 |     num_replicas = 5,
+                 |     constraints = '[]',
+                 |     lease_preferences = '[]'
+ (1 row)
+
+  View the replication zone for a table
+
+   To control replication for a specific table, use the ALTER TABLE ...
+   CONFIGURE ZONE statement to define the relevant values (other values will
+   be inherited from the parent zone):
+
+   copy
+
+ > ALTER TABLE users CONFIGURE ZONE USING num_replicas = 5, gc.ttlseconds = 100000;
+
+ CONFIGURE ZONE 1
+
+   copy
+
+ > SHOW ZONE CONFIGURATION FOR TABLE users;
+
+     target    |             raw_config_sql
+ +-------------+----------------------------------------+
+   TABLE users | ALTER TABLE users CONFIGURE ZONE USING
+               |     range_min_bytes = 134217728,
+               |     range_max_bytes = 536870912,
+               |     gc.ttlseconds = 100000,
+               |     num_replicas = 5,
+               |     constraints = '[]',
+               |     lease_preferences = '[]'
+ (1 row)
+
+   You can also use SHOW CREATE TABLE to view zone configurations for a
+   table. If a table is partitioned, but no zones are configured, the SHOW
+   CREATE TABLE output includes a warning.
+
+  View the replication zone for an index
+
+   To control replication for a specific table, use the ALTER INDEX ...
+   CONFIGURE ZONE statement to define the relevant values (other values will
+   be inherited from the parent zone):
+
+   copy
+
+ > ALTER INDEX vehicles@vehicles_auto_index_fk_city_ref_users CONFIGURE ZONE USING num_replicas = 5, gc.ttlseconds = 100000;
+
+ CONFIGURE ZONE 1
+
+   copy
+
+ > SHOW ZONE CONFIGURATION FOR INDEX vehicles@vehicles_auto_index_fk_city_ref_users;
+
+                          target                        |                                 raw_config_sql
+ +------------------------------------------------------+---------------------------------------------------------------------------------+
+   INDEX vehicles@vehicles_auto_index_fk_city_ref_users | ALTER INDEX vehicles@vehicles_auto_index_fk_city_ref_users CONFIGURE ZONE USING
+                                                        |     range_min_bytes = 134217728,
+                                                        |     range_max_bytes = 536870912,
+                                                        |     gc.ttlseconds = 100000,
+                                                        |     num_replicas = 5,
+                                                        |     constraints = '[]',
+                                                        |     lease_preferences = '[]'
+ (1 row)
+
+  View the replication zone for a partition
+
+   Note:
+
+   This is an enterprise-only feature.
+
+   Once partitions have been defined for a table or a secondary index, to
+   control replication for a partition, use ALTER PARTITION <partition> OF
+   INDEX <table@index> CONFIGURE ZONE:
+
+   copy
+
+ > ALTER PARTITION us_west OF INDEX vehicles@primary
+     CONFIGURE ZONE USING
+       num_replicas = 5,
+       constraints = '[+region=us-west1]';
+
+ CONFIGURE ZONE 1
+
+   copy
+
+ > ALTER PARTITION us_west OF INDEX vehicles@vehicles_auto_index_fk_city_ref_users
+     CONFIGURE ZONE USING
+       num_replicas = 5,
+       constraints = '[+region=us-west1]';
+
+ CONFIGURE ZONE 1
+
+   To define replication zones for identically named partitions of a table
+   and its secondary indexes, you can use the <table>@* syntax to save
+   several steps:
+
+   copy
+
+ > ALTER PARTITION us_west OF INDEX vehicles@*
+     CONFIGURE ZONE USING
+       num_replicas = 5,
+       constraints = '[+region=us-west1]';
+
+   To view the zone configuration for a partition, use SHOW ZONE
+   CONFIGURATION FOR PARTITION <partition> OF INDEX <table@index>:
+
+   copy
+
+ > SHOW ZONE CONFIGURATION FOR PARTITION us_west OF INDEX vehicles@primary;
+
+                     target                    |                             raw_config_sql
+ +---------------------------------------------+------------------------------------------------------------------------+
+   PARTITION us_west OF INDEX vehicles@primary | ALTER PARTITION us_west OF INDEX vehicles@primary CONFIGURE ZONE USING
+                                               |     range_min_bytes = 134217728,
+                                               |     range_max_bytes = 536870912,
+                                               |     gc.ttlseconds = 90000,
+                                               |     num_replicas = 5,
+                                               |     constraints = '[+region=us-west1]',
+                                               |     lease_preferences = '[]'
+ (1 row)
+
+   Tip:
+
+   You can also use the SHOW CREATE TABLE statement or SHOW PARTITIONS
+   statements to view details about all of the replication zones defined for
+   the partitions of a table and its secondary indexes.
+
+See also
+
+     * Configure Replication Zones
+     * CONFIGURE ZONE
+     * ALTER DATABASE
+     * ALTER INDEX
+     * ALTER RANGE
+     * ALTER TABLE
+     * SQL Statements
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

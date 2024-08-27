@@ -1,0 +1,272 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                     BEGIN
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The BEGIN statement initiates a transaction, which either successfully
+   executes all of the statements it contains or none at all.
+
+   Warning:
+
+   When using transactions, your application should include logic to retry
+   transactions that are aborted to break a dependency cycle between
+   concurrent transactions.
+
+Synopsis
+
+   BEGIN TRANSACTION PRIORITY LOW NORMAL HIGH READ ONLY WRITE AS OF SYSTEM
+   TIME a_expr ,
+
+Required privileges
+
+   No privileges are required to initiate a transaction. However, privileges
+   are required for each statement within a transaction.
+
+Aliases
+
+   In CockroachDB, the following are aliases for the BEGIN statement:
+
+     * BEGIN TRANSACTION
+     * START TRANSACTION
+
+Parameters
+
+   Parameter         Description                                              
+                     If you do not want the transaction to run with NORMAL    
+                     priority, you can set it to LOW or HIGH.                 
+                                                                              
+                     Transactions with higher priority are less likely to     
+   PRIORITY          need to be retried.                                      
+                                                                              
+                     For more information, see Transactions: Priorities.      
+                                                                              
+                     Default: NORMAL                                          
+                     Set the transaction access mode to READ ONLY or READ     
+                     WRITE. The current transaction access mode is also       
+   READ              exposed as the session variable transaction_read_only.   
+                                                                              
+                     Default: READ WRITE                                      
+                     Execute the transaction using the database contents "as  
+                     of" a specified time in the past.                        
+                                                                              
+                     The AS OF SYSTEM TIME clause can be used only when the   
+   AS OF SYSTEM TIME transaction is read-only. If the transaction contains    
+                     any writes, or if the READ WRITE mode is specified, an   
+                     error will be returned.                                  
+                                                                              
+                     For more information, see AS OF SYSTEM TIME.             
+
+   CockroachDB now only supports SERIALIZABLE isolation, so transactions can
+   no longer be meaningfully set to any other ISOLATION LEVEL. In previous
+   versions of CockroachDB, you could set transactions to SNAPSHOT isolation,
+   but that feature has been removed.
+
+Examples
+
+  Begin a transaction
+
+    Use default settings
+
+   Without modifying the BEGIN statement, the transaction uses SERIALIZABLE
+   isolation and NORMAL priority.
+
+   copy
+
+ > BEGIN;
+
+   copy
+
+ > SAVEPOINT cockroach_restart;
+
+   copy
+
+ > UPDATE products SET inventory = 0 WHERE sku = '8675309';
+
+   copy
+
+ > INSERT INTO orders (customer, sku, status) VALUES (1001, '8675309', 'new');
+
+   copy
+
+ > RELEASE SAVEPOINT cockroach_restart;
+
+   copy
+
+ > COMMIT;
+
+   Warning:
+   This example assumes you're using client-side intervention to handle
+   transaction retries.
+
+    Change priority
+
+   You can set a transaction's priority to LOW or HIGH.
+
+   copy
+
+ > BEGIN PRIORITY HIGH;
+
+   copy
+
+ > SAVEPOINT cockroach_restart;
+
+   copy
+
+ > UPDATE products SET inventory = 0 WHERE sku = '8675309';
+
+   copy
+
+ > INSERT INTO orders (customer, sku, status) VALUES (1001, '8675309', 'new');
+
+   copy
+
+ > RELEASE SAVEPOINT cockroach_restart;
+
+   copy
+
+ > COMMIT;
+
+   You can also set a transaction's priority with SET TRANSACTION.
+
+   Warning:
+
+   This example assumes you're using client-side intervention to handle
+   transaction retries.
+
+  Use the AS OF SYSTEM TIME option
+
+   You can execute the transaction using the database contents "as of" a
+   specified time in the past.
+
+   copy
+
+ > BEGIN AS OF SYSTEM TIME '2019-04-09 18:02:52.0+00:00';
+
+   copy
+
+ > SELECT * FROM orders;
+
+   copy
+
+ > SELECT * FROM products;
+
+   copy
+
+ > COMMIT;
+
+   Tip:
+
+   You can also use the SET TRANSACTION statement inside the transaction to
+   achieve the same results. This syntax is easier to use from drivers and
+   ORMs.
+
+  Begin a transaction with automatic retries
+
+   CockroachDB will automatically retry all transactions that contain both
+   BEGIN and COMMIT in the same batch. Batching is controlled by your driver
+   or client's behavior, but means that CockroachDB receives all of the
+   statements as a single unit, instead of a number of requests.
+
+   From the perspective of CockroachDB, a transaction sent as a batch looks
+   like this:
+
+   copy
+
+ > BEGIN;
+
+ > DELETE FROM customers WHERE id = 1;
+
+ > DELETE orders WHERE customer = 1;
+
+ > COMMIT;
+
+   However, in your application's code, batched transactions are often just
+   multiple statements sent at once. For example, in Go, this transaction
+   would sent as a single batch (and automatically retried):
+
+ db.Exec(
+   "BEGIN;
+
+   DELETE FROM customers WHERE id = 1;
+
+   DELETE orders WHERE customer = 1;
+
+   COMMIT;"
+ )
+
+   Issuing statements this way signals to CockroachDB that you do not need to
+   change any of the statement's values if the transaction doesn't
+   immediately succeed, so it can continually retry the transaction until
+   it's accepted.
+
+See also
+
+     * Transactions
+     * COMMIT
+     * SAVEPOINT
+     * RELEASE SAVEPOINT
+     * ROLLBACK
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

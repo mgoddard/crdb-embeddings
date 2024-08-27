@@ -1,0 +1,282 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                 SQL Statements
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   CockroachDB supports the following SQL statements. Click a statement for
+   more details.
+
+   Tip:
+
+   In the built-in SQL shell, use \h [statement] to get inline help about a
+   specific statement.
+
+Data manipulation statements
+
+   Statement         Usage                                                    
+   CREATE TABLE AS   Create a new table in a database using the results from  
+                     a selection query.                                       
+   DELETE            Delete specific rows from a table.                       
+                     Export an entire table's data, or the results of a       
+   EXPORT            SELECT statement, to CSV files. Note that this statement 
+                     requires an enterprise license.                          
+   IMPORT            Bulk-insert CSV data into a new table.                   
+   IMPORT INTO       Bulk-insert CSV data into an existing table.             
+   INSERT            Insert rows into a table.                                
+   SELECT            Select specific rows and columns from a table and        
+                     optionally compute derived values.                       
+   SELECT FOR UPDATE Order transactions by controlling concurrent access to   
+                     one or more rows of a table.                             
+   TABLE             Select all rows and columns from a table.                
+   TRUNCATE          Delete all rows from specified tables.                   
+   UPDATE            Update rows in a table.                                  
+   UPSERT            Insert rows that do not violate uniqueness constraints;  
+                     update rows that do.                                     
+   VALUES            Return rows containing specific values.                  
+
+Data definition statements
+
+   Statement                Usage                                             
+   ADD COLUMN               Add columns to a table.                           
+   ADD CONSTRAINT           Add a constraint to a column.                     
+   ALTER COLUMN             Change a column's Default constraint or NOT NULL  
+                            constraint.                                       
+   ALTER DATABASE           Apply a schema change to a database.              
+   ALTER INDEX              Apply a schema change to an index.                
+                            Configure the replication zone for a partition.   
+   ALTER PARTITION          Note that partitioning requires an enterprise     
+                            license.                                          
+   ALTER PRIMARY KEY        Change the primary key of a table.                
+   ALTER RANGE              Configure the replication zone for a system       
+                            range.                                            
+   ALTER SEQUENCE           Apply a schema change to a sequence.              
+   ALTER TABLE              Apply a schema change to a table.                 
+   ALTER TYPE               Change a column's data type.                      
+   ALTER USER               add, change, or remove a user's password and to   
+                            change the login privileges for a role.           
+   ALTER ROLE               Add, change, or remove a role's password and to   
+                            change the login privileges for a role.           
+   ALTER VIEW               Rename a view.                                    
+   COMMENT ON               Associate a comment to a database, table, or      
+                            column.                                           
+                            Add, modify, reset, or remove a replication zone  
+   CONFIGURE ZONE           for a database, table, index, partition, or       
+                            system range.                                     
+   CREATE DATABASE          Create a new database.                            
+   CREATE INDEX             Create an index for a table.                      
+   CREATE SEQUENCE          Create a new sequence.                            
+   CREATE TABLE             Create a new table in a database.                 
+   CREATE TABLE AS          Create a new table in a database using the        
+                            results from a selection query.                   
+   CREATE VIEW              Create a new view in a database.                  
+   DROP COLUMN              Remove columns from a table.                      
+   DROP CONSTRAINT          Remove constraints from a column.                 
+   DROP DATABASE            Remove a database and all its objects.            
+   DROP INDEX               Remove an index for a table.                      
+   DROP SEQUENCE            Remove a sequence.                                
+   DROP TABLE               Remove a table.                                   
+   DROP VIEW                Remove a view.                                    
+   EXPERIMENTAL_AUDIT       Turn SQL audit logging on or off for a table.     
+                            Partition, re-partition, or un-partition a table  
+   PARTITION BY             or secondary index. Note that partitioning        
+                            requires an enterprise license.                   
+   RENAME COLUMN            Rename a column in a table.                       
+   RENAME CONSTRAINT        Rename a constraint on a column.                  
+   RENAME DATABASE          Rename a database.                                
+   RENAME INDEX             Rename an index for a table.                      
+   RENAME SEQUENCE          Rename a sequence.                                
+   RENAME TABLE             Rename a table or move a table between databases. 
+   SHOW COLUMNS             View details about columns in a table.            
+   SHOW CONSTRAINTS         List constraints on a table.                      
+   SHOW CREATE              View the CREATE statement for a table, view, or   
+                            sequence.                                         
+   SHOW DATABASES           List databases in the cluster.                    
+   SHOW PARTITIONS          List partitions in a database. Note that          
+                            partitioning requires an enterprise license.      
+   SHOW INDEX               View index information for a table or database.   
+   SHOW LOCALITY            View the locality of the current node.            
+   SHOW SCHEMAS             List the schemas in a database.                   
+   SHOW SEQUENCES           List the sequences in a database.                 
+   SHOW TABLES              List tables or views in a database or virtual     
+                            schema.                                           
+   SHOW RANGES              Show range information about a specific table or  
+                            index.                                            
+   SHOW ZONE CONFIGURATIONS List details about existing replication zones.    
+   SPLIT AT                 Force a range split at the specified row in the   
+                            table or index.                                   
+   UNSPLIT AT               Remove a range split enforcement at a specified   
+                            row in the table or index.                        
+   VALIDATE CONSTRAINT      Check whether values in a column match a          
+                            constraint on the column.                         
+
+Transaction management statements
+
+   Statement             Usage                                                
+   BEGIN                 Initiate a transaction.                              
+   COMMIT                Commit the current transaction.                      
+   SAVEPOINT             Start a nested transaction.                          
+   RELEASE SAVEPOINT     Commit a nested transaction.                         
+   ROLLBACK TO SAVEPOINT Roll back and restart the nested transaction started 
+                         at the corresponding SAVEPOINT statement.            
+                         Roll back the current transaction and all of its     
+   ROLLBACK              nested transaction, discarding all transactional     
+                         updates made by statements inside the transaction.   
+   SET TRANSACTION       Set the priority for the session or for an           
+                         individual transaction.                              
+   SHOW                  View the current transaction settings.               
+
+Access management statements
+
+   Statement           Usage                                                  
+   CREATE ROLE         Create SQL roles, which are groups containing any      
+                       number of roles and users as members.                  
+   CREATE USER         Create SQL users, which lets you control privileges on 
+                       your databases and tables.                             
+   DROP ROLE           Remove one or more SQL roles.                          
+   DROP USER           Remove one or more SQL users.                          
+   GRANT <privileges>  Grant privileges to users or roles.                    
+   GRANT <roles>       Add a role or user as a member to a role.              
+   REVOKE <privileges> Revoke privileges from users or roles.                 
+   REVOKE <roles>      Revoke a role or user's membership to a role.          
+   SHOW GRANTS         View privileges granted to users.                      
+   SHOW ROLES          Lists the roles for all databases.                     
+   SHOW USERS          Lists the users for all databases.                     
+
+Session management statements
+
+   Statement              Usage                                               
+   RESET                  Reset a session variable to its default value.      
+   SET                    Set a current session variable.                     
+   SET TRANSACTION        Set the priority for an individual transaction.     
+                          Return details about how CockroachDB executed a     
+   SHOW TRACE FOR SESSION statement or series of statements recorded during a 
+                          session.                                            
+   SHOW                   List the current session or transaction settings.   
+
+Cluster management statements
+
+   Statement                 Usage                                         
+   RESET CLUSTER SETTING     Reset a cluster setting to its default value. 
+   SET CLUSTER SETTING       Set a cluster-wide setting.                   
+   SHOW ALL CLUSTER SETTINGS List the current cluster-wide settings.       
+   SHOW SESSIONS             List details about currently active sessions. 
+   CANCEL SESSION            Cancel a long-running session.                
+
+Query management statements
+
+   Statement    Usage                                          
+   CANCEL QUERY Cancel a running SQL query.                    
+   SHOW QUERIES List details about current active SQL queries. 
+
+Query planning statements
+
+   Statement         Usage                                                    
+   CREATE STATISTICS Create table statistics for the cost-based optimizer to  
+                     use.                                                     
+   EXPLAIN           View debugging and analysis details for a statement that 
+                     operates over tabular data.                              
+   EXPLAIN ANALYZE   Execute the query and generate a physical query plan     
+                     with execution statistics.                               
+   SHOW STATISTICS   List table statistics used by the cost-based optimizer.  
+
+Job management statements
+
+   Jobs in CockroachDB represent tasks that might not complete immediately,
+   such as schema changes or enterprise backups or restores.
+
+   Statement  Usage                                                       
+   CANCEL JOB Cancel a BACKUP, RESTORE, IMPORT, or CHANGEFEED job.        
+   PAUSE JOB  Pause a BACKUP, RESTORE, IMPORT, or CHANGEFEED job.         
+   RESUME JOB Resume a paused BACKUP, RESTORE, IMPORT, or CHANGEFEED job. 
+   SHOW JOBS  View information on jobs.                                   
+
+Backup and restore statements (Enterprise)
+
+   The following statements require an enterprise license.
+
+   Note:
+
+   For non-enterprise users, see Back up Data and Restore Data.
+
+   Statement   Usage                                                     
+   BACKUP      Create disaster recovery backups of databases and tables. 
+   RESTORE     Restore databases and tables using your backups.          
+   SHOW BACKUP List the contents of a backup.                            
+
+Changefeed statements (Enterprise)
+
+   Change data capture (CDC) provides an enterprise and core version of
+   row-level change subscriptions for downstream processing.
+
+   Statement               Usage                                              
+                           (Enterprise) Create a new changefeed to stream     
+   CREATE CHANGEFEED       row-level changes in a configurable format to a    
+                           configurable sink (Kafka or a cloud storage sink). 
+                           (Core) Create a new changefeed to stream row-level 
+   EXPERIMENTAL CHANGEFEED changes to the client indefinitely until the       
+   FOR                     underlying connection is closed or the changefeed  
+                           is canceled.                                       
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

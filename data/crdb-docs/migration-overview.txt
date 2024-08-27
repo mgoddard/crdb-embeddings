@@ -1,0 +1,148 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                               Migration Overview
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   CockroachDB supports importing data from the following databases:
+
+     * MySQL
+     * Oracle (using CSV)
+     * Postgres
+
+   and from the following data formats:
+
+     * CSV/TSV
+
+   This page lists general considerations to be aware of as you plan your
+   migration to CockroachDB.
+
+   In addition to the information listed below, see the following pages for
+   specific instructions and considerations that apply to the database (or
+   data format) you're migrating from:
+
+     * Migrate from Oracle
+     * Migrate from Postgres
+     * Migrate from MySQL
+     * Migrate from CSV
+
+File storage during import
+
+   During migration, all of the features of IMPORT that interact with
+   external file storage assume that every node has the exact same view of
+   that storage. In other words, in order to import from a file, every node
+   needs to have the same access to that file.
+
+Schema and application changes
+
+   In general, you are likely to have to make changes to your schema, and how
+   your app interacts with the database. We strongly recommend testing your
+   application against CockroachDB to ensure that:
+
+    1. The state of your data is what you expect post-migration.
+    2. Performance is as expected for your application's workloads. You may
+       need to apply some best practices for optimizing SQL performance in
+       CockroachDB.
+
+Data type sizes
+
+   Above a certain size, many data types such as STRINGs, DECIMALs, ARRAY,
+   BYTES, and JSONB may run into performance issues due to write
+   amplification. See each data type's documentation for its recommended size
+   limits.
+
+Unsupported data types
+
+   CockroachDB does not provide ENUM or SET data types.
+
+   In Postgres, you can emulate an ENUM type using a CHECK constraint as
+   shown below. For MySQL, we perform this conversion automatically during
+   the import.
+
+   copy
+
+ > CREATE TABLE orders (
+     id UUID PRIMARY KEY,
+     -- ...
+     status STRING check (
+       status='processing' or status='in-transit' or status='delivered'
+     ) NOT NULL,
+     -- ...
+   );
+
+See also
+
+     * IMPORT
+     * Migrate from Oracle
+     * Migrate from CSV
+     * Migrate from MySQL
+     * Migrate from Postgres
+     * Can a Postgres or MySQL application be migrated to CockroachDB?
+     * PostgreSQL Compatibility
+     * SQL Dump (Export)
+     * Back Up and Restore
+     * Use the Built-in SQL Client
+     * Other Cockroach Commands
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

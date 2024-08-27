@@ -1,0 +1,508 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                               Table Expressions
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   Table expressions define a data source in the FROM sub-clause of simple
+   SELECT clauses, or as parameter to TABLE.
+
+   SQL Joins are a particular kind of table expression.
+
+Synopsis
+
+   table_name @ index_name func_application [ row_source_extension_stmt ] (
+   select_stmt joined_table ) LATERAL ( select_stmt ) func_application WITH
+   ORDINALITY AS table_alias_name ( name , ) joined_table
+
+Parameters
+
+   Parameter                 Description                                      
+   table_name                A table or view name.                            
+   table_alias_name          A name to use in an aliased table expression.    
+   name                      One or more aliases for the column names, to use 
+                             in an aliased table expression.                  
+   index_name                Optional syntax to force index selection.        
+   func_application          Results from a function.                         
+   row_source_extension_stmt Result rows from a supported statement.          
+   select_stmt               A selection query to use as subquery.            
+   joined_table              A join expression.                               
+
+Table expressions language
+
+   The synopsis above really defines a mini-language to construct complex
+   table expressions from simpler parts.
+
+   Construct              Description            Examples                     
+   table_name [@          Access a table or      accounts, accounts@name_idx  
+   scan_parameters]       view.                  
+                          Generate tabular data                               
+   function_name ( exprs  using a scalar         sin(1.2),                    
+   ... )                  function or table      generate_series(1,10)
+                          generator function.    
+   <table expr> [AS] name Rename a table and     accounts a, accounts AS a,   
+   [( name [, ...] )]     optionally columns.    accounts AS a(id, b)         
+   <table expr> WITH      Enumerate the result   accounts WITH ORDINALITY     
+   ORDINALITY             rows.                  
+   <table expr> JOIN      Join expression.       orders o JOIN customers c ON 
+   <table expr> ON ...                           o.customer_id = c.id         
+   (... subquery ...)     A selection query used (SELECT * FROM customers c)  
+                          as subquery.           
+                          Use the result rows of                              
+                          an explainable         
+   [... statement ...]    statement.             [SHOW COLUMNS FROM accounts]
+                                                 
+                          This is a CockroachDB  
+                          extension.             
+
+   The following sections provide details on each of these options.
+
+Table expressions that generate data
+
+   The following sections describe primary table expressions that produce
+   data.
+
+  Access a table or view
+
+    Table or view names
+
+   Syntax:
+
+ identifier
+ identifier.identifier
+ identifier.identifier.identifier
+
+   A single SQL identifier in a table expression context designates the
+   contents of the table, view, or sequence with that name in the current
+   database, as configured by SET DATABASE.
+
+   If the name is composed of two or more identifiers, name resolution rules
+   apply.
+
+   For example:
+
+   copy
+
+ > SELECT * FROM users; -- uses table `users` in the current database
+
+   copy
+
+ > SELECT * FROM mydb.users; -- uses table `users` in database `mydb`
+
+    Force index selection
+
+   By using the explicit index annotation, you can override CockroachDB's
+   index selection and use a specific index when reading from a named table.
+
+   Note:
+
+   Index selection can impact performance, but does not change the result of
+   a query.
+
+   The syntax to force a scan of a specific index is:
+
+   copy
+
+ > SELECT * FROM table@my_idx;
+
+   This is equivalent to the longer expression:
+
+   copy
+
+ > SELECT * FROM table@{FORCE_INDEX=my_idx};
+
+   The syntax to force a reverse scan of a specific index is:
+
+   copy
+
+ > SELECT * FROM table@{FORCE_INDEX=my_idx,DESC};
+
+   Forcing a reverse scan is sometimes useful during performance tuning. For
+   reference, the full syntax for choosing an index and its scan direction is
+
+   copy
+
+ SELECT * FROM table@{FORCE_INDEX=idx[,DIRECTION]}
+
+   where the optional DIRECTION is either ASC (ascending) or DESC
+   (descending).
+
+   When a direction is specified, that scan direction is forced; otherwise
+   the cost-based optimizer is free to choose the direction it calculates
+   will result in the best performance.
+
+   You can verify that the optimizer is choosing your desired scan direction
+   using EXPLAIN (OPT). For example, given the table
+
+   copy
+
+ > CREATE TABLE kv (K INT PRIMARY KEY, v INT);
+
+   you can check the scan direction with:
+
+   copy
+
+ > EXPLAIN (opt) SELECT * FROM users@{FORCE_INDEX=primary,DESC};
+
+                  text
+ +-------------------------------------+
+   scan users,rev
+    └── flags: force-index=primary,rev
+ (2 rows)
+
+   To see all indexes available on a table, use SHOW INDEXES.
+
+   Note:
+
+   You can also force index selection for DELETE and UPDATE statements.
+
+  Access a common table expression
+
+   A single identifier in a table expression context can refer to a common
+   table expression defined earlier.
+
+   For example:
+
+   copy
+
+ > WITH a AS (SELECT * FROM users)
+   SELECT * FROM a; -- "a" refers to "WITH a AS .."
+
+  Results from a function
+
+   A table expression can use the results from a function application as a
+   data source.
+
+   Syntax:
+
+ name ( arguments... )
+
+   The name of a function, followed by an opening parenthesis, followed by
+   zero or more scalar expressions, followed by a closing parenthesis.
+
+   The resolution of the function name follows the same rules as the
+   resolution of table names. See Name Resolution for more details.
+
+    Scalar function as data source
+
+   When a function returning a single value is used as a table expression, it
+   is interpreted as tabular data with a single column and single row
+   containing the function results.
+
+   For example:
+
+   copy
+
+ > SELECT * FROM sin(3.2)
+
+ +-----------------------+
+ |          sin          |
+ +-----------------------+
+ | -0.058374143427580086 |
+ +-----------------------+
+
+   Note:
+   CockroachDB only supports this syntax for compatibility with PostgreSQL.
+   The canonical syntax to evaluate scalar functions is as a direct target of
+   SELECT, for example SELECT sin(3.2).
+
+    Table generator functions
+
+   Some functions directly generate tabular data with multiple rows from a
+   single function application. This is also called a "set-returning
+   function".
+
+   For example:
+
+   copy
+
+ > SELECT * FROM generate_series(1, 3);
+
+ +-----------------+
+ | generate_series |
+ +-----------------+
+ |               1 |
+ |               2 |
+ |               3 |
+ +-----------------+
+
+   Set-returning functions (SRFs) can now be accessed using (SRF).x where x
+   is one of the following:
+
+     * The name of a column returned from the function
+     * * to denote all columns.
+
+   For example (note that the output of queries against information_schema
+   will vary per database):
+
+   copy
+
+ > SELECT (i.keys).* FROM (SELECT information_schema._pg_expandarray(indkey) AS keys FROM pg_index) AS i;
+
+  x | n
+ ---+---
+  1 | 1
+  2 | 1
+ (2 rows)
+
+   Note:
+
+   Currently CockroachDB only supports a small set of generator functions
+   compatible with the PostgreSQL set-generating functions with the same
+   names.
+
+Operators that extend a table expression
+
+   The following sections describe table expressions that change the metadata
+   around tabular data, or add more data, without modifying the data of the
+   underlying operand.
+
+  Aliased table expressions
+
+   Aliased table expressions rename tables and columns temporarily in the
+   context of the current query.
+
+   Syntax:
+
+ <table expr> AS <name>
+ <table expr> AS <name>(<colname>, <colname>, ...)
+
+   In the first form, the table expression is equivalent to its left operand
+   with a new name for the entire table, and where columns retain their
+   original name.
+
+   In the second form, the columns are also renamed.
+
+   For example:
+
+   copy
+
+ > SELECT c.x FROM (SELECT COUNT(*) AS x FROM users) AS c;
+
+   copy
+
+ > SELECT c.x FROM (SELECT COUNT(*) FROM users) AS c(x);
+
+  Ordinality annotation
+
+   Syntax:
+
+ <table expr> WITH ORDINALITY
+
+   Designates a data source equivalent to the table expression operand with
+   an extra "Ordinality" column that enumerates every row in the data source.
+
+   For example:
+
+   copy
+
+ > SELECT * FROM (VALUES('a'),('b'),('c'));
+
+ +---------+
+ | column1 |
+ +---------+
+ | a       |
+ | b       |
+ | c       |
+ +---------+
+
+   copy
+
+ > SELECT * FROM (VALUES ('a'), ('b'), ('c')) WITH ORDINALITY;
+
+ +---------+------------+
+ | column1 | ordinality |
+ +---------+------------+
+ | a       |          1 |
+ | b       |          2 |
+ | c       |          3 |
+ +---------+------------+
+
+   Note:
+
+   WITH ORDINALITY necessarily prevents some optimizations of the surrounding
+   query. Use it sparingly if performance is a concern, and always check the
+   output of EXPLAIN in case of doubt.
+
+Join expressions
+
+   Join expressions combine the results of two or more table expressions
+   based on conditions on the values of particular columns.
+
+   See Join Expressions for more details.
+
+Using other queries as table expressions
+
+   The following sections describe how to use the results produced by another
+   SQL query or statement as a table expression.
+
+  Subqueries as table expressions
+
+   Any selection query enclosed between parentheses can be used as a table
+   expression, including simple SELECT clauses. This is called a "subquery".
+
+   Syntax:
+
+ ( ... subquery ... )
+
+   For example:
+
+   copy
+
+ > SELECT c+2                          FROM (SELECT COUNT(*) AS c FROM users);
+
+   copy
+
+ > SELECT *                            FROM (VALUES(1), (2), (3));
+
+   copy
+
+ > SELECT firstname || ' ' || lastname FROM (TABLE employees);
+
+   Note:
+     * See also Subqueries for more details and performance best practices.
+     * To use other statements that produce data in a table expression, for
+       example SHOW, use the square bracket notation.
+
+  Using the output of other statements
+
+   Syntax:
+
+ SELECT .. FROM [ <stmt> ]
+
+   A statement between square brackets in a table expression context
+   designates the output of executing the statement as a row source. The
+   following statements are supported as row sources for table expressions:
+
+     * DELETE
+     * EXPLAIN
+     * INSERT
+     * SELECT
+     * SHOW
+     * UPDATE
+     * UPSERT
+
+   SELECT .. FROM [ <stmt> ] is equivalent to WITH table_expr AS ( <stmt> )
+   SELECT .. FROM table_expr
+
+   Note:
+
+   This CockroachDB extension syntax complements the subquery syntax using
+   parentheses, which is restricted to selection queries. It was introduced
+   to enable the use of statements as subqueries.
+
+   For example:
+
+   copy
+
+ > SELECT "column_name" FROM [SHOW COLUMNS FROM customer];
+
+ +-------------+
+ | column_name |
+ +-------------+
+ | id          |
+ | name        |
+ | address     |
+ +-------------+
+ (3 rows)
+
+   The following statement inserts Albert in the employee table and
+   immediately creates a matching entry in the management table with the
+   auto-generated employee ID, without requiring a round trip with the SQL
+   client:
+
+   copy
+
+ > INSERT INTO management(manager, reportee)
+     VALUES ((SELECT id FROM employee WHERE name = 'Diana'),
+             (SELECT id FROM [INSERT INTO employee(name) VALUES ('Albert') RETURNING id]));
+
+Composability
+
+   Table expressions are used in the SELECT and TABLE variants of selection
+   clauses, and thus can appear everywhere where a selection clause is
+   possible. For example:
+
+   copy
+
+ > SELECT ... FROM <table expr>, <table expr>, ...
+ > TABLE <table expr>
+ > INSERT INTO ... SELECT ... FROM <table expr>, <table expr>, ...
+ > INSERT INTO ... TABLE <table expr>
+ > CREATE TABLE ... AS SELECT ... FROM <table expr>, <table expr>, ...
+ > UPSERT INTO ... SELECT ... FROM <table expr>, <table expr>, ...
+
+   For more options to compose query results, see Selection Queries.
+
+See also
+
+     * Constants
+     * Selection Queries
+          * Selection Clauses
+     * Explainable Statements
+     * Scalar Expressions
+     * Data Types
+     * Subqueries
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

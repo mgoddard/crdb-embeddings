@@ -1,0 +1,143 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                           cockroach debug merge-logs
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The cockroach debug merge-logs command merges log files from multiple
+   nodes into a single time-ordered stream of messages with an added
+   per-message prefix to indicate the corresponding node. You can use it in
+   conjunction with logs collected using the debug zip command to aid in
+   debugging.
+
+   Warning:
+
+   The file produced by cockroach debug merge-log can contain highly
+   sensitive, unanonymized information, such as usernames, passwords, and
+   possibly your table's data. You should share this data only with Cockroach
+   Labs developers and only after determining the most secure method of
+   delivery.
+
+Subcommands
+
+   While the cockroach debug command has a few subcommands, users are
+   expected to use only the zip, encryption-active-key, merge-logs, and
+   ballast subcommands.
+
+   The other debug subcommands are useful only to CockroachDB's developers
+   and contributors.
+
+Synopsis
+
+ $ cockroach debug merge-logs [log file directory] [flags]
+
+Flags
+
+   Use the following flags to filter the debug merge-logs results for a
+   specified regular expression or time range.
+
+   Flag     Description                                           
+   --filter Limit the results to the specified regular expression 
+   --from   Start time for the time range filter.                 
+   --to     End time for the time range filter.                   
+
+Example
+
+   Generate a debug zip file:
+
+   copy
+
+ $ cockroach debug zip ./cockroach-data/logs/debug.zip --insecure
+
+   Unzip the file:
+
+   copy
+
+ $ unzip ./cockroach-data/logs/debug.zip
+
+   Merge the logs in the debug folder:
+
+   copy
+
+ $ cockroach debug merge-logs debug/nodes/*/logs/*
+
+   Alternatively, filter the merged logs for a specified time range:
+
+   copy
+
+ $ cockroach debug merge-logs debug/nodes/*/logs/* --from= "18:36:28.208553" --to= "18:36:29.232864"
+
+   You can also filter the merged logs for a regular expression:
+
+   copy
+
+ cockroach debug merge-logs debug/nodes/*/logs/* --filter="RUNNING IN INSECURE MODE"
+
+See also
+
+     * File an Issue
+     * Other Cockroach Commands
+     * Troubleshooting Overview
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

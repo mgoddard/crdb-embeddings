@@ -1,0 +1,139 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                              Advanced Debug Page
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The Advanced Debug page of the Admin UI provides links to advanced
+   monitoring and troubleshooting reports and cluster configuration details.
+   To view this page, access the Admin UI and click Advanced Debug in the
+   left-hand navigation.
+
+   Note:
+
+   These pages are experimental and undocumented. If you find an issue, let
+   us know through these channels.
+
+License and node information
+
+   On the right-side of the page, the following information is displayed:
+
+     * CockroachDB license type: Helps determine if you have access to
+       Enterprise features.
+     * Current node ID: Helps identify the current node when viewing the
+       Admin UI through a load balancer.
+
+Reports and Configuration
+
+   The following debug reports and configuration views are useful for
+   monitoring and troubleshooting CockroachDB:
+
+   Report                Description                      Access level        
+   Custom Time Series    Create a custom chart of time    All users           
+   Chart                 series data.                     
+                         View ranges in your cluster that                     
+   Problem Ranges        are unavailable,                 admin users only on 
+                         underreplicated, slow, or have   secure clusters
+                         other problems.                  
+   Network Latency       Check latencies between all      All users           
+                         nodes in your cluster.           
+   Data Distribution and View the distribution of table   admin users only on 
+   Zone Configs          data across nodes and verify     secure clusters     
+                         zone configuration.              
+                         View cluster settings and their  All users can view  
+   Cluster Settings      configured values.               data according to   
+                                                          their privileges    
+   Localities            Check node localities for your   admin users only on 
+                         cluster.                         secure clusters     
+
+Even More Advanced Debugging
+
+   The Even More Advanced Debugging section of the page lists additional
+   reports that are largely internal and intended for use by CockroachDB
+   developers. You can ignore this section while monitoring and
+   troubleshooting CockroachDB. Alternatively, if you want to learn how to
+   use these pages, feel free to contact us through these channels.
+
+Raw Status Endpoints (JSON)
+
+   Depending on your access level, the endpoints listed here provide access
+   to:
+
+     * Log files
+     * Secondary log files (e.g., RocksDB logs, execution logs, slow query
+       logs, authentication logs)
+     * Node status
+     * Hot ranges
+     * Node-specific metrics
+     * Session data
+     * Cluster-wide range data
+     * Allocator runs
+
+See also
+
+     * Troubleshooting Overview
+     * Support Resources
+     * Raw Status Endpoints
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

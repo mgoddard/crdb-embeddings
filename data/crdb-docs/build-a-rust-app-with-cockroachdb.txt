@@ -1,0 +1,513 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+         Build a Rust App with CockroachDB and the Rust Postgres Driver
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   This tutorial shows you how build a simple Rust application with
+   CockroachDB and the Rust Postgres driver.
+
+   We have tested the Rust Postgres driver enough to claim beta-level
+   support. If you encounter problems, please open an issue with details to
+   help us make progress toward full support.
+
+Before you begin
+
+    1. Install CockroachDB.
+    2. Start up a secure or insecure local cluster.
+    3. Choose the instructions that correspond to whether your cluster is
+       secure or insecure:
+   Secure Insecure
+
+Step 1. Specify the Rust Postgres driver as a dependency
+
+   Update your Cargo.toml file to specify a dependency on the Rust Postgres
+   driver, as described in the official documentation.
+
+   Additionally, include the OpenSSL bindings and Rust Postgres OpenSSL
+   crates as dependencies.
+
+Step 2. Create the maxroach users and bank database
+
+   Start the built-in SQL shell:
+
+   copy
+
+ $ cockroach sql --certs-dir=certs
+
+   In the SQL shell, issue the following statements to create the maxroach
+   user and bank database:
+
+   copy
+
+ > CREATE USER IF NOT EXISTS maxroach;
+
+   copy
+
+ > CREATE DATABASE bank;
+
+   Give the maxroach user the necessary permissions:
+
+   copy
+
+ > GRANT ALL ON DATABASE bank TO maxroach;
+
+   Exit the SQL shell:
+
+   copy
+
+ > \q
+
+Step 3. Generate a certificate for the maxroach user
+
+   Create a certificate and key for the maxroach user by running the
+   following command. The code samples will run as this user.
+
+   copy
+
+ $ cockroach cert create-client maxroach --certs-dir=certs --ca-key=my-safe-directory/ca.key
+
+Step 4. Run the Rust code
+
+   Now that you have a database and a user, you'll run code to create a table
+   and insert some rows, and then you'll run code to read and update values
+   as an atomic transaction.
+
+  Basic statements
+
+   First, use the following code to connect as the maxroach user and execute
+   some basic SQL statements, inserting rows and reading and printing the
+   rows.
+
+   Download the basic-sample.rs file, or create the file yourself and copy
+   the code into it.
+
+   copy
+
+ use openssl::error::ErrorStack;
+ use openssl::ssl::{SslConnector, SslFiletype, SslMethod};
+ use postgres::Client;
+ use postgres_openssl::MakeTlsConnector;
+
+ fn ssl_config() -> Result<MakeTlsConnector, ErrorStack> {
+     let mut builder = SslConnector::builder(SslMethod::tls())?;
+     builder.set_ca_file("certs/ca.crt")?;
+     builder.set_certificate_chain_file("certs/client.maxroach.crt")?;
+     builder.set_private_key_file("certs/client.maxroach.key", SslFiletype::PEM)?;
+     Ok(MakeTlsConnector::new(builder.build()))
+ }
+
+ fn main() {
+     let connector = ssl_config().unwrap();
+     let mut client =
+         Client::connect("postgresql://maxroach@localhost:26257/bank", connector).unwrap();
+
+     // Create the "accounts" table.
+     client
+         .execute(
+             "CREATE TABLE IF NOT EXISTS accounts (id INT PRIMARY KEY, balance INT)",
+             &[],
+         )
+         .unwrap();
+
+     // Insert two rows into the "accounts" table.
+     client
+         .execute(
+             "INSERT INTO accounts (id, balance) VALUES (1, 1000), (2, 250)",
+             &[],
+         )
+         .unwrap();
+
+     // Print out the balances.
+     println!("Initial balances:");
+     for row in &client
+         .query("SELECT id, balance FROM accounts", &[])
+         .unwrap()
+     {
+         let id: i64 = row.get(0);
+         let balance: i64 = row.get(1);
+         println!("{} {}", id, balance);
+     }
+ }
+
+
+  Transaction (with retry logic)
+
+   Next, use the following code to again connect as the maxroach user but
+   this time execute a batch of statements as an atomic transaction to
+   transfer funds from one account to another, where all included statements
+   are either committed or aborted.
+
+   Download the txn-sample.rs file, or create the file yourself and copy the
+   code into it.
+
+   Note:
+
+   CockroachDB may require the client to retry a transaction in case of
+   read/write contention. CockroachDB provides a generic retry function that
+   runs inside a transaction and retries it as needed. You can copy and paste
+   the retry function from here into your code.
+
+   copy
+
+ use openssl::error::ErrorStack;
+ use openssl::ssl::{SslConnector, SslFiletype, SslMethod};
+ use postgres::{error::SqlState, Client, Error, Transaction};
+ use postgres_openssl::MakeTlsConnector;
+
+ /// Runs op inside a transaction and retries it as needed.
+ /// On non-retryable failures, the transaction is aborted and
+ /// rolled back; on success, the transaction is committed.
+ fn execute_txn<T, F>(client: &mut Client, op: F) -> Result<T, Error>
+ where
+     F: Fn(&mut Transaction) -> Result<T, Error>,
+ {
+     let mut txn = client.transaction()?;
+     loop {
+         let mut sp = txn.savepoint("cockroach_restart")?;
+         match op(&mut sp).and_then(|t| sp.commit().map(|_| t)) {
+             Err(ref err)
+                 if err
+                     .code()
+                     .map(|e| *e == SqlState::T_R_SERIALIZATION_FAILURE)
+                     .unwrap_or(false) => {}
+             r => break r,
+         }
+     }
+     .and_then(|t| txn.commit().map(|_| t))
+ }
+
+ fn transfer_funds(txn: &mut Transaction, from: i64, to: i64, amount: i64) -> Result<(), Error> {
+     // Read the balance.
+     let from_balance: i64 = txn
+         .query_one("SELECT balance FROM accounts WHERE id = $1", &[&from])?
+         .get(0);
+
+     assert!(from_balance >= amount);
+
+     // Perform the transfer.
+     txn.execute(
+         "UPDATE accounts SET balance = balance - $1 WHERE id = $2",
+         &[&amount, &from],
+     )?;
+     txn.execute(
+         "UPDATE accounts SET balance = balance + $1 WHERE id = $2",
+         &[&amount, &to],
+     )?;
+     Ok(())
+ }
+
+ fn ssl_config() -> Result<MakeTlsConnector, ErrorStack> {
+     let mut builder = SslConnector::builder(SslMethod::tls())?;
+     builder.set_ca_file("certs/ca.crt")?;
+     builder.set_certificate_chain_file("certs/client.maxroach.crt")?;
+     builder.set_private_key_file("certs/client.maxroach.key", SslFiletype::PEM)?;
+     Ok(MakeTlsConnector::new(builder.build()))
+ }
+
+ fn main() {
+     let connector = ssl_config().unwrap();
+     let mut client =
+         Client::connect("postgresql://maxroach@localhost:26257/bank", connector).unwrap();
+
+     // Run a transfer in a transaction.
+     execute_txn(&mut client, |txn| transfer_funds(txn, 1, 2, 100)).unwrap();
+
+     // Check account balances after the transaction.
+     for row in &client
+         .query("SELECT id, balance FROM accounts", &[])
+         .unwrap()
+     {
+         let id: i64 = row.get(0);
+         let balance: i64 = row.get(1);
+         println!("{} {}", id, balance);
+     }
+ }
+
+
+   After running the code, use the built-in SQL client to verify that funds
+   were transferred from one account to another:
+
+   copy
+
+ $ cockroach sql --certs-dir=certs -e 'SELECT id, balance FROM accounts' --database=bank
+
+ +----+---------+
+ | id | balance |
+ +----+---------+
+ |  1 |     900 |
+ |  2 |     350 |
+ +----+---------+
+ (2 rows)
+
+Step 1. Specify the Rust Postgres driver as a dependency
+
+   Update your Cargo.toml file to specify a dependency on the Rust Postgres
+   driver, as described in the official documentation.
+
+Step 2. Create the maxroach users and bank database
+
+   Start the built-in SQL shell:
+
+   copy
+
+ $ cockroach sql --insecure
+
+   In the SQL shell, issue the following statements to create the maxroach
+   user and bank database:
+
+   copy
+
+ > CREATE USER IF NOT EXISTS maxroach;
+
+   copy
+
+ > CREATE DATABASE bank;
+
+   Give the maxroach user the necessary permissions:
+
+   copy
+
+ > GRANT ALL ON DATABASE bank TO maxroach;
+
+   Exit the SQL shell:
+
+   copy
+
+ > \q
+
+Step 3. Create a table in the new database
+
+   As the maxroach user, use the built-in SQL client to create an accounts
+   table in the new database.
+
+   copy
+
+ $ cockroach sql --insecure \
+ --database=bank \
+ --user=maxroach \
+ -e 'CREATE TABLE accounts (id INT PRIMARY KEY, balance INT)'
+
+Step 4. Run the Rust code
+
+   Now that you have a database and a user, you'll run code to create a table
+   and insert some rows, and then you'll run code to read and update values
+   as an atomic transaction.
+
+  Basic statements
+
+   First, use the following code to connect as the maxroach user and execute
+   some basic SQL statements, inserting rows and reading and printing the
+   rows.
+
+   Download the basic-sample.rs file, or create the file yourself and copy
+   the code into it.
+
+   copy
+
+ use postgres::{Client, NoTls};
+
+ fn main() {
+     let mut client = Client::connect("postgresql://maxroach@localhost:26257/bank", NoTls).unwrap();
+
+     // Create the "accounts" table.
+     client
+         .execute(
+             "CREATE TABLE IF NOT EXISTS accounts (id INT PRIMARY KEY, balance INT)",
+             &[],
+         )
+         .unwrap();
+
+     // Insert two rows into the "accounts" table.
+     client
+         .execute(
+             "INSERT INTO accounts (id, balance) VALUES (1, 1000), (2, 250)",
+             &[],
+         )
+         .unwrap();
+
+     // Print out the balances.
+     println!("Initial balances:");
+     for row in &client
+         .query("SELECT id, balance FROM accounts", &[])
+         .unwrap()
+     {
+         let id: i64 = row.get(0);
+         let balance: i64 = row.get(1);
+         println!("{} {}", id, balance);
+     }
+ }
+
+
+  Transaction (with retry logic)
+
+   Next, use the following code to again connect as the maxroach user but
+   this time execute a batch of statements as an atomic transaction to
+   transfer funds from one account to another, where all included statements
+   are either committed or aborted.
+
+   Download the txn-sample.rs file, or create the file yourself and copy the
+   code into it.
+
+   Note:
+
+   CockroachDB may require the client to retry a transaction in case of
+   read/write contention. CockroachDB provides a generic retry function that
+   runs inside a transaction and retries it as needed. You can copy and paste
+   the retry function from here into your code.
+
+   copy
+
+ use postgres::{error::SqlState, Client, Error, NoTls, Transaction};
+
+ /// Runs op inside a transaction and retries it as needed.
+ /// On non-retryable failures, the transaction is aborted and
+ /// rolled back; on success, the transaction is committed.
+ fn execute_txn<T, F>(client: &mut Client, op: F) -> Result<T, Error>
+ where
+     F: Fn(&mut Transaction) -> Result<T, Error>,
+ {
+     let mut txn = client.transaction()?;
+     loop {
+         let mut sp = txn.savepoint("cockroach_restart")?;
+         match op(&mut sp).and_then(|t| sp.commit().map(|_| t)) {
+             Err(ref err)
+                 if err
+                     .code()
+                     .map(|e| *e == SqlState::T_R_SERIALIZATION_FAILURE)
+                     .unwrap_or(false) => {}
+             r => break r,
+         }
+     }
+     .and_then(|t| txn.commit().map(|_| t))
+ }
+
+ fn transfer_funds(txn: &mut Transaction, from: i64, to: i64, amount: i64) -> Result<(), Error> {
+     // Read the balance.
+     let from_balance: i64 = txn
+         .query_one("SELECT balance FROM accounts WHERE id = $1", &[&from])?
+         .get(0);
+
+     assert!(from_balance >= amount);
+
+     // Perform the transfer.
+     txn.execute(
+         "UPDATE accounts SET balance = balance - $1 WHERE id = $2",
+         &[&amount, &from],
+     )?;
+     txn.execute(
+         "UPDATE accounts SET balance = balance + $1 WHERE id = $2",
+         &[&amount, &to],
+     )?;
+     Ok(())
+ }
+
+ fn main() {
+     let mut client = Client::connect("postgresql://maxroach@localhost:26257/bank", NoTls).unwrap();
+
+     // Run a transfer in a transaction.
+     execute_txn(&mut client, |txn| transfer_funds(txn, 1, 2, 100)).unwrap();
+
+     // Check account balances after the transaction.
+     for row in &client
+         .query("SELECT id, balance FROM accounts", &[])
+         .unwrap()
+     {
+         let id: i64 = row.get(0);
+         let balance: i64 = row.get(1);
+         println!("{} {}", id, balance);
+     }
+ }
+
+
+   After running the code, use the built-in SQL client to verify that funds
+   were transferred from one account to another:
+
+   copy
+
+ $ cockroach sql --insecure -e 'SELECT id, balance FROM accounts' --database=bank
+
+ +----+---------+
+ | id | balance |
+ +----+---------+
+ |  1 |     900 |
+ |  2 |     350 |
+ +----+---------+
+ (2 rows)
+
+What's next?
+
+   Read more about using the Rust Postgres driver.
+
+   You might also be interested in the following pages:
+
+     * Client Connection Parameters
+     * Data Replication
+     * Fault Tolerance & Recovery
+     * Automatic Rebalancing
+     * Cross-Cloud Migration
+     * Follow-the-Workload
+     * Automated Operations
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

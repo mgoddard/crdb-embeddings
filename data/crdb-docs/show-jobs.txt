@@ -1,0 +1,257 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                   SHOW JOBS
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The SHOW JOBS statement lists all of the types of long-running tasks your
+   cluster has performed in the last 12 hours, including:
+
+     * Schema changes through ALTER TABLE, DROP DATABASE, DROP TABLE, and
+       TRUNCATE
+     * IMPORT
+     * Enterprise BACKUP and RESTORE
+     * User-created table statistics created for use by the cost-based
+       optimizer
+     * The automatic table statistics are not displayed on running the SHOW
+       JOBS statement. To view the automatic table statistics, use SHOW
+       AUTOMATIC JOBS
+
+   These details can help you understand the status of crucial tasks that can
+   impact the performance of your cluster, as well as help you control them.
+
+   To block a call to SHOW JOBS that returns after all specified job ID(s)
+   have a terminal state, use SHOW JOBS WHEN COMPLETE. The statement will
+   return a row per job ID, which provides details of the job execution. Note
+   that while this statement is blocking, it will time out after 24 hours.
+
+Considerations
+
+     * The SHOW JOBS statement shows only long-running tasks. For an
+       exhaustive list of jobs running in the cluster, use the SQL Audit
+       Logging (Experimental) feature.
+     * For jobs older than 12 hours, query the crdb_internal.jobs table.
+     * Jobs are deleted after 14 days. This interval can be changed via the
+       jobs.retention_time cluster setting.
+     * While the SHOW JOBS WHEN COMPLETE statement is blocking, it will time
+       out after 24 hours.
+     * Garbage collection jobs are created for dropped tables and dropped
+       indexes, and will execute after the GC TTL has elapsed (default is 25
+       hours). These jobs cannot be canceled.
+
+Required privileges
+
+   By default, only the root user can execute SHOW JOBS.
+
+Synopsis
+
+   SHOW AUTOMATIC JOBS JOBS WHEN COMPLETE select_stmt JOB WHEN COMPLETE
+   job_id
+
+Parameters
+
+   Parameter   Description                                             
+   select_stmt A selection query that specifies the job_id(s) to view. 
+   job_id      The ID of the job you want to view.                     
+
+Response
+
+   The output of SHOW JOBS lists ongoing jobs first, then completed jobs
+   within the last 12 hours. The list of ongoing jobs is sorted by starting
+   time, whereas the list of completed jobs is sorted by finished time.
+
+   The following fields are returned for each job:
+
+   Field              Description                                             
+                      A unique ID to identify each job. This value is used if 
+   job_id             you want to control jobs (i.e., pause, resume, or       
+                      cancel it).                                             
+                      The type of job. Possible values: SCHEMA CHANGE,        
+                      BACKUP, RESTORE, IMPORT, and CREATE STATS.              
+   job_type                                                                   
+                      For SHOW AUTOMATIC JOBS, the possible value is AUTO     
+                      CREATE STATS.                                           
+   description        The statement that started the job, or a textual        
+                      description of the job.                                 
+                      When description is a textual description of the job,   
+   statement          the statement that started the job is returned in this  
+                      column. Currently, this field is populated only for the 
+                      automatic table statistics jobs.                        
+   user_name          The name of the user who started the job.               
+   status             The job's current state. Possible values: pending,      
+                      running, paused, failed, succeeded, or canceled.        
+                      The job's detailed running status, which provides       
+                      visibility into the progress of the dropping or         
+                      truncating of tables (i.e., DROP TABLE, DROP DATABASE,  
+                      or TRUNCATE). For dropping or truncating jobs, the      
+                      detailed running status is determined by the status of  
+                      the table at the earliest stage of the schema change.   
+   running_status     The job is completed when the GC TTL expires and both   
+                      the table data and ID is deleted for each of the tables 
+                      involved. Possible values: draining names, waiting for  
+                      GC TTL, RocksDB compaction, or NULL (when the status    
+                      cannot be determined).                                  
+                                                                              
+                      For the SHOW AUTOMATIC JOBS statement, the value of     
+                      this field is NULL.                                     
+   created            The TIMESTAMP when the job was created.                 
+   started            The TIMESTAMP when the job began running first.         
+   finished           The TIMESTAMP when the job was succeeded, failed, or    
+                      canceled.                                               
+   modified           The TIMESTAMP when the job had anything modified.       
+   fraction_completed The fraction (between 0.00 and 1.00) of the job that's  
+                      been completed.                                         
+   error              If the job failed, the error generated by the failure.  
+   coordinator_id     The ID of the node running the job.                     
+
+Examples
+
+  Show jobs
+
+   copy
+
+ > SHOW JOBS;
+
+      job_id     | job_type  |               description                 |...
+ +---------------+-----------+-------------------------------------------+...
+  27536791415282 |  RESTORE  | RESTORE db.* FROM 'azure://backup/db/tbl' |...
+
+  Filter jobs
+
+   You can filter jobs by using SHOW JOBS as the data source for a SELECT
+   statement, and then filtering the values with the WHERE clause.
+
+   copy
+
+ > SELECT * FROM [SHOW JOBS] WHERE job_type = 'RESTORE' AND status IN ('running', 'failed') ORDER BY created DESC;
+
+      job_id     | job_type  |              description                  |...
+ +---------------+-----------+-------------------------------------------+...
+  27536791415282 |  RESTORE  | RESTORE db.* FROM 'azure://backup/db/tbl' |...
+
+
+  Show automatic jobs
+
+   copy
+
+ > SHOW AUTOMATIC JOBS;
+
+         job_id       |       job_type      |                    description                      |...
+ +--------------------+---------------------+-----------------------------------------------------+...
+   438235476849557505 | AUTO CREATE STATS   | Table statistics refresh for defaultdb.public.users |...
+ (1 row)
+
+  Filter automatic jobs
+
+   You can filter jobs by using SHOW AUTOMATIC JOBS as the data source for a
+   SELECT statement, and then filtering the values with the WHERE clause.
+
+   copy
+
+ > SELECT * FROM [SHOW AUTOMATIC JOBS] WHERE status = ('succeeded') ORDER BY created DESC;
+
+         job_id       |       job_type      |                    description                      | ...
+ +--------------------+---------------------+-----------------------------------------------------+ ...
+   438235476849557505 | AUTO CREATE STATS   | Table statistics refresh for defaultdb.public.users | ...
+ (1 row)
+
+  Show schema changes
+
+   You can show just schema change jobs by using SHOW JOBS as the data source
+   for a SELECT statement, and then filtering the job_type value with the
+   WHERE clause:
+
+   copy
+
+ > SELECT * FROM [SHOW JOBS] WHERE job_type = 'SCHEMA CHANGE';
+
+      job_id     | job_type        |              description                           |...
+ +---------------+-----------------+----------------------------------------------------+...
+  27536791415282 |  SCHEMA CHANGE  | ALTER TABLE test.public.foo ADD COLUMN bar VARCHAR |...
+
+   Scheme change jobs can be paused, resumed, and canceled.
+
+  Show job when complete
+
+   To block SHOW JOB until the provided job ID reaches a terminal state, use
+   SHOW JOB WHEN COMPLETE:
+
+   copy
+
+ > SHOW JOB WHEN COMPLETE 27536791415282;
+
+      job_id     | job_type  |               description                 |...
+ +---------------+-----------+-------------------------------------------+...
+  27536791415282 |  RESTORE  | RESTORE db.* FROM 'azure://backup/db/tbl' |...
+
+See also
+
+     * PAUSE JOB
+     * RESUME JOB
+     * CANCEL JOB
+     * ALTER TABLE
+     * BACKUP
+     * RESTORE
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

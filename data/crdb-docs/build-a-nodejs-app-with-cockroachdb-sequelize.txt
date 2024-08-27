@@ -1,0 +1,376 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+               Build a Node.js App with CockroachDB and Sequelize
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+   Use pg Use Sequelize
+
+   This tutorial shows you how build a simple Node.js application with
+   CockroachDB and the Sequelize ORM.
+
+   We have tested the Sequelize ORM enough to claim beta-level support. If
+   you encounter problems, please open an issue with details to help us make
+   progress toward full support.
+
+   Tip:
+
+   For a more realistic use of Sequelize with CockroachDB, see our
+   examples-ormsrepository.
+
+Before you begin
+
+    1. Install CockroachDB.
+    2. Start up a secure or insecure local cluster.
+    3. Choose the instructions that correspond to whether your cluster is
+       secure or insecure:
+   Secure Insecure
+
+Step 1. Install the Sequelize ORM
+
+   To install Sequelize, as well as a CockroachDB Node.js package that
+   accounts for some minor differences between CockroachDB and PostgreSQL,
+   run the following command:
+
+   copy
+
+ $ npm install sequelize sequelize-cockroachdb
+
+Step 2. Create the maxroach user and bank database
+
+   Start the built-in SQL shell:
+
+   copy
+
+ $ cockroach sql --certs-dir=certs
+
+   In the SQL shell, issue the following statements to create the maxroach
+   user and bank database:
+
+   copy
+
+ > CREATE USER IF NOT EXISTS maxroach;
+
+   copy
+
+ > CREATE DATABASE bank;
+
+   Give the maxroach user the necessary permissions:
+
+   copy
+
+ > GRANT ALL ON DATABASE bank TO maxroach;
+
+   Exit the SQL shell:
+
+   copy
+
+ > \q
+
+Step 3. Generate a certificate for the maxroach user
+
+   Create a certificate and key for the maxroach user by running the
+   following command. The code samples will run as this user.
+
+   copy
+
+ $ cockroach cert create-client maxroach --certs-dir=certs --ca-key=my-safe-directory/ca.key
+
+Step 4. Run the Node.js code
+
+   The following code uses the Sequelize ORM to map Node.js-specific objects
+   to SQL operations. Specifically, Account.sync({force: true}) creates an
+   accounts table based on the Account model (or drops and recreates the
+   table if it already exists), Account.bulkCreate([...]) inserts rows into
+   the table, and Account.findAll() selects from the table so that balances
+   can be printed.
+
+   Copy the code or download it directly.
+
+   copy
+
+ var Sequelize = require('sequelize-cockroachdb');
+ var fs = require('fs');
+
+ // Connect to CockroachDB through Sequelize.
+ var sequelize = new Sequelize('bank', 'maxroach', '', {
+     dialect: 'postgres',
+     port: 26257,
+     logging: false,
+     dialectOptions: {
+         ssl: {
+             ca: fs.readFileSync('certs/ca.crt')
+                 .toString(),
+             key: fs.readFileSync('certs/client.maxroach.key')
+                 .toString(),
+             cert: fs.readFileSync('certs/client.maxroach.crt')
+                 .toString()
+         }
+     }
+ });
+
+ // Define the Account model for the "accounts" table.
+ var Account = sequelize.define('accounts', {
+     id: {
+         type: Sequelize.INTEGER,
+         primaryKey: true
+     },
+     balance: {
+         type: Sequelize.INTEGER
+     }
+ });
+
+ // Create the "accounts" table.
+ Account.sync({
+         force: true
+     })
+     .then(function () {
+         // Insert two rows into the "accounts" table.
+         return Account.bulkCreate([{
+                 id: 1,
+                 balance: 1000
+             },
+             {
+                 id: 2,
+                 balance: 250
+             }
+         ]);
+     })
+     .then(function () {
+         // Retrieve accounts.
+         return Account.findAll();
+     })
+     .then(function (accounts) {
+         // Print out the balances.
+         accounts.forEach(function (account) {
+             console.log(account.id + ' ' + account.balance);
+         });
+         process.exit(0);
+     })
+     .catch(function (err) {
+         console.error('error: ' + err.message);
+         process.exit(1);
+     });
+
+
+   Then run the code:
+
+   copy
+
+ $ node sequelize-basic-sample.js
+
+   The output should be:
+
+ 1 1000
+ 2 250
+
+   To verify that funds were transferred from one account to another, start
+   the built-in SQL client:
+
+   copy
+
+ $ cockroach sql --certs-dir=/tmp/certs -e 'SELECT id, balance FROM accounts' --database=bank
+
+ +----+---------+
+ | id | balance |
+ +----+---------+
+ |  1 |    1000 |
+ |  2 |     250 |
+ +----+---------+
+ (2 rows)
+
+Step 2. Create the maxroach user and bank database
+
+   Start the built-in SQL shell:
+
+   copy
+
+ $ cockroach sql --insecure
+
+   In the SQL shell, issue the following statements to create the maxroach
+   user and bank database:
+
+   copy
+
+ > CREATE USER IF NOT EXISTS maxroach;
+
+   copy
+
+ > CREATE DATABASE bank;
+
+   Give the maxroach user the necessary permissions:
+
+   copy
+
+ > GRANT ALL ON DATABASE bank TO maxroach;
+
+   Exit the SQL shell:
+
+   copy
+
+ > \q
+
+Step 3. Run the Node.js code
+
+   The following code uses the Sequelize ORM to map Node.js-specific objects
+   to SQL operations. Specifically, Account.sync({force: true}) creates an
+   accounts table based on the Account model (or drops and recreates the
+   table if it already exists), Account.bulkCreate([...]) inserts rows into
+   the table, and Account.findAll() selects from the table so that balances
+   can be printed.
+
+   Copy the code or download it directly.
+
+   copy
+
+ var Sequelize = require('sequelize-cockroachdb');
+
+ // Connect to CockroachDB through Sequelize.
+ var sequelize = new Sequelize('bank', 'maxroach', '', {
+   dialect: 'postgres',
+   port: 26257,
+   logging: false
+ });
+
+ // Define the Account model for the "accounts" table.
+ var Account = sequelize.define('accounts', {
+   id: { type: Sequelize.INTEGER, primaryKey: true },
+   balance: { type: Sequelize.INTEGER }
+ });
+
+ // Create the "accounts" table.
+ Account.sync({force: true}).then(function() {
+   // Insert two rows into the "accounts" table.
+   return Account.bulkCreate([
+     {id: 1, balance: 1000},
+     {id: 2, balance: 250}
+   ]);
+ }).then(function() {
+   // Retrieve accounts.
+   return Account.findAll();
+ }).then(function(accounts) {
+   // Print out the balances.
+   accounts.forEach(function(account) {
+     console.log(account.id + ' ' + account.balance);
+   });
+   process.exit(0);
+ }).catch(function(err) {
+   console.error('error: ' + err.message);
+   process.exit(1);
+ });
+
+
+   Then run the code:
+
+   copy
+
+ $ node sequelize-basic-sample.js
+
+   The output should be:
+
+ 1 1000
+ 2 250
+
+   To verify that the table and rows were created successfully, you can again
+   use the built-in SQL client:
+
+   copy
+
+ $ cockroach sql --insecure -e 'SHOW TABLES' --database=bank
+
+ +------------+
+ | table_name |
+ +------------+
+ | accounts   |
+ +------------+
+ (1 row)
+
+   copy
+
+ $ cockroach sql --insecure -e 'SELECT id, balance FROM accounts' --database=bank
+
+ +----+---------+
+ | id | balance |
+ +----+---------+
+ |  1 |    1000 |
+ |  2 |     250 |
+ +----+---------+
+ (2 rows)
+
+What's next?
+
+   Read more about using the Sequelize ORM, or check out a more realistic
+   implementation of Sequelize with CockroachDB in our examples-orms
+   repository.
+
+   You might also be interested in the following pages:
+
+     * Client Connection Parameters
+     * Data Replication
+     * Fault Tolerance & Recovery
+     * Automatic Rebalancing
+     * Cross-Cloud Migration
+     * Follow-the-Workload
+     * Automated Operations
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

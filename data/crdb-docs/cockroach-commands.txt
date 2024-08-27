@@ -1,0 +1,136 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                               Cockroach Commands
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   This page introduces the cockroach commands for configuring, starting, and
+   managing a CockroachDB cluster, as well as environment variables that can
+   be used in place of certain flags.
+
+   You can run cockroach help in your shell to get similar guidance.
+
+Commands
+
+   Command                     Usage                                          
+   cockroach start             Start a node as part of a multi-node cluster.  
+   cockroach init              Initialize a multi-node cluster.               
+   cockroach start-single-node Start a single-node cluster.                   
+   cockroach cert              Create CA, node, and client certificates.      
+   cockroach quit              Temporarily stop a node or permanently remove  
+                               a node.                                        
+   cockroach sql               Use the built-in SQL client.                   
+   cockroach sqlfmt            Reformat SQL queries for enhanced clarity.     
+   cockroach node              List node IDs, show their status, decommission 
+                               nodes for removal, or recommission nodes.      
+                               Back up a table by outputting the SQL          
+   cockroach dump              statements required to recreate the table and  
+                               all its rows.                                  
+                               Start a temporary, in-memory CockroachDB       
+   cockroach demo              cluster, and open an interactive SQL shell to  
+                               it.                                            
+                               Generate manpages, a bash completion file,     
+   cockroach gen               example SQL data, or an HAProxy configuration  
+                               file for a running cluster.                    
+   cockroach version           Output CockroachDB version details.            
+                               Create a large, unused file in a node's        
+   cockroach debug ballast     storage directory that you can delete if the   
+                               node runs out of disk space.                   
+   cockroach debug             View the encryption algorithm and store key.   
+   encryption-active-key       
+   cockroach debug zip         Generate a .zip file that can help Cockroach   
+                               Labs troubleshoot issues with your cluster.    
+   cockroach debug merge-logs  Merge multiple log files from different        
+                               machines into a single stream.                 
+   cockroach workload          Run a built-in load generator against a        
+                               cluster.                                       
+   cockroach nodelocal upload  Upload a file to the externalIODir on a node's 
+                               local file system.                             
+
+Environment variables
+
+   For many common cockroach flags, such as --port and --user, you can set
+   environment variables once instead of manually passing the flags each time
+   you execute commands.
+
+     * To find out which flags support environment variables, see the
+       documentation for each command.
+     * To output the current configuration of CockroachDB and other
+       environment variables, run env.
+     * When a node uses environment variables on startup, the variable names
+       are printed to the node's logs; however, the variable values are not.
+
+   CockroachDB prioritizes command flags, environment variables, and defaults
+   as follows:
+
+    1. If a flag is set for a command, CockroachDB uses it.
+    2. If a flag is not set for a command, CockroachDB uses the corresponding
+       environment variable.
+    3. If neither the flag nor environment variable is set, CockroachDB uses
+       the default for the flag.
+    4. If there's no flag default, CockroachDB gives an error.
+
+   For more details, see Client Connection Parameters.
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

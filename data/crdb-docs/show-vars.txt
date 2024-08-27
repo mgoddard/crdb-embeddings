@@ -1,0 +1,383 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                            SHOW (session settings)
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The SHOW statement can display the value of either one or all of the
+   session setting variables. Some of these can also be configured via SET.
+
+Required privileges
+
+   No privileges are required to display the session settings.
+
+Synopsis
+
+   SHOW SESSION var_name ALL
+   Note:
+   The SHOW statement for session settings is unrelated to the other SHOW
+   statements: SHOW CLUSTER SETTING, SHOW CREATE, SHOW USERS, SHOW DATABASES,
+   SHOW COLUMNS, SHOW GRANTS, and SHOW CONSTRAINTS.
+
+Parameters
+
+   The SHOW <session variable> statement accepts a single parameter: the
+   variable name.
+
+   The variable name is case insensitive. It may be enclosed in double
+   quotes; this is useful if the variable name itself contains spaces.
+
+  Supported variables
+
+                                                                                       Modify View 
+Variable name                     Description                        Initial value     with   with 
+                                                                                       SET ?  SHOW 
+                                                                                              ?    
+                                                                     Empty string, or              
+                                  The current application name for   cockroach for     
+application_name                  statistics collection.             sessions from the Yes    Yes
+                                                                     built-in SQL      
+                                                                     client.           
+bytea_output                      The mode for conversions from      hex               Yes    Yes  
+                                  STRING to BYTES.                   
+crdb_version                      The version of CockroachDB.        `CockroachDB OSS  No     Yes  
+                                                                     version`          
+                                                                     Database in                   
+database                          The current database.              connection        Yes    Yes
+                                                                     string, or empty  
+                                                                     if not specified. 
+default_int_size                  The size, in bytes, of an INT      8                 Yes    Yes  
+                                  type.                              
+                                  All transactions execute with                                    
+default_transaction_isolation     SERIALIZABLE isolation. See        SERIALIZABLE      No     Yes
+                                  Transactions: Isolation levels.    
+                                  The default transaction access                                   
+                                  mode for the current session. If   
+                                  set to on, only read operations    
+default_transaction_read_only     are allowed in transactions in the off               Yes    Yes
+                                  current session; if set to off,    
+                                  both read and write operations are 
+                                  allowed. See SET TRANSACTION for   
+                                  more details.                      
+                                  The query distribution mode for                                  
+                                  the session. By default,           
+                                  CockroachDB determines which       
+distsql                           queries are faster to execute if   auto              Yes    Yes
+                                  distributed across multiple nodes, 
+                                  and all other queries are run      
+                                  through the gateway node.          
+                                  Indicates whether UPDATE                                         
+                                  statements acquire locks using the 
+                                  FOR UPDATE locking mode during     
+                                  their initial row scan, which      
+enable_implicit_select_for_update improves performance for contended on                Yes    Yes
+                                  workloads. For more information    
+                                  about how FOR UPDATE locking       
+                                  works, see the documentation for   
+                                  SELECT FOR UPDATE.                 
+                                  Indicates whether the cost-based                                 
+                                  optimizer will plan certain        
+                                  queries using a zig-zag merge join 
+                                  algorithm, which searches for the  
+enable_zigzag_join                desired intersection by jumping    on                Yes    Yes
+                                  back and forth between the indexes 
+                                  based on the fact that after       
+                                  constraining indexes, they share   
+                                  an ordering.                       
+                                  The number of digits displayed for                               
+extra_float_digits                floating-point values. Only values 0                 Yes    Yes
+                                  between -15 and 3 are supported.   
+                                  Maximum number of joins that the                                 
+                                  optimizer will attempt to reorder  
+reorder_joins_limit               when searching for an optimal      4                 Yes    Yes
+                                  query execution plan. For more     
+                                  information, see Join reordering.  
+                                  When set to true, allows the                                     
+force_savepoint_restart           SAVEPOINT statement to accept any  off               Yes    Yes
+                                  name for a savepoint.              
+                                  The ID of the node currently                                     
+                                  connected to.                      
+node_id                                                              Node-dependent    No     Yes
+                                  This variable is particularly      
+                                  useful for verifying load balanced 
+                                  connections.                       
+optimizer_foreign_keys            If off, disables optimizer-driven  on                Yes    Yes  
+                                  foreign key checks.                
+                                  The default size of the buffer                                   
+                                  that accumulates results for a     
+                                  statement or a batch of statements 
+                                  before they are sent to the        
+                                  client. This can also be set for   
+                                  all connections using the          
+                                  'sql.defaults.results_buffer_size' 
+                                  cluster setting. Note that         
+                                  auto-retries generally only happen 
+results_buffer_size               while no results have been         16384             Yes    Yes
+                                  delivered to the client, so        
+                                  reducing this size can increase    
+                                  the number of retriable errors a   
+                                  client receives. On the other      
+                                  hand, increasing the buffer size   
+                                  can increase the delay until the   
+                                  client receives the first result   
+                                  row. Setting to 0 disables any     
+                                  buffering.                         
+                                  If on, CockroachDB throws on error                               
+require_explicit_primary_keys     for all tables created without an  off               Yes    Yes
+                                  explicit primary key defined.      
+                                  A list of schemas that will be                                   
+search_path                       searched to resolve unqualified    public            Yes    Yes
+                                  table or function names. For more  
+                                  details, see SQL name resolution.  
+server_version                    The version of PostgreSQL that     Version-dependent No     Yes  
+                                  CockroachDB emulates.              
+server_version_num                The version of PostgreSQL that     Version-dependent Yes    Yes  
+                                  CockroachDB emulates.              
+session_id                        The ID of the current session.     Session-dependent No     Yes  
+session_user                      The user connected for the current User in           No     Yes  
+                                  session.                           connection string 
+                                  If false, potentially unsafe SQL   true for                      
+                                  statements are allowed, including  interactive       
+                                  DROP of a non-empty database and   sessions from the 
+                                  all dependent objects, DELETE      built-in SQL      
+sql_safe_updates                  without a WHERE clause, UPDATE     client,           Yes    Yes
+                                  without a WHERE clause, and ALTER  false for         
+                                  TABLE .. DROP COLUMN. See Allow    sessions from     
+                                  Potentially Unsafe SQL Statements  other clients     
+                                  for more details.                  
+                                  The amount of time a statement can                               
+                                  run before being stopped.          
+                                                                     
+                                  This value can be an int (e.g.,    
+statement_timeout                 10) and will be interpreted as     0s                Yes    Yes
+                                  milliseconds. It can also be an    
+                                  interval or string argument, where 
+                                  the string can be parsed as a      
+                                  valid interval (e.g., '4s'). A     
+                                  value of 0 turns it off.           
+                                  The default time zone for the                                    
+                                  current session.                   
+                                                                     
+timezone                          This session variable was named    UTC               Yes    Yes
+                                  "time zone" (with a space) in      
+                                  CockroachDB 1.x. It has been       
+                                  renamed for compatibility with     
+                                  PostgreSQL.                        
+tracing                           The trace recording state.         off                      Yes  
+                                  All transactions execute with                                    
+                                  SERIALIZABLE isolation. See        
+                                  Transactions: Isolation levels.    
+                                                                     
+transaction_isolation             This session variable was called   SERIALIZABLE      No     Yes
+                                  transaction isolation level (with  
+                                  spaces) in CockroachDB 1.x. It has 
+                                  been renamed for compatibility     
+                                  with PostgreSQL.                   
+                                  The priority of the current                                      
+                                  transaction. See Transactions:     
+                                  Isolation levels for more details. 
+                                                                     
+transaction_priority              This session variable was called   NORMAL            Yes    Yes
+                                  transaction priority (with a       
+                                  space) in CockroachDB 1.x. It has  
+                                  been renamed for compatibility     
+                                  with PostgreSQL.                   
+                                  The access mode of the current                                   
+transaction_read_only             transaction. See Set Transaction   off               Yes    Yes
+                                  for more details.                  
+                                  The state of the current                                         
+                                  transaction. See Transactions for  
+                                  more details.                      
+                                                                     
+transaction_status                This session variable was called   NoTxn             No     Yes
+                                  transaction status (with a space)  
+                                  in CockroachDB 1.x. It has been    
+                                  renamed for compatibility with     
+                                  PostgreSQL.                        
+                                  The vectorized execution engine                                  
+                                  mode. Options include auto, on,    
+vectorize                         and off. For more details, see     auto              Yes    Yes
+                                  Configuring vectorized execution   
+                                  for CockroachDB.                   
+                                  The minimum number of rows                                       
+vectorize_row_count_threshold     required to use the vectorized     1000              Yes    Yes
+                                  engine to execute a query plan.    
+client_encoding                   (Reserved; exposed only for ORM    UTF8              No     Yes  
+                                  compatibility.)                    
+client_min_messages               (Reserved; exposed only for ORM    notice            No     Yes  
+                                  compatibility.)                    
+datestyle                         (Reserved; exposed only for ORM    ISO               No     Yes  
+                                  compatibility.)                    
+integer_datetimes                 (Reserved; exposed only for ORM    on                No     Yes  
+                                  compatibility.)                    
+intervalstyle                     (Reserved; exposed only for ORM    postgres          No     Yes  
+                                  compatibility.)                    
+max_identifier_length             (Reserved; exposed only for ORM    128               No     Yes  
+                                  compatibility.)                    
+max_index_keys                    (Reserved; exposed only for ORM    32                No     Yes  
+                                  compatibility.)                    
+standard_conforming_strings       (Reserved; exposed only for ORM    on                No     Yes  
+                                  compatibility.)                    
+server_encoding                   (Reserved; exposed only for ORM    UTF8              Yes    Yes  
+                                  compatibility.)                    
+
+   For session variables on experimental features, see Experimental Features.
+
+   Special syntax cases supported for compatibility:
+
+   Syntax                           Equivalent to                      
+   SHOW TRANSACTION PRIORITY        SHOW "transaction priority"        
+   SHOW TRANSACTION ISOLATION LEVEL SHOW "transaction isolation level" 
+   SHOW TIME ZONE                   SHOW "timezone"                    
+   SHOW TRANSACTION STATUS          SHOW "transaction status"          
+
+Examples
+
+  Showing the value of a single session variable
+
+   copy
+
+ > SHOW DATABASE;
+
+   database
+ +----------+
+   movr
+ (1 row)
+
+  Showing the value of all session variables
+
+   copy
+
+ > SHOW ALL;
+
+                   variable                 |                                                      value
+ -------------------------------------------+------------------------------------------------------------------------------------------------------------------
+   application_name                         | $ cockroach demo
+   bytea_output                             | hex
+   client_encoding                          | UTF8
+   client_min_messages                      | notice
+   crdb_version                             | CockroachDB OSS v20.2.0
+   database                                 | movr
+   datestyle                                | ISO, MDY
+   default_int_size                         | 8
+   default_tablespace                       |
+   default_transaction_isolation            | serializable
+   default_transaction_read_only            | off
+   distsql                                  | auto
+   enable_implicit_select_for_update        | on
+   enable_insert_fast_path                  | on
+   enable_zigzag_join                       | on
+   experimental_enable_hash_sharded_indexes | off
+   experimental_enable_temp_tables          | off
+   experimental_serial_normalization        | rowid
+   extra_float_digits                       | 2
+   force_savepoint_restart                  | off
+   idle_in_transaction_session_timeout      | 0
+   integer_datetimes                        | on
+   intervalstyle                            | postgres
+   locality                                 | region=us-east1,az=b
+   lock_timeout                             | 0
+   max_identifier_length                    | 128
+   max_index_keys                           | 32
+   node_id                                  | 1
+   optimizer                                | on
+   optimizer_foreign_keys                   | on
+   reorder_joins_limit                      | 4
+   require_explicit_primary_keys            | off
+   results_buffer_size                      | 16384
+   row_security                             | off
+   search_path                              | public
+   server_encoding                          | UTF8
+   server_version                           | 9.5.0
+   server_version_num                       | 90500
+   session_id                               | 16016feed4d6ae800000000000000001
+   session_user                             | root
+   sql_safe_updates                         | on
+   standard_conforming_strings              | on
+   statement_timeout                        | 0
+   synchronize_seqscans                     | on
+   timezone                                 | UTC
+   tracing                                  | off
+   transaction_isolation                    | serializable
+   transaction_priority                     | normal
+   transaction_read_only                    | off
+   transaction_status                       | NoTxn
+   vectorize                                | auto
+   vectorize_row_count_threshold            | 1000
+ (52 rows)
+
+See also
+
+     * SET (session variable)
+     * Transactions, including Priority levels
+     * SHOW CLUSTER SETTING
+     * SHOW COLUMNS
+     * SHOW CONSTRAINTS
+     * SHOW CREATE
+     * SHOW DATABASES
+     * SHOW GRANTS
+     * SHOW INDEX
+     * SHOW USERS
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

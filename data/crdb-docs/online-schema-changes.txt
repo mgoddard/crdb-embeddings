@@ -1,0 +1,464 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                             Online Schema Changes
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   CockroachDB's online schema changes provide a simple way to update a table
+   schema without imposing any negative consequences on an application —
+   including downtime. The schema change engine is a built-in feature
+   requiring no additional tools, resources, or ad hoc sequencing of
+   operations.
+
+   Benefits of online schema changes include:
+
+     * Changes to your table schema happen while the database is running.
+     * The schema change runs as a background job without holding locks on
+       the underlying table data.
+     * Your application's queries can run normally, with no effect on
+       read/write latency. The schema is cached for performance.
+     * Your data is kept in a safe, consistent state throughout the entire
+       schema change process.
+   Warning:
+
+   Schema changes consume additional resources, and if they are run when the
+   cluster is near peak capacity, latency spikes can occur. This is
+   especially true for any schema change that adds columns, drops columns, or
+   adds an index. We do not recommend doing more than one schema change at a
+   time while in production.
+
+   Tip:
+
+   Support for schema changes within transactions is limited. We recommend
+   doing schema changes outside transactions where possible. When a schema
+   management tool uses transactions on your behalf, we recommend only doing
+   one schema change operation per transaction.
+
+   Note:
+
+   You cannot start an online schema change on a table if a primary key
+   change is currently in progress on the same table.
+
+How online schema changes work
+
+   At a high level, online schema changes are accomplished by using a
+   bridging strategy involving concurrent uses of multiple versions of the
+   schema. The process is as follows:
+
+    1. A user initiates a schema change by executing ALTER TABLE, CREATE
+       INDEX, TRUNCATE, etc.
+
+    2. The schema change engine converts the original schema to the new
+       schema in discrete steps while ensuring that the underlying table data
+       is always in a consistent state. These changes are executed as a
+       background job, and can be paused, resumed, and canceled.
+
+   This approach allows the schema change engine to roll out a new schema
+   while the previous version is still in use. It then backfills or deletes
+   the underlying table data as needed in the background, while the cluster
+   is still running and servicing reads and writes from your application.
+
+   During the backfilling process, the schema change engine updates the
+   underlying table data to make sure all instances of the table are stored
+   according to the requirements of the new schema.
+
+   Once backfilling is complete, all nodes will switch over to the new
+   schema, and will allow reads and writes of the table using the new schema.
+
+   For more technical details, see How online schema changes are possible in
+   CockroachDB.
+
+   Note:
+
+   If a schema change fails, the schema change job will be cleaned up
+   automatically. However, there are limitations with rolling back schema
+   changes within a transaction; for more information, see below.
+
+Examples
+
+   Tip:
+
+   For more examples of schema change statements, see the ALTER TABLE
+   subcommands.
+
+  Run schema changes inside a transaction with CREATE TABLE
+
+   As noted in Limitations, you cannot run schema changes inside transactions
+   in general.
+
+   However, as of version v2.1, you can run schema changes inside the same
+   transaction as a CREATE TABLE statement. For example:
+
+   copy
+
+ > BEGIN;
+   SAVEPOINT cockroach_restart;
+   CREATE TABLE fruits (
+         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+         name STRING,
+         color STRING
+     );
+   INSERT INTO fruits (name, color) VALUES ('apple', 'red');
+   ALTER TABLE fruits ADD COLUMN inventory_count INTEGER DEFAULT 5;
+   ALTER TABLE fruits ADD CONSTRAINT name CHECK (name IN ('apple', 'banana', 'orange'));
+   SELECT name, color, inventory_count FROM fruits;
+   RELEASE SAVEPOINT cockroach_restart;
+   COMMIT;
+
+   The transaction succeeds with the following output:
+
+ BEGIN
+ SAVEPOINT
+ CREATE TABLE
+ INSERT 0 1
+ ALTER TABLE
+ ALTER TABLE
+ +-------+-------+-----------------+
+ | name  | color | inventory_count |
+ +-------+-------+-----------------+
+ | apple | red   |               5 |
+ +-------+-------+-----------------+
+ (1 row)
+ COMMIT
+ COMMIT
+
+  Run multiple schema changes in a single ALTER TABLE statement
+
+   As of v19.1, some schema changes can be used in combination in a single
+   ALTER TABLE statement. For a list of commands that can be combined, see
+   ALTER TABLE. For a demonstration, see Add and rename columns atomically.
+
+  Show all schema change jobs
+
+   You can check on the status of the schema change jobs on your system at
+   any time using the SHOW JOBS statement:
+
+   copy
+
+ > SELECT * FROM [SHOW JOBS] WHERE job_type = 'SCHEMA CHANGE';
+
+ +--------------------+---------------+-----------------------------------------------------------------------------+-----------+-----------+----------------------------+----------------------------+----------------------------+----------------------------+--------------------+-------+----------------+
+ |             job_id | job_type      | description                                                                 | user_name | status    | created                    | started                    | finished                   | modified                   | fraction_completed | error | coordinator_id |
+ |--------------------+---------------+-----------------------------------------------------------------------------+-----------+-----------+----------------------------+----------------------------+----------------------------+----------------------------+--------------------+-------+----------------|
+ | 368863345707909121 | SCHEMA CHANGE | ALTER TABLE test.public.fruits ADD COLUMN inventory_count INTEGER DEFAULT 5 | root      | succeeded | 2018-07-26 20:55:59.698793 | 2018-07-26 20:55:59.739032 | 2018-07-26 20:55:59.816007 | 2018-07-26 20:55:59.816008 |                  1 |       | NULL           |
+ | 370556465994989569 | SCHEMA CHANGE | ALTER TABLE test.public.foo ADD COLUMN bar VARCHAR                          | root      | pending   | 2018-08-01 20:27:38.708813 | NULL                       | NULL                       | 2018-08-01 20:27:38.708813 |                  0 |       | NULL           |
+ | 370556522386751489 | SCHEMA CHANGE | ALTER TABLE test.public.foo ADD COLUMN bar VARCHAR                          | root      | pending   | 2018-08-01 20:27:55.830832 | NULL                       | NULL                       | 2018-08-01 20:27:55.830832 |                  0 |       | NULL           |
+ +--------------------+---------------+-----------------------------------------------------------------------------+-----------+-----------+----------------------------+----------------------------+----------------------------+----------------------------+--------------------+-------+----------------+
+ (1 row)
+
+   All schema change jobs can be paused, resumed, and canceled.
+
+Limitations
+
+  Overview
+
+   Schema changes keep your data consistent at all times, but they do not run
+   inside transactions in the general case. This is necessary so the cluster
+   can remain online and continue to service application reads and writes.
+
+   Specifically, this behavior is necessary because making schema changes
+   transactional would mean requiring a given schema change to propagate
+   across all the nodes of a cluster. This would block all user-initiated
+   transactions being run by your application, since the schema change would
+   have to commit before any other transactions could make progress. This
+   would prevent the cluster from servicing reads and writes during the
+   schema change, requiring application downtime.
+
+  Limited support for schema changes within transactions
+
+   Within a single transaction:
+
+     * DDL statements cannot be mixed with DML statements. As a workaround,
+       you can split the statements into separate transactions. For more
+       details, see examples of unsupported statements.
+     * As of version v2.1, you can run schema changes inside the same
+       transaction as a CREATE TABLE statement. For more information, see
+       this example.
+     * A CREATE TABLE statement containing FOREIGN KEY or INTERLEAVE clauses
+       cannot be followed by statements that reference the new table.
+     * A table cannot be dropped and then recreated with the same name. This
+       is not possible within a single transaction because DROP TABLE does
+       not immediately drop the name of the table. As a workaround, split the
+       DROP TABLE and CREATE TABLE statements into separate transactions.
+     * Schema change DDL statements inside a multi-statement transaction can
+       fail while other statements succeed.
+     * As of v19.1, some schema changes can be used in combination in a
+       single ALTER TABLE statement. For a list of commands that can be
+       combined, see ALTER TABLE. For a demonstration, see Add and rename
+       columns atomically.
+   Note:
+
+   If a schema change within a transaction fails, manual intervention may be
+   needed to determine which has failed. After determining which schema
+   change(s) failed, you can then retry the schema changes.
+
+  Schema change DDL statements inside a multi-statement transaction can fail
+  while other statements succeed
+
+   Schema change DDL statements that run inside a multi-statement transaction
+   with non-DDL statements can fail at COMMIT time, even if other statements
+   in the transaction succeed. This leaves such transactions in a "partially
+   committed, partially aborted" state that may require manual intervention
+   to determine whether the DDL statements succeeded.
+
+   If such a failure occurs, CockroachDB will emit a new CockroachDB-specific
+   error code, XXA00, and the following error message:
+
+ transaction committed but schema change aborted with error: <description of error>
+ HINT: Some of the non-DDL statements may have committed successfully, but some of the DDL statement(s) failed.
+ Manual inspection may be required to determine the actual state of the database.
+
+   Note:
+
+   This limitation exists in versions of CockroachDB prior to 19.2. In these
+   older versions, CockroachDB returned the Postgres error code 40003,
+   "statement completion unknown".
+
+   Warning:
+
+   If you must execute schema change DDL statements inside a multi-statement
+   transaction, we strongly recommend checking for this error code and
+   handling it appropriately every time you execute such transactions.
+
+   This error will occur in various scenarios, including but not limited to:
+
+     * Creating a unique index fails because values aren't unique.
+     * The evaluation of a computed value fails.
+     * Adding a constraint (or a column with a constraint) fails because the
+       constraint is violated for the default/computed values in the column.
+
+   To see an example of this error, start by creating the following table.
+
+   copy
+
+ CREATE TABLE T(x INT);
+ INSERT INTO T(x) VALUES (1), (2), (3);
+
+   Then, enter the following multi-statement transaction, which will trigger
+   the error.
+
+   copy
+
+ BEGIN;
+ ALTER TABLE t ADD CONSTRAINT unique_x UNIQUE(x);
+ INSERT INTO T(x) VALUES (3);
+ COMMIT;
+
+ pq: transaction committed but schema change aborted with error: (23505): duplicate key value (x)=(3) violates unique constraint "unique_x"
+ HINT: Some of the non-DDL statements may have committed successfully, but some of the DDL statement(s) failed.
+ Manual inspection may be required to determine the actual state of the database.
+
+   In this example, the INSERT statement committed, but the ALTER TABLE
+   statement adding a UNIQUE constraint failed. We can verify this by looking
+   at the data in table t and seeing that the additional non-unique value 3
+   was successfully inserted.
+
+   copy
+
+ SELECT * FROM t;
+
+   x
+ +---+
+   1
+   2
+   3
+   3
+ (4 rows)
+
+  No schema changes between executions of prepared statements
+
+   When the schema of a table targeted by a prepared statement changes before
+   the prepared statement is executed, CockroachDB allows the prepared
+   statement to return results based on the changed table schema, for
+   example:
+
+   copy
+
+ > CREATE TABLE users (id INT PRIMARY KEY);
+
+   copy
+
+ > PREPARE prep1 AS SELECT * FROM users;
+
+   copy
+
+ > ALTER TABLE users ADD COLUMN name STRING;
+
+   copy
+
+ > INSERT INTO users VALUES (1, 'Max Roach');
+
+   copy
+
+ > EXECUTE prep1;
+
+ +----+-----------+
+ | id |   name    |
+ +----+-----------+
+ |  1 | Max Roach |
+ +----+-----------+
+ (1 row)
+
+   It's therefore recommended to not use SELECT * in queries that will be
+   repeated, via prepared statements or otherwise.
+
+   Also, a prepared INSERT, UPSERT, or DELETE statement acts inconsistently
+   when the schema of the table being written to is changed before the
+   prepared statement is executed:
+
+     * If the number of columns has increased, the prepared statement returns
+       an error but nonetheless writes the data.
+     * If the number of columns remains the same but the types have changed,
+       the prepared statement writes the data and does not return an error.
+
+  Examples of statements that fail
+
+   The following statements fail due to limited support for schema changes
+   within transactions.
+
+    Create an index and then run a select against that index inside a
+    transaction
+
+   copy
+
+ > CREATE TABLE foo (id INT PRIMARY KEY, name VARCHAR);
+   BEGIN;
+   SAVEPOINT cockroach_restart;
+   CREATE INDEX foo_idx ON foo (id, name);
+   SELECT * from foo@foo_idx;
+   RELEASE SAVEPOINT cockroach_restart;
+   COMMIT;
+
+ CREATE TABLE
+ BEGIN
+ SAVEPOINT
+ CREATE INDEX
+ ERROR:  relation "foo_idx" does not exist
+ ERROR:  current transaction is aborted, commands ignored until end of transaction block
+ ROLLBACK
+
+    Add a column and then add a constraint against that column inside a
+    transaction
+
+   copy
+
+ > CREATE TABLE foo ();
+   BEGIN;
+   SAVEPOINT cockroach_restart;
+   ALTER TABLE foo ADD COLUMN bar VARCHAR;
+   ALTER TABLE foo ADD CONSTRAINT bar CHECK (foo IN ('a', 'b', 'c', 'd'));
+   RELEASE SAVEPOINT cockroach_restart;
+   COMMIT;
+
+ CREATE TABLE
+ BEGIN
+ SAVEPOINT
+ ALTER TABLE
+ ERROR:  column "foo" not found for constraint "foo"
+ ERROR:  current transaction is aborted, commands ignored until end of transaction block
+ ROLLBACK
+
+    Add a column and then select against that column inside a transaction
+
+   copy
+
+ > CREATE TABLE foo ();
+   BEGIN;
+   SAVEPOINT cockroach_restart;
+   ALTER TABLE foo ADD COLUMN bar VARCHAR;
+   SELECT bar FROM foo;
+   RELEASE SAVEPOINT cockroach_restart;
+   COMMIT;
+
+ CREATE TABLE
+ BEGIN
+ SAVEPOINT
+ ALTER TABLE
+ ERROR:  column name "bar" not found
+ ERROR:  current transaction is aborted, commands ignored until end of transaction block
+ ROLLBACK
+
+See also
+
+     * How online schema changes are possible in CockroachDB: Blog post with
+       more technical details about how our schema change engine works.
+     * ALTER DATABASE
+     * ALTER INDEX
+     * ALTER RANGE
+     * ALTER SEQUENCE
+     * ALTER TABLE
+     * ALTER VIEW
+     * CREATE DATABASE
+     * CREATE INDEX
+     * CREATE SEQUENCE
+     * CREATE TABLE
+     * CREATE VIEW
+     * DROP DATABASE
+     * DROP INDEX
+     * DROP SEQUENCE
+     * DROP TABLE
+     * DROP VIEW
+     * TRUNCATE
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

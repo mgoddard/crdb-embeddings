@@ -1,0 +1,134 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                             SHOW SAVEPOINT STATUS
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The SHOW SAVEPOINT STATUS statement lists the active savepoints in the
+   current transaction.
+
+Required privileges
+
+   No privileges are required to create or show a savepoint. However,
+   privileges are required for each statement within a transaction.
+
+Synopsis
+
+   SHOW SAVEPOINT STATUS
+
+Response
+
+   The following fields are returned for each savepoint.
+
+   Field                Description                                           
+   savepoint_name       The name of the savepoint.                            
+   is_initial_savepoint Whether the savepoint is the outermost savepoint in   
+                        the transaction.                                      
+
+Example
+
+   First, open a transaction using BEGIN, and create a nested transaction
+   using a savepoint:
+
+   copy
+
+ > BEGIN;
+ SAVEPOINT foo;
+
+   Next, use the SHOW SAVEPOINT STATUS statement to list the active
+   savepoints in the current nested transaction.
+
+   copy
+
+ > SHOW SAVEPOINT STATUS;
+
+   savepoint_name | is_initial_savepoint
+ -----------------+-----------------------
+   foo            |        true
+ (1 row)
+
+   Currently, there is only one savepoint.
+
+   We can commit this nested transaction by issuing the RELEASE SAVEPOINT
+   statement. Then, we clear the connection for the next transaction by
+   issuing a COMMIT statement.
+
+   copy
+
+ > RELEASE SAVEPOINT foo;
+ COMMIT;
+
+   If we did not want to commit this nested transaction, but restart it
+   instead, we would have issued a ROLLBACK TO SAVEPOINT.
+
+See also
+
+     * SAVEPOINT
+     * RELEASE SAVEPOINT
+     * ROLLBACK
+     * BEGIN
+     * COMMIT
+     * Transactions
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

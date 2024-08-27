@@ -1,0 +1,198 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                               SELECT FOR UPDATE
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The SELECT FOR UPDATE statement is used to order transactions by
+   controlling concurrent access to one or more rows of a table.
+
+   It works by locking the rows returned by a selection query, such that
+   other transactions trying to access those rows are forced to wait for the
+   transaction that locked the rows to finish. These other transactions are
+   effectively put into a queue based on when they tried to read the value of
+   the locked rows.
+
+   Because this queueing happens during the read operation, the thrashing
+   that would otherwise occur if multiple concurrently executing transactions
+   attempt to SELECT the same data and then UPDATE the results of that
+   selection is prevented. By preventing this thrashing, CockroachDB also
+   prevents the transaction retries that would otherwise occur.
+
+   As a result, using SELECT FOR UPDATE leads to increased throughput and
+   decreased tail latency for contended operations.
+
+Required privileges
+
+   The user must have the SELECT and UPDATE privileges on the tables used as
+   operands.
+
+Parameters
+
+   The same as for other selection queries.
+
+Examples
+
+  Enforce transaction order when updating the same rows
+
+   In this example, we'll use SELECT FOR UPDATE to lock a row inside a
+   transaction, forcing other transactions that want to update the same row
+   to wait for the first transaction to complete. The other transactions that
+   want to update the same row are effectively put into a queue based on when
+   they first try to read the value of the row.
+
+   This example assumes you are running a local unsecured cluster.
+
+   First, let's connect to the running cluster (we'll call this Terminal 1):
+
+   copy
+
+ cockroach sql --insecure
+
+   Next, let's create a table and insert some rows:
+
+   copy
+
+ CREATE TABLE kv (k INT PRIMARY KEY, v INT);
+ INSERT INTO kv (k, v) VALUES (1, 5), (2, 10), (3, 15);
+
+   Next, we'll start a transaction and and lock the row we want to operate
+   on:
+
+   copy
+
+ BEGIN;
+ SELECT * FROM kv WHERE k = 1 FOR UPDATE;
+
+   Hit enter twice in the SQL client to send the input so far to be
+   evaluated. This will result in the following output:
+
+   k | v
+ +---+----+
+   1 | 5
+ (1 row)
+
+   Now let's open another terminal and connect to the database from a second
+   client (we'll call this Terminal 2):
+
+   copy
+
+ cockroach sql --insecure
+
+   From Terminal 2, start a transaction and try to lock the same row for
+   updates that is already being accessed by the transaction we opened in
+   Terminal 1:
+
+   copy
+
+ BEGIN;
+ SELECT * FROM kv WHERE k = 1 FOR UPDATE;
+
+   Hit enter twice to send the input so far to be evaluated. Because Terminal
+   1 has already locked this row, the SELECT FOR UPDATE statement from
+   Terminal 2 will appear to "wait".
+
+   Back in Terminal 1, let's update the row and commit the transaction:
+
+   copy
+
+ UPDATE kv SET v = v + 5 WHERE k = 1;
+ COMMIT;
+
+ COMMIT
+
+   Now that the transaction in Terminal 1 has committed, the transaction in
+   Terminal 2 will be "unblocked", generating the following output, which
+   shows the value left by the transaction in Terminal 1:
+
+   k | v
+ +---+----+
+   1 | 10
+ (1 row)
+
+   The transaction in Terminal 2 can now receive input, so let's update the
+   row in question again:
+
+   copy
+
+ UPDATE kv SET v = v + 5 WHERE k = 1;
+ COMMIT;
+
+ UPDATE 1
+
+   Finally, we commit the transaction in Terminal 2:
+
+   copy
+
+ COMMIT;
+
+ COMMIT
+
+See also
+
+     * SELECT
+     * Selection Queries
+     * Understanding and avoiding transaction contention
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

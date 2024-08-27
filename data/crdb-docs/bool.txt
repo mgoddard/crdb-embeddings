@@ -1,0 +1,137 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                      BOOL
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The BOOL data type stores a Boolean value of false or true.
+
+Aliases
+
+   In CockroachDB, BOOLEAN is an alias for BOOL.
+
+Syntax
+
+   There are two predefined named constants for BOOL: TRUE and FALSE (the
+   names are case-insensitive).
+
+   Alternately, a boolean value can be obtained by coercing a numeric value:
+   zero is coerced to FALSE, and any non-zero value to TRUE.
+
+     * CAST(0 AS BOOL) (false)
+     * CAST(123 AS BOOL) (true)
+
+Size
+
+   A BOOL value is 1 byte in width, but the total storage size is likely to
+   be larger due to CockroachDB metadata.
+
+Examples
+
+   copy
+
+ > CREATE TABLE bool (a INT PRIMARY KEY, b BOOL, c BOOLEAN);
+
+   copy
+
+ > SHOW COLUMNS FROM bool;
+
+ +-------------+-----------+-------------+----------------+-----------------------+-------------+
+ | column_name | data_type | is_nullable | column_default | generation_expression |   indices   |
+ +-------------+-----------+-------------+----------------+-----------------------+-------------+
+ | a           | INT       |    false    | NULL           |                       | {"primary"} |
+ | b           | BOOL      |    true     | NULL           |                       | {}          |
+ | c           | BOOL      |    true     | NULL           |                       | {}          |
+ +-------------+-----------+-------------+----------------+-----------------------+-------------+
+ (3 rows)
+
+   copy
+
+ > INSERT INTO bool VALUES (12345, true, CAST(0 AS BOOL));
+
+   copy
+
+ > SELECT * FROM bool;
+
+ +-------+------+-------+
+ |   a   |  b   |   c   |
+ +-------+------+-------+
+ | 12345 | true | false |
+ +-------+------+-------+
+
+Supported casting and conversion
+
+   BOOL values can be cast to any of the following data types:
+
+   Type    Details                        
+   INT     Converts true to 1, false to 0 
+   DECIMAL Converts true to 1, false to 0 
+   FLOAT   Converts true to 1, false to 0 
+   STRING  ––                             
+
+See also
+
+   Data Types
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

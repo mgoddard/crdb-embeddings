@@ -1,0 +1,177 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                        Enterprise Trial –– Get Started
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   Congratulations on starting your CockroachDB Enterprise Trial! With it,
+   you'll not only get access to CockroachDB's core capabilities like high
+   availability and SERIALIZABLE isolation, but also our Enterprise-only
+   features like distributed BACKUP & RESTORE, geo-partitioning, and cluster
+   visualization.
+
+Install CockroachDB
+
+   If you haven't already, you'll need to locally install, remotely deploy,
+   or orchestrate CockroachDB.
+
+Enable Enterprise features
+
+   As the CockroachDB root user, open the built-in SQL shell in insecure or
+   secure mode, as per your CockroachDB setup. In the following example, we
+   assume that CockroachDB is running in insecure mode.
+
+   copy
+
+ $ cockroach sql --insecure
+
+   Note:
+
+   If you've secured your deployment, you'll need to include the flags for
+   your certificates instead of the --insecure flag.
+
+   Now, use the SET CLUSTER SETTING command to set the name of your
+   organization and the license key:
+
+   copy
+
+ >  SET CLUSTER SETTING cluster.organization = 'Acme Company'; SET CLUSTER SETTING enterprise.license = 'xxxxxxxxxxxx';
+
+   Then verify your organization in response to the following query:
+
+   copy
+
+ >  SHOW CLUSTER SETTING cluster.organization;
+
+Use Enterprise features
+
+   Your cluster now has access to all of CockroachDB's enterprise features
+   for the length of the trial:
+
+   Feature                   Description                                      
+                             This feature gives you row-level control of how  
+                             and where your data is stored to dramatically    
+   Geo-Partitioning          reduce read and write latencies and assist in    
+                             meeting regulatory requirements in multi-region  
+                             deployments.                                     
+                             This feature reduces read latency in             
+   Follower Reads            multi-region deployments by using the closest    
+                             replica at the expense of reading slightly       
+                             historical data.                                 
+                             This feature creates full or incremental backups 
+                             of your cluster's schema and data that are       
+                             consistent as of a given timestamp, stored on a  
+                             service such as AWS S3, Google Cloud Storage,    
+                             NFS, or HTTP storage.                            
+   BACKUP                                                                     
+                             Backups can be locality-aware such that each     
+                             node writes files only to the backup destination 
+                             that matches the node's locality. This is useful 
+                             for reducing cloud storage data transfer costs   
+                             by keeping data within cloud regions and         
+                             complying with data domiciling requirements.     
+   RESTORE                   This feature restores your cluster's schemas and 
+                             data from an enterprise BACKUP.                  
+                             This feature provides efficient, distributed,    
+   Change Data Capture (CDC) row-level change feeds into Apache Kafka for     
+                             downstream processing such as reporting,         
+                             caching, or full-text indexing.                  
+                             This feature visualizes the geographical         
+   Node Map                  configuration of a cluster by plotting node      
+                             localities on a world map.                       
+                             Given multiple identical indexes that have       
+                             different locality constraints using replication 
+                             zones, the cost-based optimizer will prefer the  
+   Locality-Aware Index      index that is closest to the gateway node that   
+   Selection                 is planning the query. In multi-region           
+                             deployments, this can lead to performance        
+                             improvements due to improved data locality and   
+                             reduced network traffic.                         
+                             Supplementing CockroachDB's encryption in flight 
+                             capabilities, this feature provides transparent  
+   Encryption at Rest        encryption of a node's data on the local disk.   
+                             It allows encryption of all files on disk using  
+                             AES in counter mode, with all key sizes allowed. 
+                             CockroachDB supports the Generic Security        
+   GSSAPI with Kerberos      Services API (GSSAPI) with Kerberos              
+   Authentication            authentication, which lets you use an external   
+                             enterprise directory system that supports        
+                             Kerberos, such as Active Directory.              
+                             This feature uses the CockroachDB distributed    
+   EXPORT                    execution engine to quickly get large sets of    
+                             data out of CockroachDB in a CSV format that can 
+                             be ingested by downstream systems.               
+
+Getting help
+
+   If you or your team need any help during your trial, our engineers are
+   available on CockroachDB Community Slack, our forum, or GitHub.
+
+See also
+
+     * Enterprise Licensing
+     * SET CLUSTER SETTING
+     * SHOW CLUSTER SETTING
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

@@ -1,0 +1,174 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                 DROP DATABASE
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The DROP DATABASE statement removes a database and all its objects from a
+   CockroachDB cluster.
+
+   Note:
+
+   This statement performs a schema change. For more information about how
+   online schema changes work in CockroachDB, see Online Schema Changes.
+
+Required privileges
+
+   The user must have the DROP privilege on the database and on all tables in
+   the database.
+
+Synopsis
+
+   DROP DATABASE IF EXISTS name CASCADE RESTRICT
+
+Parameters
+
+   Parameter Description                                                      
+   IF EXISTS Drop the database if it exists; if it does not exist, do not     
+             return an error.                                                 
+             The name of the database you want to drop. You cannot drop a     
+   name      database if it is set as the current database or if              
+             sql_safe_updates = true.                                         
+             (Default) Drop all tables and views in the database as well as   
+             all objects (such as constraints and views) that depend on those 
+   CASCADE   tables.                                                          
+                                                                              
+             CASCADE does not list objects it drops, so should be used        
+             cautiously.                                                      
+   RESTRICT  Do not drop the database if it contains any tables or views.     
+
+Viewing schema changes
+
+   This schema change statement is registered as a job. You can view
+   long-running jobs with SHOW JOBS.
+
+Examples
+
+  Drop a database and its objects (CASCADE)
+
+   For non-interactive sessions (e.g., client applications), DROP DATABASE
+   applies the CASCADE option by default, which drops all tables and views in
+   the database as well as all objects (such as constraints and views) that
+   depend on those tables.
+
+   copy
+
+ > SHOW TABLES FROM db2;
+
+ +------------+
+ | table_name |
+ +------------+
+ | t1         |
+ | v1         |
+ +------------+
+ (2 rows)
+
+   copy
+
+ > DROP DATABASE db2;
+
+   copy
+
+ > SHOW TABLES FROM db2;
+
+ pq: database "db2" does not exist
+
+   For interactive sessions from the built-in SQL client, either the CASCADE
+   option must be set explicitly or the --unsafe-updates flag must be set
+   when starting the shell.
+
+  Prevent dropping a non-empty database (RESTRICT)
+
+   When a database is not empty, the RESTRICT option prevents the database
+   from being dropped:
+
+   copy
+
+ > SHOW TABLES FROM db2;
+
+ +------------+
+ | table_name |
+ +------------+
+ | t1         |
+ | v1         |
+ +------------+
+ (2 rows)
+
+   copy
+
+ > DROP DATABASE db2 RESTRICT;
+
+ pq: database "db2" is not empty and CASCADE was not specified
+
+See also
+
+     * CREATE DATABASE
+     * SHOW DATABASES
+     * RENAME DATABASE
+     * SET DATABASE
+     * SHOW JOBS
+     * Other SQL Statements
+     * Online Schema Changes
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

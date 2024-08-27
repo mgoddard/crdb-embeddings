@@ -1,0 +1,787 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                 Deploy CockroachDB on Digital Ocean (Insecure)
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+   Secure Insecure
+
+   This page shows you how to deploy an insecure multi-node CockroachDB
+   cluster on Digital Ocean, using Digital Ocean's managed load balancing
+   service to distribute client traffic.
+
+   Warning:
+   If you plan to use CockroachDB in production, we strongly recommend using
+   a secure cluster instead. Select Secure above for instructions.
+
+Before you begin
+
+  Requirements
+
+     * You must have SSH access to each machine. This is necessary for
+       distributing and starting CockroachDB binaries.
+
+     * Your network configuration must allow TCP communication on the
+       following ports:
+
+          * 26257 for intra-cluster and client-cluster communication
+          * 8080 to expose your Admin UI
+     * Carefully review the Production Checklist and recommended Topology
+       Patterns.
+
+     * Run each node on a separate machine. Since CockroachDB replicates
+       across nodes, running more than one node per machine increases the
+       risk of data loss if a machine fails. Likewise, if a machine has
+       multiple disks or SSDs, run one node with multiple --store flags and
+       not one node per disk. For more details about stores, see Start a
+       Node.
+
+     * When starting each node, use the --locality flag to describe the
+       node's location, for example, --locality=region=west,zone=us-west-1.
+       The key-value pairs should be ordered from most to least inclusive,
+       and the keys and order of key-value pairs must be the same on all
+       nodes.
+
+     * When deploying in a single availability zone:
+
+          * To be able to tolerate the failure of any 1 node, use at least 3
+            nodes with the default 3-way replication factor. In this case, if
+            1 node fails, each range retains 2 of its 3 replicas, a majority.
+          * To be able to tolerate 2 simultaneous node failures, use at least
+            5 nodes and increase the default replication factor for user data
+            to 5. The replication factor for important internal data is 5 by
+            default, so no adjustments are needed for internal data. In this
+            case, if 2 nodes fail at the same time, each range retains 3 of
+            its 5 replicas, a majority.
+     * When deploying across multiple availability zones:
+
+          * To be able to tolerate the failure of 1 entire AZ in a region,
+            use at least 3 AZs per region and set --locality on each node to
+            spread data evenly across regions and AZs. In this case, if 1 AZ
+            goes offline, the 2 remaining AZs retain a majority of replicas.
+          * To be able to tolerate the failure of 1 entire region, use at
+            least 3 regions.
+
+  Recommendations
+
+     * Consider using a secure cluster instead. Using an insecure cluster
+       comes with risks:
+
+          * Your cluster is open to any client that can access any node's IP
+            addresses.
+          * Any user, even root, can log in without providing a password.
+          * Any user, connecting as root, can read or write any data in your
+            cluster.
+          * There is no network encryption or authentication, and thus no
+            confidentiality.
+     * Decide how you want to access your Admin UI:
+
+       Access Level      Description                                          
+       Partially open    Set a firewall rule to allow only specific IP        
+                         addresses to communicate on port 8080.               
+       Completely open   Set a firewall rule to allow all IP addresses to     
+                         communicate on port 8080.                            
+                         Set a firewall rule to disallow all communication on 
+       Completely closed port 8080. In this case, a machine with SSH access   
+                         to a node could use an SSH tunnel to access the      
+                         Admin UI.                                            
+
+     * If all of your CockroachDB nodes and clients will run on Droplets in a
+       single region, consider using private networking.
+
+Step 1. Create Droplets
+
+   Create Droplets for each node you plan to have in your cluster. If you
+   plan to run a sample workload against the cluster, create a separate
+   droplet for that workload.
+
+     * Run at least 3 nodes to ensure survivability.
+
+     * Use any droplets except standard droplets with only 1 GB of RAM, which
+       is below our minimum requirement. All Digital Ocean droplets use SSD
+       storage.
+
+   For more details, see Hardware Recommendations and Cluster Topology.
+
+Step 2. Synchronize clocks
+
+   CockroachDB requires moderate levels of clock synchronization to preserve
+   data consistency. For this reason, when a node detects that its clock is
+   out of sync with at least half of the other nodes in the cluster by 80% of
+   the maximum offset allowed (500ms by default), it spontaneously shuts
+   down. This avoids the risk of consistency anomalies, but it's best to
+   prevent clocks from drifting too far in the first place by running clock
+   synchronization software on each node.
+
+   ntpd should keep offsets in the single-digit milliseconds, so that
+   software is featured here, but other methods of clock synchronization are
+   suitable as well.
+
+    1. SSH to the first machine.
+
+    2. Disable timesyncd, which tends to be active by default on some Linux
+       distributions:
+
+       copy
+
+ $ sudo timedatectl set-ntp no
+
+       Verify that timesyncd is off:
+
+       copy
+
+ $ timedatectl
+
+       Look for Network time on: no or NTP enabled: no in the output.
+
+    3. Install the ntp package:
+
+       copy
+
+ $ sudo apt-get install ntp
+
+    4. Stop the NTP daemon:
+
+       copy
+
+ $ sudo service ntp stop
+
+    5. Sync the machine's clock with Google's NTP service:
+
+       copy
+
+ $ sudo ntpd -b time.google.com
+
+       To make this change permanent, in the /etc/ntp.conf file, remove or
+       comment out any lines starting with server or pool and add the
+       following lines:
+
+       copy
+
+ server time1.google.com iburst
+ server time2.google.com iburst
+ server time3.google.com iburst
+ server time4.google.com iburst
+
+       Restart the NTP daemon:
+
+       copy
+
+ $ sudo service ntp start
+
+       Note:
+
+       We recommend Google's NTP service because it handles "smearing" the
+       leap second. If you use a different NTP service that doesn't smear the
+       leap second, be sure to configure client-side smearing in the same way
+       on each machine. See the Production Checklist for details.
+
+    6. Verify that the machine is using a Google NTP server:
+
+       copy
+
+ $ sudo ntpq -p
+
+       The active NTP server will be marked with an asterisk.
+
+    7. Repeat these steps for each machine where a CockroachDB node will run.
+
+Step 3. Set up load balancing
+
+   Each CockroachDB node is an equally suitable SQL gateway to your cluster,
+   but to ensure client performance and reliability, it's important to use
+   load balancing:
+
+     * Performance: Load balancers spread client traffic across nodes. This
+       prevents any one node from being overwhelmed by requests and improves
+       overall cluster performance (queries per second).
+
+     * Reliability: Load balancers decouple client health from the health of
+       a single CockroachDB node. In cases where a node fails, the load
+       balancer redirects client traffic to available nodes.
+
+   Digital Ocean offers fully-managed load balancers to distribute traffic
+   between Droplets.
+
+    1. Create a Digital Ocean Load Balancer. Be sure to:
+          * Set forwarding rules to route TCP traffic from the load
+            balancer's port 26257 to port 26257 on the node Droplets.
+          * Configure health checks to use HTTP port 8080 and path
+            /health?ready=1. This health endpoint ensures that load balancers
+            do not direct traffic to nodes that are live but not ready to
+            receive requests.
+    2. Note the provisioned IP Address for the load balancer. You'll use this
+       later to test load balancing and to connect your application to the
+       cluster.
+   Note:
+   If you would prefer to use HAProxy instead of Digital Ocean's managed load
+   balancing, see the On-Premises tutorial for guidance.
+
+Step 4. Configure your network
+
+   Set up a firewall for each of your Droplets, allowing TCP communication on
+   the following two ports:
+
+     * 26257 (tcp:26257) for inter-node communication (i.e., working as a
+       cluster), for applications to connect to the load balancer, and for
+       routing from the load balancer to nodes
+     * 8080 (tcp:8080) for exposing your Admin UI
+
+   For guidance, you can use Digital Ocean's guide to configuring firewalls
+   based on the Droplet's OS:
+
+     * Ubuntu and Debian can use ufw.
+     * FreeBSD can use ipfw.
+     * Fedora can use iptables.
+     * CoreOS can use iptables.
+     * CentOS can use firewalld.
+
+Step 5. Start nodes
+
+   You can start the nodes manually or automate the process using systemd.
+
+   Manual systemd
+
+   For each initial node of your cluster, complete the following steps:
+
+   Note:
+
+   After completing these steps, nodes will not yet be live. They will
+   complete the startup process and join together to form a cluster as soon
+   as the cluster is initialized in the next step.
+
+    1. SSH to the machine where you want the node to run.
+
+    2. Download the CockroachDB archive for Linux, and extract the binary:
+
+       copy
+
+ $ wget -qO- https://binaries.cockroachdb.com/cockroach-v20.2.0-alpha.2.linux-amd64.tgz \
+ | tar  xvz
+
+    3. Copy the binary into the PATH:
+
+       copy
+
+ $ cp -i cockroach-v20.2.0-alpha.2.linux-amd64/cockroach /usr/local/bin/
+
+       If you get a permissions error, prefix the command with sudo.
+
+    4. Run the cockroach start command:
+
+       copy
+
+ $ cockroach start \
+ --insecure \
+ --advertise-addr=<node1 address> \
+ --join=<node1 address>,<node2 address>,<node3 address> \
+ --cache=.25 \
+ --max-sql-memory=.25 \
+ --background
+
+       This command primes the node to start, using the following flags:
+
+       Flag             Description                                           
+       --insecure       Indicates that the cluster is insecure, with no       
+                        network encryption or authentication.                 
+                        Specifies the IP address/hostname and port to tell    
+                        other nodes to use. The port number can be omitted,   
+                        in which case it defaults to 26257.                   
+                                                                              
+                        This value must route to an IP address the node is    
+       --advertise-addr listening on (with --listen-addr unspecified, the     
+                        node listens on all IP addresses).                    
+                                                                              
+                        In some networking scenarios, you may need to use     
+                        --advertise-addr and/or --listen-addr differently.    
+                        For more details, see Networking.                     
+                        Identifies the address of 3-5 of the initial nodes of 
+       --join           the cluster. These addresses should match the         
+                        addresses that the target nodes are advertising.      
+                        Increases the node's cache size to 25% of available   
+                        system memory to improve read performance. The        
+                        capacity for in-memory SQL processing defaults to 25% 
+                        of system memory but can be raised, if necessary, to  
+       --cache          increase the number of simultaneous client            
+       --max-sql-memory connections allowed by the node as well as the node's 
+                        capacity for in-memory processing of rows when using  
+                        ORDER BY, GROUP BY, DISTINCT, joins, and window       
+                        functions. For more details, see Cache and SQL Memory 
+                        Size.                                                 
+       --background     Starts the node in the background so you gain control 
+                        of the terminal to issue more commands.               
+
+       When deploying across multiple datacenters, or when there is otherwise
+       high latency between nodes, it is recommended to set --locality as
+       well. It is also required to use certain enterprise features. For more
+       details, see Locality.
+
+       For other flags not explicitly set, the command uses default values.
+       For example, the node stores data in --store=cockroach-data and binds
+       Admin UI HTTP requests to --http-addr=localhost:8080. To set these
+       options manually, see Start a Node.
+
+    5. Repeat these steps for each additional node that you want in your
+       cluster.
+
+   For each initial node of your cluster, complete the following steps:
+
+   Note:
+   After completing these steps, nodes will not yet be live. They will
+   complete the startup process and join together to form a cluster as soon
+   as the cluster is initialized in the next step.
+    1. SSH to the machine where you want the node to run. Ensure you are
+       logged in as the root user.
+
+    2. Download the CockroachDB archive for Linux, and extract the binary:
+
+       copy
+
+ $ wget -qO- https://binaries.cockroachdb.com/cockroach-v20.2.0-alpha.2.linux-amd64.tgz \
+ | tar  xvz
+
+    3. Copy the binary into the PATH:
+
+       copy
+
+ $ cp -i cockroach-v20.2.0-alpha.2.linux-amd64/cockroach /usr/local/bin/
+
+       If you get a permissions error, prefix the command with sudo.
+
+    4. Create the Cockroach directory:
+
+       copy
+
+ $ mkdir /var/lib/cockroach
+
+    5. Create a Unix user named cockroach:
+
+       copy
+
+ $ useradd cockroach
+
+    6. Change the ownership of Cockroach directory to the user cockroach:
+
+       copy
+
+ $ chown cockroach /var/lib/cockroach
+
+    7. Download the sample configuration template and save the file in the
+       /etc/systemd/system/ directory:
+
+       copy
+
+ $ wget -qO- https://raw.githubusercontent.com/cockroachdb/docs/master/_includes/v20.2/prod-deployment/insecurecockroachdb.service
+
+       Alternatively, you can create the file yourself and copy the script
+       into it:
+
+       copy
+
+ [Unit]
+ Description=Cockroach Database cluster node
+ Requires=network.target
+ [Service]
+ Type=notify
+ WorkingDirectory=/var/lib/cockroach
+ ExecStart=/usr/local/bin/cockroach start --insecure --advertise-addr=<node1 address> --join=<node1 address>,<node2 address>,<node3 address> --cache=.25 --max-sql-memory=.25
+ TimeoutStopSec=60
+ Restart=always
+ RestartSec=10
+ StandardOutput=syslog
+ StandardError=syslog
+ SyslogIdentifier=cockroach
+ User=cockroach
+ [Install]
+ WantedBy=default.target
+
+
+    8. In the sample configuration template, specify values for the following
+       flags:
+
+       Flag             Description                                           
+                        Specifies the IP address/hostname and port to tell    
+                        other nodes to use. The port number can be omitted,   
+                        in which case it defaults to 26257.                   
+                                                                              
+                        This value must route to an IP address the node is    
+       --advertise-addr listening on (with --listen-addr unspecified, the     
+                        node listens on all IP addresses).                    
+                                                                              
+                        In some networking scenarios, you may need to use     
+                        --advertise-addr and/or --listen-addr differently.    
+                        For more details, see Networking.                     
+                        Identifies the address of 3-5 of the initial nodes of 
+       --join           the cluster. These addresses should match the         
+                        addresses that the target nodes are advertising.      
+
+       When deploying across multiple datacenters, or when there is otherwise
+       high latency between nodes, it is recommended to set --locality as
+       well. It is also required to use certain enterprise features. For more
+       details, see Locality.
+
+       For other flags not explicitly set, the command uses default values.
+       For example, the node stores data in --store=cockroach-data and binds
+       Admin UI HTTP requests to --http-port=8080. To set these options
+       manually, see Start a Node.
+
+    9. Start the CockroachDB cluster:
+
+       copy
+
+ $ systemctl start insecurecockroachdb
+
+   10. Repeat these steps for each additional node that you want in your
+       cluster.
+
+   Note:
+
+   systemd handles node restarts in case of node failure. To stop a node
+   without systemd restarting it, run systemctl stop insecurecockroachdb
+
+Step 6. Initialize the cluster
+
+   On your local machine, complete the node startup process and have them
+   join together as a cluster:
+
+    1. Install CockroachDB on your local machine, if you haven't already.
+
+    2. Run the cockroach init command, with the --host flag set to the
+       address of any node:
+
+       copy
+
+ $ cockroach init --insecure --host=<address of any node>
+
+       Each node then prints helpful details to the standard output, such as
+       the CockroachDB version, the URL for the admin UI, and the SQL URL for
+       clients.
+
+Step 7. Test the cluster
+
+   CockroachDB replicates and distributes data behind-the-scenes and uses a
+   Gossip protocol to enable each node to locate data across the cluster.
+   Once a cluster is live, any node can be used as a SQL gateway.
+
+   When using a load balancer, you should issue commands directly to the load
+   balancer, which then routes traffic to the nodes.
+
+   Use the built-in SQL client locally as follows:
+
+    1. On your local machine, launch the built-in SQL client, with the --host
+       flag set to the address of the load balancer:
+
+       copy
+
+ $ cockroach sql --insecure --host=<address of load balancer>
+
+    2. Create an insecurenodetest database:
+
+       copy
+
+ > CREATE DATABASE insecurenodetest;
+
+    3. View the cluster's databases, which will include insecurenodetest:
+
+       copy
+
+ > SHOW DATABASES;
+
+ +--------------------+
+ |      Database      |
+ +--------------------+
+ | crdb_internal      |
+ | information_schema |
+ | insecurenodetest   |
+ | pg_catalog         |
+ | system             |
+ +--------------------+
+ (5 rows)
+
+    4. Use \q to exit the SQL shell.
+
+Step 8. Run a sample workload
+
+   CockroachDB offers a pre-built workload binary for Linux that includes
+   several load generators for simulating client traffic against your
+   cluster. This step features CockroachDB's version of the TPC-C workload.
+
+   Tip:
+   For comprehensive guidance on benchmarking CockroachDB with TPC-C, see our
+   Performance Benchmarking white paper.
+    1. SSH to the machine where you want the run the sample TPC-C workload.
+
+       This should be a machine that is not running a CockroachDB node.
+
+    2. Download workload and make it executable:
+
+       copy
+
+ $ wget https://edge-binaries.cockroachdb.com/cockroach/workload.LATEST ; chmod 755 workload.LATEST
+
+    3. Rename and copy workload into the PATH:
+
+       copy
+
+ $ cp -i workload.LATEST /usr/local/bin/workload
+
+    4. Start the TPC-C workload, pointing it at the IP address of the load
+       balancer:
+
+       copy
+
+ $ workload run tpcc \
+ --drop \
+ --init \
+ --duration=20m \
+ --tolerate-errors \
+ "postgresql://root@<IP ADDRESS OF LOAD BALANCER>:26257/tpcc?sslmode=disable"
+
+       This command runs the TPC-C workload against the cluster for 20
+       minutes, loading 1 "warehouse" of data initially and then issuing
+       about 12 queries per minute via 10 "worker" threads. These workers
+       share SQL connections since individual workers are idle for long
+       periods of time between queries.
+
+       Tip:
+       For more tpcc options, use workload run tpcc --help. For details about
+       other load generators included in workload, use workload run --help.
+
+    5. To monitor the load generator's progress, open the Admin UI by
+       pointing a browser to the address in the admin field in the standard
+       output of any node on startup.
+
+       Since the load generator is pointed at the load balancer, the
+       connections will be evenly distributed across nodes. To verify this,
+       click Metrics on the left, select the SQL dashboard, and then check
+       the SQL Connections graph. You can use the Graph menu to filter the
+       graph for specific nodes.
+
+Step 9. Monitor the cluster
+
+   Despite CockroachDB's various built-in safeguards against failure, it is
+   critical to actively monitor the overall health and performance of a
+   cluster running in production and to create alerting rules that promptly
+   send notifications when there are events that require investigation or
+   intervention.
+
+   For details about available monitoring options and the most important
+   events and metrics to alert on, see Monitoring and Alerting.
+
+Step 10. Scale the cluster
+
+   You can start the nodes manually or automate the process using systemd.
+
+   Manual systemd
+
+   For each additional node you want to add to the cluster, complete the
+   following steps:
+
+    1. SSH to the machine where you want the node to run.
+
+    2. Download the CockroachDB archive for Linux, and extract the binary:
+
+       copy
+
+ $ wget -qO- https://binaries.cockroachdb.com/cockroach-v20.2.0-alpha.2.linux-amd64.tgz \
+ | tar  xvz
+
+    3. Copy the binary into the PATH:
+
+       copy
+
+ $ cp -i cockroach-v20.2.0-alpha.2.linux-amd64/cockroach /usr/local/bin/
+
+       If you get a permissions error, prefix the command with sudo.
+
+    4. Run the cockroach start command, passing the new node's address as the
+       --advertise-addr flag and pointing --join to the three existing nodes
+       (also include --locality if you set it earlier).
+
+       copy
+
+ $ cockroach start \
+ --insecure \
+ --advertise-addr=<node4 address> \
+ --join=<node1 address>,<node2 address>,<node3 address> \
+ --cache=.25 \
+ --max-sql-memory=.25 \
+ --background
+
+    5. Update your load balancer to recognize the new node.
+
+   For each additional node you want to add to the cluster, complete the
+   following steps:
+
+    1. SSH to the machine where you want the node to run. Ensure you are
+       logged in as the root user.
+
+    2. Download the CockroachDB archive for Linux, and extract the binary:
+
+       copy
+
+ $ wget -qO- https://binaries.cockroachdb.com/cockroach-v20.2.0-alpha.2.linux-amd64.tgz \
+ | tar  xvz
+
+    3. Copy the binary into the PATH:
+
+       copy
+
+ $ cp -i cockroach-v20.2.0-alpha.2.linux-amd64/cockroach /usr/local/bin/
+
+       If you get a permissions error, prefix the command with sudo.
+
+    4. Create the Cockroach directory:
+
+       copy
+
+ $ mkdir /var/lib/cockroach
+
+    5. Create a Unix user named cockroach:
+
+       copy
+
+ $ useradd cockroach
+
+    6. Change the ownership of Cockroach directory to the user cockroach:
+
+       copy
+
+ $ chown cockroach /var/lib/cockroach
+
+    7. Download the sample configuration template:
+
+       copy
+
+ $ wget -qO- https://raw.githubusercontent.com/cockroachdb/docs/master/_includes/v20.2/prod-deployment/insecurecockroachdb.service
+
+       Alternatively, you can create the file yourself and copy the script
+       into it:
+
+       copy
+
+ [Unit]
+ Description=Cockroach Database cluster node
+ Requires=network.target
+ [Service]
+ Type=notify
+ WorkingDirectory=/var/lib/cockroach
+ ExecStart=/usr/local/bin/cockroach start --insecure --advertise-addr=<node1 address> --join=<node1 address>,<node2 address>,<node3 address> --cache=.25 --max-sql-memory=.25
+ TimeoutStopSec=60
+ Restart=always
+ RestartSec=10
+ StandardOutput=syslog
+ StandardError=syslog
+ SyslogIdentifier=cockroach
+ User=cockroach
+ [Install]
+ WantedBy=default.target
+
+
+       Save the file in the /etc/systemd/system/ directory
+
+    8. Customize the sample configuration template for your deployment:
+
+       Specify values for the following flags in the sample configuration
+       template:
+
+       Flag             Description                                           
+                        Specifies the IP address/hostname and port to tell    
+                        other nodes to use. The port number can be omitted,   
+                        in which case it defaults to 26257.                   
+                                                                              
+                        This value must route to an IP address the node is    
+       --advertise-addr listening on (with --listen-addr unspecified, the     
+                        node listens on all IP addresses).                    
+                                                                              
+                        In some networking scenarios, you may need to use     
+                        --advertise-addr and/or --listen-addr differently.    
+                        For more details, see Networking.                     
+                        Identifies the address of 3-5 of the initial nodes of 
+       --join           the cluster. These addresses should match the         
+                        addresses that the target nodes are advertising.      
+
+    9. Repeat these steps for each additional node that you want in your
+       cluster.
+
+Step 11. Use the cluster
+
+   Now that your deployment is working, you can:
+
+    1. Implement your data model.
+    2. Create users and grant them privileges.
+    3. Connect your application. Be sure to connect your application to the
+       Digital Ocean Load Balancer, not to a CockroachDB node.
+
+See also
+
+     * Production Checklist
+     * Manual Deployment
+     * Orchestrated Deployment
+     * Monitoring and Alerting
+     * Performance Benchmarking
+     * Performance Tuning
+     * Test Deployment
+     * Local Deployment
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

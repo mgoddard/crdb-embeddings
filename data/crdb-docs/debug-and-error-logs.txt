@@ -1,0 +1,268 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                         Understand Debug & Error Logs
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   If you need to troubleshoot issues with your cluster, you can check a
+   node's logs, which include details about certain node-level and
+   range-level events, such as errors. For example, if CockroachDB crashes,
+   it normally logs a stack trace to what caused the problem.
+
+   Tip:
+
+   CockroachDB also generates secondary logs for queries being executed
+   against your system. See SQL logging for details on obtaining these logs.
+
+Details
+
+   When a node processes a cockroach command, it produces a stream of
+   messages about the command's activities. Each message's body describes the
+   activity, and its envelope contains metadata such as the message's
+   severity level.
+
+   As a command generates messages, CockroachDB uses the command's logging
+   flags and the message's severity level to determine the appropriate
+   location for it.
+
+   Each node's logs detail only the internal activity of that node without
+   visibility into the behavior of other nodes in the cluster. When
+   troubleshooting, this means that you must identify the node where the
+   problem occurred or collect the logs from all active nodes in your
+   cluster.
+
+  Commands
+
+   All cockroach commands support logging. However, it's important to note:
+
+     * cockroach start generates most messages related to the operation of
+       your cluster.
+     * Other commands do generate messages, but they're typically only
+       interesting in troubleshooting scenarios.
+
+  Severity levels
+
+   CockroachDB identifies each message with a severity level, letting
+   operators know if they need to intercede:
+
+    1. INFO (lowest severity; no action necessary)
+    2. WARNING
+    3. ERROR
+    4. FATAL (highest severity; requires operator attention)
+
+   Default behavior by severity level
+
+   Command            INFO messages WARNING and above messages 
+   cockroach start    Write to file Write to file              
+   All other commands Discard       Print to stderr            
+
+  Output locations
+
+   Based on the command's flags and the message's severity level, CockroachDB
+   does one of the following:
+
+     * Writes the message to a file
+     * Prints it to stderr
+     * Discards the message entirely
+
+    Write to file
+
+   CockroachDB can write messages to log files. The files are named using the
+   following format:
+
+ cockroach.[host].[user].[start timestamp in UTC].[process ID].log
+
+   For example:
+
+ cockroach.richards-mbp.rloveland.2018-03-15T15_24_10Z.024338.log
+
+   To make it easier to watch a log without knowing the full filename, a
+   symlink with the short filename cockroach.log is also created. This
+   symlink points to the most recent log.
+
+   Note:
+
+   All log file timestamps are in UTC because CockroachDB is designed to be
+   deployed in a distributed cluster. Nodes may be located in different time
+   zones, and using UTC makes it easy to correlate log messages from those
+   nodes no matter where they are located.
+
+   Property     cockroach start                All other commands             
+   Enabled by   Default^1                      Explicit --log-dir flag        
+   Default File [firststoredir]/logs           N/A                            
+   Destination  
+   Change File  --log-dir=[destination]        --log-dir=[destination]        
+   Destination  
+   Default                                                                    
+   Severity     INFO                           N/A
+   Level        
+   Threshold    
+   Change       --log-file-verbosity=[severity --log-file-verbosity=[severity 
+   Severity     level]                         level]                         
+   Threshold    
+   Disabled by  --log-dir=""^1                 Default                        
+
+   Note:
+
+   ^1 If the cockroach process does not have access to on-disk storage,
+   cockroach start does not write messages to log files; instead it prints
+   all messages to stderr.
+
+   Tip:
+
+   Log files can be accessed using the Admin UI, which displays them in JSON
+   format.
+
+    1. Access the Admin UI and then click Advanced Debug in the left-hand
+       navigation.
+
+    2. Under Raw Status Endpoints (JSON), click Log Files to view the JSON of
+       all collected logs.
+
+    3. Copy one of the log filenames. Then click Specific Log File and
+       replace the cockroach.log placeholder in the URL with the filename.
+
+    Print to stderr
+
+   CockroachDB can print messages to stderr, which normally prints them to
+   the machine's terminal but does not store them.
+
+   Property             cockroach start               All other commands      
+   Enabled by           Explicit --logtostderr flag^2 Default                 
+   Default Severity     N/A                           WARNING                 
+   Level Threshold      
+   Change Severity      --logtostderr=[severity       --logtostderr=[severity 
+   Threshold            level]                        level]                  
+   Disabled by          Default^2                     --logtostderr=NONE      
+
+   Note:
+   ^2 cockroach start does not print any messages to stderr unless the
+   cockroach process does not have access to on-disk storage, in which case
+   it defaults to --logtostderr=INFO and prints all messages to stderr.
+
+    Discard message
+
+   Messages with severity levels below the --logtostderr and
+   --log-file-verbosity flag's values are neither written to files nor
+   printed to stderr, so they are discarded.
+
+   By default, commands besides cockroach start discard messages with the
+   INFO severity level.
+
+Flags
+
+   These logging flags are used with cockroach commands.
+
+   Flag                 Description                                           
+                        Enable logging to files and write logs to the         
+                        specified directory.                                  
+   --log-dir                                                                  
+                        Setting --log-dir to a blank directory (--log-dir="") 
+                        disables logging to files.                            
+                        After the log directory reaches the specified size,   
+                        delete the oldest log file. The flag's argument takes 
+   --log-dir-max-size   standard file sizes, such as --log-dir-max-size=1GiB. 
+                                                                              
+                        Default: 100MiB                                       
+                        After logs reach the specified size, begin writing    
+                        logs to a new file. The flag's argument takes         
+   --log-file-max-size  standard file sizes, such as                          
+                        --log-file-max-size=2MiB.                             
+                                                                              
+                        Default: 10MiB                                        
+                        Only writes messages to log files if they are at or   
+                        above the specified severity level, such as           
+   --log-file-verbosity --log-file-verbosity=WARNING. Requires logging to     
+                        files.                                                
+                                                                              
+                        Default: INFO                                         
+                        Enable logging to stderr for messages at or above the 
+                        specified severity level, such as --logtostderr=ERROR 
+                                                                              
+                        If you use this flag without specifying the severity  
+   --logtostderr        level (e.g., cockroach start --logtostderr), it       
+                        prints messages of all severities to stderr.          
+                                                                              
+                        Setting --logtostderr=NONE disables logging to        
+                        stderr.                                               
+                        Do not colorize stderr. Possible values: true or      
+                        false.                                                
+                                                                              
+   --no-color           When set to false, messages logged to stderr are      
+                        colorized based on severity level.                    
+                                                                              
+                        Default: false                                        
+                        New in v2.0: If non-empty, create a SQL audit log in  
+                        this directory. By default, SQL audit logs are        
+   --sql-audit-dir      written in the same directory as the other logs       
+                        generated by CockroachDB. For more information, see   
+                        SQL Audit Logging.                                    
+
+See also
+
+     * SQL logging
+     * Troubleshooting Overview
+     * Support Resources
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

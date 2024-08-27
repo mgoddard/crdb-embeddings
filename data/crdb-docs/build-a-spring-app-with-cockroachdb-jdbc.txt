@@ -1,0 +1,1636 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                  Build a Spring App with CockroachDB and JDBC
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+   Use JDBC Use JPA
+
+   This tutorial shows you how to build a Spring Boot web application with
+   CockroachDB, using the Spring Data JDBC module for data access. The code
+   for the example application is available for download from GitHub, along
+   with identical examples that use JPA, jOOQ, and MyBatis for data access.
+
+Before you begin
+
+    1. Install CockroachDB.
+    2. Start up a secure or insecure local cluster.
+    3. Choose the instructions that correspond to whether your cluster is
+       secure or insecure:
+   Secure Insecure
+
+Step 1. Install JDK
+
+   Download and install a Java Development Kit. Spring Boot supports Java
+   versions 8, 11, and 14. In this tutorial, we use JDK 8 from OpenJDK.
+
+Step 2. Install Maven
+
+   This example application uses Maven to manage all application
+   dependencies. Spring supports Maven versions 3.2 and later.
+
+   To install Maven on macOS, run the following command:
+
+   copy
+
+ $ brew install maven
+
+   To install Maven on a Debian-based Linux distribution like Ubuntu:
+
+   copy
+
+ $ apt-get install maven
+
+   To install Maven on a Red Hat-based Linux distribution like Fedora:
+
+   copy
+
+ $ dnf install maven
+
+   For other ways to install Maven, see its official documentation.
+
+Step 3. Get the application code
+
+   To get the application code, download or clone the roach-data repository.
+   The code for the example JDBC application is located under the
+   roach-data-jdbc directory.
+
+   (Optional) To recreate the application project structure with the same
+   dependencies as those used by this sample application, you can use Spring
+   initializr with the following settings:
+
+   Project
+
+     * Maven Project
+
+   Language
+
+     * Java
+
+   Spring Boot
+
+     * 2.2.6
+
+   Project Metadata
+
+     * Group: io.roach
+     * Artifact: data
+     * Name: data
+     * Package name: io.roach.data
+     * Packaging: Jar
+     * Java: 8
+
+   Dependencies
+
+     * Spring Web
+     * Spring Data JDBC
+     * Spring Boot Actuator
+     * Spring HATEOS
+     * Liquibase Migration
+     * PostgreSQL Driver
+
+Step 4. Create the maxroach user and roach_data database
+
+   Start the built-in SQL shell:
+
+   copy
+
+ $ cockroach sql --certs-dir=certs
+
+   In the SQL shell, issue the following statements to create the maxroach
+   user and roach_data database:
+
+   copy
+
+ > CREATE USER IF NOT EXISTS maxroach;
+
+   copy
+
+ > CREATE DATABASE roach_data;
+
+   Give the roach_data user the necessary permissions:
+
+   copy
+
+ > GRANT ALL ON DATABASE roach_data TO maxroach;
+
+   Exit the SQL shell:
+
+   copy
+
+ > \q
+
+Step 5. Generate a certificate for the maxroach user
+
+   Create a certificate and key for the maxroach user by running the
+   following command. The code samples will run as this user.
+
+   copy
+
+ $ cockroach cert create-client maxroach --certs-dir=certs --ca-key=my-safe-directory/ca.key --also-generate-pkcs8-key
+
+   The --also-generate-pkcs8-key flag generates a key in PKCS#8 format, which
+   is the standard key encoding format in Java. In this case, the generated
+   PKCS8 key will be named client.maxroach.key.pk8.
+
+Step 6. Run the application
+
+   Compiling and running the application code will start a web application,
+   initialize the accounts table in the roach_data database, and submit some
+   requests to the app's REST API that result in atomic database transactions
+   on the running CockroachDB cluster. For details about the application
+   code, see Implementation details.
+
+   To run the application:
+
+    1. Open the roach-data/roach-data-jdbc project folder in a text editor or
+       IDE, and edit the
+       roach-data/roach-data-jdbc/src/main/resources/application.yml file so
+       that:
+
+          * The url field specifies the full connection string to the running
+            CockroachDB cluster. To connect to a secure cluster, this
+            connection string must set the sslmode connection parameter to
+            require, and specify the full path to the client, node, and use
+            certificates in the connection parameters. For example:
+
+ ...
+ datasource:
+   url: jdbc:postgresql://localhost:26257/roach_data?ssl=true&sslmode=require&sslrootcert=certs/ca.crt&sslkey=certs/client.maxroach.key.pk8&sslcert=certs/client.maxroach.crt
+ ...
+
+          * The username field specifies maxroach as the user:
+
+ ...
+   username: maxroach
+ ...
+
+    2. Open a terminal, and navigate to the roach-data-jdbc project
+       subfolder:
+
+       copy
+
+ $ cd <path>/roach-data/roach-data-jdbc
+
+    3. Use Maven to download the application dependencies and compile the
+       code:
+
+       copy
+
+ $ mvn clean install
+
+    4. From the roach-data-jdbc directory, run the application JAR file:
+
+       copy
+
+ $ java -jar target/roach-data-jdbc.jar
+
+   Start the built-in SQL shell:
+
+   copy
+
+ $ cockroach sql --insecure
+
+   In the SQL shell, issue the following statements to create the maxroach
+   user and roach_data database:
+
+   copy
+
+ > CREATE USER IF NOT EXISTS maxroach;
+
+   copy
+
+ > CREATE DATABASE roach_data;
+
+   Give the roach_data user the necessary permissions:
+
+   copy
+
+ > GRANT ALL ON DATABASE roach_data TO maxroach;
+
+   Exit the SQL shell:
+
+   copy
+
+ > \q
+
+Step 6. Run the application
+
+   Compiling and running the application code will start a web application,
+   initialize the accounts table in the roach_data database, and submit some
+   requests to the app's REST API that result in database transactions on the
+   running CockroachDB cluster. For details about the application code, see
+   below.
+
+   To run the application:
+
+    1. Open the roach-data/roach-data-jdbc project folder in a text editor or
+       IDE, and edit the
+       roach-data/roach-data-jdbc/src/main/resources/application.yml file so
+       that:
+
+          * The url field specifies the correct connection string to the
+            running CockroachDB cluster. For example:
+
+ ...
+ datasource:
+   url: jdbc:postgresql://localhost:26257/roach_data?ssl=true&sslmode=disable
+ ...
+
+          * The username field specifies maxroach as the user:
+
+ ...
+   username: maxroach
+ ...
+
+    2. Open a terminal, and navigate to the roach-data-jdbc project
+       subfolder:
+
+       copy
+
+ $ cd <path>/roach-data/roach-data-jdbc
+
+    3. Use Maven to download the application dependencies and compile the
+       code:
+
+       copy
+
+ $ mvn clean install
+
+    4. From the roach-data-jdbc directory, run the application JAR file:
+
+       copy
+
+ $ java -jar target/roach-data-jdbc.jar
+
+   The output should look like the following:
+
+ ^__^
+ (oo)\_______
+ (__)\       )\/\   CockroachDB on Spring Data JDBC  (v1.0.0.BUILD-SNAPSHOT)
+    ||----w |       powered by Spring Boot  (v2.2.7.RELEASE)
+    ||     ||
+
+ 2020-06-17 14:56:54.507  INFO 43008 --- [           main] io.roach.data.jdbc.JdbcApplication       : Starting JdbcApplication v1.0.0.BUILD-SNAPSHOT on MyComputer with PID 43008 (path/roach-data/roach-data-jdbc/target/roach-data-jdbc.jar started by user in path/roach-data/roach-data-jdbc)
+ 2020-06-17 14:56:54.510  INFO 43008 --- [           main] io.roach.data.jdbc.JdbcApplication       : No active profile set, falling back to default profiles: default
+ 2020-06-17 14:56:55.387  INFO 43008 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JDBC repositories in DEFAULT mode.
+ 2020-06-17 14:56:55.452  INFO 43008 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 59ms. Found 2 JDBC repository interfaces.
+ 2020-06-17 14:56:56.581  INFO 43008 --- [           main] org.eclipse.jetty.util.log               : Logging initialized @3378ms to org.eclipse.jetty.util.log.Slf4jLog
+ 2020-06-17 14:56:56.657  INFO 43008 --- [           main] o.s.b.w.e.j.JettyServletWebServerFactory : Server initialized with port: 8080
+ 2020-06-17 14:56:56.661  INFO 43008 --- [           main] org.eclipse.jetty.server.Server          : jetty-9.4.28.v20200408; built: 2020-04-08T17:49:39.557Z; git: ab228fde9e55e9164c738d7fa121f8ac5acd51c9; jvm 11.0.7+10
+ 2020-06-17 14:56:56.696  INFO 43008 --- [           main] o.e.j.s.h.ContextHandler.application     : Initializing Spring embedded WebApplicationContext
+ 2020-06-17 14:56:56.696  INFO 43008 --- [           main] o.s.web.context.ContextLoader            : Root WebApplicationContext: initialization completed in 2088 ms
+ 2020-06-17 14:56:57.170  INFO 43008 --- [           main] org.eclipse.jetty.server.session         : DefaultSessionIdManager workerName=node0
+ 2020-06-17 14:56:57.171  INFO 43008 --- [           main] org.eclipse.jetty.server.session         : No SessionScavenger set, using defaults
+ 2020-06-17 14:56:57.172  INFO 43008 --- [           main] org.eclipse.jetty.server.session         : node0 Scavenging every 600000ms
+ 2020-06-17 14:56:57.178  INFO 43008 --- [           main] o.e.jetty.server.handler.ContextHandler  : Started o.s.b.w.e.j.JettyEmbeddedWebAppContext@deb3b60{application,/,[file:///private/var/folders/pg/r58v54857gq_1nqm_2tr6lg40000gn/T/jetty-docbase.3049902632643053896.8080/],AVAILABLE}
+ 2020-06-17 14:56:57.179  INFO 43008 --- [           main] org.eclipse.jetty.server.Server          : Started @3976ms
+ 2020-06-17 14:56:58.126  INFO 43008 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+ 2020-06-17 14:56:58.369  INFO 43008 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+ 2020-06-17 14:56:58.695  INFO 43008 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+ 2020-06-17 14:56:59.901  INFO 43008 --- [           main] liquibase.executor.jvm.JdbcExecutor      : SELECT COUNT(*) FROM public.databasechangeloglock
+ 2020-06-17 14:56:59.917  INFO 43008 --- [           main] liquibase.executor.jvm.JdbcExecutor      : CREATE TABLE public.databasechangeloglock (ID INTEGER NOT NULL, LOCKED BOOLEAN NOT NULL, LOCKGRANTED TIMESTAMP WITHOUT TIME ZONE, LOCKEDBY VARCHAR(255), CONSTRAINT DATABASECHANGELOGLOCK_PKEY PRIMARY KEY (ID))
+ 2020-06-17 14:56:59.930  INFO 43008 --- [           main] liquibase.executor.jvm.JdbcExecutor      : SELECT COUNT(*) FROM public.databasechangeloglock
+ 2020-06-17 14:56:59.950  INFO 43008 --- [           main] liquibase.executor.jvm.JdbcExecutor      : DELETE FROM public.databasechangeloglock
+ 2020-06-17 14:56:59.953  INFO 43008 --- [           main] liquibase.executor.jvm.JdbcExecutor      : INSERT INTO public.databasechangeloglock (ID, LOCKED) VALUES (1, FALSE)
+ 2020-06-17 14:56:59.959  INFO 43008 --- [           main] liquibase.executor.jvm.JdbcExecutor      : SELECT LOCKED FROM public.databasechangeloglock WHERE ID=1
+ 2020-06-17 14:56:59.969  INFO 43008 --- [           main] l.lockservice.StandardLockService        : Successfully acquired change log lock
+ 2020-06-17 14:57:01.367  INFO 43008 --- [           main] l.c.StandardChangeLogHistoryService      : Creating database history table with name: public.databasechangelog
+ 2020-06-17 14:57:01.369  INFO 43008 --- [           main] liquibase.executor.jvm.JdbcExecutor      : CREATE TABLE public.databasechangelog (ID VARCHAR(255) NOT NULL, AUTHOR VARCHAR(255) NOT NULL, FILENAME VARCHAR(255) NOT NULL, DATEEXECUTED TIMESTAMP WITHOUT TIME ZONE NOT NULL, ORDEREXECUTED INTEGER NOT NULL, EXECTYPE VARCHAR(10) NOT NULL, MD5SUM VARCHAR(35), DESCRIPTION VARCHAR(255), COMMENTS VARCHAR(255), TAG VARCHAR(255), LIQUIBASE VARCHAR(20), CONTEXTS VARCHAR(255), LABELS VARCHAR(255), DEPLOYMENT_ID VARCHAR(10))
+ 2020-06-17 14:57:01.380  INFO 43008 --- [           main] liquibase.executor.jvm.JdbcExecutor      : SELECT COUNT(*) FROM public.databasechangelog
+ 2020-06-17 14:57:01.396  INFO 43008 --- [           main] l.c.StandardChangeLogHistoryService      : Reading from public.databasechangelog
+ 2020-06-17 14:57:01.397  INFO 43008 --- [           main] liquibase.executor.jvm.JdbcExecutor      : SELECT * FROM public.databasechangelog ORDER BY DATEEXECUTED ASC, ORDEREXECUTED ASC
+ 2020-06-17 14:57:01.400  INFO 43008 --- [           main] liquibase.executor.jvm.JdbcExecutor      : SELECT COUNT(*) FROM public.databasechangeloglock
+ 2020-06-17 14:57:01.418  INFO 43008 --- [           main] liquibase.executor.jvm.JdbcExecutor      : -- DROP TABLE IF EXISTS account cascade;
+ -- DROP TABLE IF EXISTS databasechangelog cascade;
+ -- DROP TABLE IF EXISTS databasechangeloglock cascade;
+
+ create table account
+ (
+     id      int            not null primary key default unique_rowid(),
+     balance numeric(19, 2) not null,
+     name    varchar(128)   not null,
+     type    varchar(25)    not null
+ )
+ 2020-06-17 14:57:01.426  INFO 43008 --- [           main] liquibase.executor.jvm.JdbcExecutor      : -- insert into account (id,balance,name,type) values
+ --     (1, 500.00,'Alice','asset'),
+ --     (2, 500.00,'Bob','expense'),
+ --     (3, 500.00,'Bobby Tables','asset'),
+ --     (4, 500.00,'Doris','expense');
+ 2020-06-17 14:57:01.427  INFO 43008 --- [           main] liquibase.changelog.ChangeSet            : SQL in file db/create.sql executed
+ 2020-06-17 14:57:01.430  INFO 43008 --- [           main] liquibase.changelog.ChangeSet            : ChangeSet classpath:db/changelog-master.xml::1::root ran successfully in 14ms
+ 2020-06-17 14:57:01.430  INFO 43008 --- [           main] liquibase.executor.jvm.JdbcExecutor      : SELECT MAX(ORDEREXECUTED) FROM public.databasechangelog
+ 2020-06-17 14:57:01.441  INFO 43008 --- [           main] liquibase.executor.jvm.JdbcExecutor      : INSERT INTO public.databasechangelog (ID, AUTHOR, FILENAME, DATEEXECUTED, ORDEREXECUTED, MD5SUM, DESCRIPTION, COMMENTS, EXECTYPE, CONTEXTS, LABELS, LIQUIBASE, DEPLOYMENT_ID) VALUES ('1', 'root', 'classpath:db/changelog-master.xml', NOW(), 1, '8:939a1a8c47676119a94d0173802d207e', 'sqlFile', '', 'EXECUTED', 'crdb', NULL, '3.8.9', '2420221402')
+ 2020-06-17 14:57:01.450  INFO 43008 --- [           main] liquibase.executor.jvm.JdbcExecutor      : INSERT INTO public.account (id, name, balance, type) VALUES ('1', 'Alice', 500.00, 'asset')
+ 2020-06-17 14:57:01.459  INFO 43008 --- [           main] liquibase.changelog.ChangeSet            : New row inserted into account
+ 2020-06-17 14:57:01.460  INFO 43008 --- [           main] liquibase.executor.jvm.JdbcExecutor      : INSERT INTO public.account (id, name, balance, type) VALUES ('2', 'Bob', 500.00, 'expense')
+ 2020-06-17 14:57:01.462  INFO 43008 --- [           main] liquibase.changelog.ChangeSet            : New row inserted into account
+ 2020-06-17 14:57:01.462  INFO 43008 --- [           main] liquibase.executor.jvm.JdbcExecutor      : INSERT INTO public.account (id, name, balance, type) VALUES ('3', 'Bobby Tables', 500.00, 'asset')
+ 2020-06-17 14:57:01.464  INFO 43008 --- [           main] liquibase.changelog.ChangeSet            : New row inserted into account
+ 2020-06-17 14:57:01.465  INFO 43008 --- [           main] liquibase.executor.jvm.JdbcExecutor      : INSERT INTO public.account (id, name, balance, type) VALUES ('4', 'Doris', 500.00, 'expense')
+ 2020-06-17 14:57:01.467  INFO 43008 --- [           main] liquibase.changelog.ChangeSet            : New row inserted into account
+ 2020-06-17 14:57:01.469  INFO 43008 --- [           main] liquibase.changelog.ChangeSet            : ChangeSet classpath:db/changelog-master.xml::2::root ran successfully in 19ms
+ 2020-06-17 14:57:01.470  INFO 43008 --- [           main] liquibase.executor.jvm.JdbcExecutor      : INSERT INTO public.databasechangelog (ID, AUTHOR, FILENAME, DATEEXECUTED, ORDEREXECUTED, MD5SUM, DESCRIPTION, COMMENTS, EXECTYPE, CONTEXTS, LABELS, LIQUIBASE, DEPLOYMENT_ID) VALUES ('2', 'root', 'classpath:db/changelog-master.xml', NOW(), 2, '8:c2945f2a445cf60b4b203e1a91d14a89', 'insert tableName=account; insert tableName=account; insert tableName=account; insert tableName=account', '', 'EXECUTED', 'crdb', NULL, '3.8.9', '2420221402')
+ 2020-06-17 14:57:01.479  INFO 43008 --- [           main] l.lockservice.StandardLockService        : Successfully released change log lock
+ 2020-06-17 14:57:01.555  INFO 43008 --- [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 8 endpoint(s) beneath base path '/actuator'
+ 2020-06-17 14:57:01.610  INFO 43008 --- [           main] o.e.j.s.h.ContextHandler.application     : Initializing Spring DispatcherServlet 'dispatcherServlet'
+ 2020-06-17 14:57:01.610  INFO 43008 --- [           main] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+ 2020-06-17 14:57:01.620  INFO 43008 --- [           main] o.s.web.servlet.DispatcherServlet        : Completed initialization in 10 ms
+ 2020-06-17 14:57:01.653  INFO 43008 --- [           main] o.e.jetty.server.AbstractConnector       : Started ServerConnector@733c423e{HTTP/1.1, (http/1.1)}{0.0.0.0:8080}
+ 2020-06-17 14:57:01.654  INFO 43008 --- [           main] o.s.b.web.embedded.jetty.JettyWebServer  : Jetty started on port(s) 8080 (http/1.1) with context path '/'
+ 2020-06-17 14:57:01.657  INFO 43008 --- [           main] io.roach.data.jdbc.JdbcApplication       : Started JdbcApplication in 7.92 seconds (JVM running for 8.454)
+ 2020-06-17 14:57:01.659  INFO 43008 --- [           main] io.roach.data.jdbc.JdbcApplication       : Lets move some $$ around!
+ 2020-06-17 14:57:03.552  INFO 43008 --- [           main] io.roach.data.jdbc.JdbcApplication       : Worker finished - 7 remaining
+ 2020-06-17 14:57:03.606  INFO 43008 --- [           main] io.roach.data.jdbc.JdbcApplication       : Worker finished - 6 remaining
+ 2020-06-17 14:57:03.606  INFO 43008 --- [           main] io.roach.data.jdbc.JdbcApplication       : Worker finished - 5 remaining
+ 2020-06-17 14:57:03.607  INFO 43008 --- [           main] io.roach.data.jdbc.JdbcApplication       : Worker finished - 4 remaining
+ 2020-06-17 14:57:03.608  INFO 43008 --- [           main] io.roach.data.jdbc.JdbcApplication       : Worker finished - 3 remaining
+ 2020-06-17 14:57:03.608  INFO 43008 --- [           main] io.roach.data.jdbc.JdbcApplication       : Worker finished - 2 remaining
+ 2020-06-17 14:57:03.608  INFO 43008 --- [           main] io.roach.data.jdbc.JdbcApplication       : Worker finished - 1 remaining
+ 2020-06-17 14:57:03.608  INFO 43008 --- [           main] io.roach.data.jdbc.JdbcApplication       : Worker finished - 0 remaining
+ 2020-06-17 14:57:03.608  INFO 43008 --- [           main] io.roach.data.jdbc.JdbcApplication       : All client workers finished but server keeps running. Have a nice day!
+
+   As the output states, the application configures a database connection,
+   starts a web servlet listening on the address http://localhost:8080/,
+   initializes the account table and changelog tables with Liquibase, and
+   then runs some test operations as requests to the application's REST API.
+
+   For more details about the application code, see Implementation details.
+
+  Query the database
+
+    Reads
+
+   The http://localhost:8080/account endpoint returns information about all
+   accounts in the database. GET requests to these endpoints are executed on
+   the database as SELECT statements.
+
+   The following curl command sends a GET request to the endpoint. The
+   json_pp command formats the JSON response.
+
+   copy
+
+ $ curl -X GET http://localhost:8080/account | json_pp
+
+ {
+    "_embedded" : {
+       "accounts" : [
+          {
+             "_links" : {
+                "self" : {
+                   "href" : "http://localhost:8080/account/1"
+                }
+             },
+             "balance" : 500,
+             "name" : "Alice",
+             "type" : "asset"
+          },
+          {
+             "_links" : {
+                "self" : {
+                   "href" : "http://localhost:8080/account/2"
+                }
+             },
+             "balance" : 500,
+             "name" : "Bob",
+             "type" : "expense"
+          },
+          {
+             "_links" : {
+                "self" : {
+                   "href" : "http://localhost:8080/account/3"
+                }
+             },
+             "balance" : 500,
+             "name" : "Bobby Tables",
+             "type" : "asset"
+          },
+          {
+             "_links" : {
+                "self" : {
+                   "href" : "http://localhost:8080/account/4"
+                }
+             },
+             "balance" : 500,
+             "name" : "Doris",
+             "type" : "expense"
+          }
+       ]
+    },
+    "_links" : {
+       "self" : {
+          "href" : "http://localhost:8080/account?page=0&size=5"
+       }
+    },
+    "page" : {
+       "number" : 0,
+       "size" : 5,
+       "totalElements" : 4,
+       "totalPages" : 1
+    }
+ }
+
+   For a single account, specify the account number in the endpoint. For
+   example, to see information about the accounts 1 and 2:
+
+   copy
+
+ $ curl -X GET http://localhost:8080/account/1 | json_pp
+
+ {
+    "_links" : {
+       "self" : {
+          "href" : "http://localhost:8080/account/1"
+       }
+    },
+    "balance" : 500,
+    "name" : "Alice",
+    "type" : "asset"
+ }
+
+   copy
+
+ $ curl -X GET http://localhost:8080/account/2 | json_pp
+
+ {
+    "_links" : {
+       "self" : {
+          "href" : "http://localhost:8080/account/2"
+       }
+    },
+    "balance" : 500,
+    "name" : "Bob",
+    "type" : "expense"
+ }
+
+   The http://localhost:8080/transfer endpoint performs transfers between
+   accounts. POST requests to this endpoint are executed as writes (i.e.,
+   INSERTs and UPDATEs) to the database.
+
+    Writes
+
+   To make a transfer, send a POST request to the transfer endpoint, using
+   the arguments specified in the "href" URL (i.e.,
+   http://localhost:8080/transfer%7B?fromId,toId,amount).
+
+   copy
+
+ $ curl -X POST -d fromId=2 -d toId=1 -d amount=150 http://localhost:8080/transfer
+
+   You can use the accounts endpoint to verify that the transfer was
+   successfully completed:
+
+   copy
+
+ $ curl -X GET http://localhost:8080/account/1 | json_pp
+
+ {
+    "_links" : {
+       "self" : {
+          "href" : "http://localhost:8080/account/1"
+       }
+    },
+    "balance" : 350,
+    "name" : "Alice",
+    "type" : "asset"
+ }
+
+   copy
+
+ $ curl -X GET http://localhost:8080/account/2 | json_pp
+
+ {
+    "_links" : {
+       "self" : {
+          "href" : "http://localhost:8080/account/2"
+       }
+    },
+    "balance" : 650,
+    "name" : "Bob",
+    "type" : "expense"
+ }
+
+  Monitor the application
+
+   http://localhost:8080/actuator is the base URL for a number of Spring Boot
+   Actuator endpoints that let you monitor the activity and health of the
+   application.
+
+   copy
+
+ $ curl -X GET http://localhost:8080/actuator | json_pp
+
+ {
+    "_links" : {
+       "conditions" : {
+          "href" : "http://localhost:8080/actuator/conditions",
+          "templated" : false
+       },
+       "configprops" : {
+          "href" : "http://localhost:8080/actuator/configprops",
+          "templated" : false
+       },
+       "env" : {
+          "href" : "http://localhost:8080/actuator/env",
+          "templated" : false
+       },
+       "env-toMatch" : {
+          "href" : "http://localhost:8080/actuator/env/{toMatch}",
+          "templated" : true
+       },
+       "health" : {
+          "href" : "http://localhost:8080/actuator/health",
+          "templated" : false
+       },
+       "health-path" : {
+          "href" : "http://localhost:8080/actuator/health/{*path}",
+          "templated" : true
+       },
+       "info" : {
+          "href" : "http://localhost:8080/actuator/info",
+          "templated" : false
+       },
+       "liquibase" : {
+          "href" : "http://localhost:8080/actuator/liquibase",
+          "templated" : false
+       },
+       "metrics" : {
+          "href" : "http://localhost:8080/actuator/metrics",
+          "templated" : false
+       },
+       "metrics-requiredMetricName" : {
+          "href" : "http://localhost:8080/actuator/metrics/{requiredMetricName}",
+          "templated" : true
+       },
+       "self" : {
+          "href" : "http://localhost:8080/actuator",
+          "templated" : false
+       },
+       "threaddump" : {
+          "href" : "http://localhost:8080/actuator/threaddump",
+          "templated" : false
+       }
+    }
+ }
+
+   Each actuator endpoint shows specific metrics on the application. For
+   example:
+
+   copy
+
+ $ curl -X GET http://localhost:8080/actuator/health | json_pp
+
+ {
+    "components" : {
+       "db" : {
+          "details" : {
+             "database" : "PostgreSQL",
+             "result" : 1,
+             "validationQuery" : "SELECT 1"
+          },
+          "status" : "UP"
+       },
+       "diskSpace" : {
+          "details" : {
+             "free" : 125039620096,
+             "threshold" : 10485760,
+             "total" : 250685575168
+          },
+          "status" : "UP"
+       },
+       "ping" : {
+          "status" : "UP"
+       }
+    },
+    "status" : "UP"
+ }
+
+   For more information about actuator endpoints, see the Spring Boot
+   Actuator Endpoint documentation.
+
+Implementation details
+
+   This section walks you through the different components of the application
+   project in detail.
+
+  Main application process
+
+   JdbcApplication.java defines the application's main process. It starts a
+   Spring Boot web application, and then submits requests to the app's REST
+   API that result in database transactions on the CockroachDB cluster.
+
+   Here are the contents of JdbcApplication.java:
+
+   copy
+
+ package io.roach.data.jdbc;
+
+ import java.math.BigDecimal;
+ import java.util.ArrayDeque;
+ import java.util.Deque;
+ import java.util.HashMap;
+ import java.util.Map;
+ import java.util.concurrent.ExecutionException;
+ import java.util.concurrent.Executors;
+ import java.util.concurrent.Future;
+ import java.util.concurrent.ScheduledExecutorService;
+
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+ import org.springframework.boot.CommandLineRunner;
+ import org.springframework.boot.WebApplicationType;
+ import org.springframework.boot.autoconfigure.SpringBootApplication;
+ import org.springframework.boot.builder.SpringApplicationBuilder;
+ import org.springframework.context.annotation.EnableAspectJAutoProxy;
+ import org.springframework.core.Ordered;
+ import org.springframework.data.jdbc.repository.config.EnableJdbcRepositories;
+ import org.springframework.hateoas.Link;
+ import org.springframework.hateoas.config.EnableHypermediaSupport;
+ import org.springframework.http.HttpEntity;
+ import org.springframework.http.HttpMethod;
+ import org.springframework.transaction.annotation.EnableTransactionManagement;
+ import org.springframework.web.client.HttpClientErrorException;
+ import org.springframework.web.client.RestTemplate;
+
+ /**
+  * Spring boot server application using spring-data-jdbc for data access.
+  */
+ @EnableHypermediaSupport(type = EnableHypermediaSupport.HypermediaType.HAL)
+ @EnableJdbcRepositories
+ @EnableAspectJAutoProxy(proxyTargetClass = true)
+ @EnableSpringDataWebSupport
+ @EnableTransactionManagement(order = Ordered.LOWEST_PRECEDENCE - 1) // Bump up one level to enable extra advisors
+ @SpringBootApplication
+ public class JdbcApplication implements CommandLineRunner {
+     protected static final Logger logger = LoggerFactory.getLogger(JdbcApplication.class);
+
+     public static void main(String[] args) {
+         new SpringApplicationBuilder(JdbcApplication.class)
+                 .web(WebApplicationType.SERVLET)
+                 .run(args);
+     }
+
+     @Override
+     public void run(String... args) {
+         for (String a : args) {
+             if ("--skip-client".equals(a)) {
+                 return;
+             }
+         }
+
+         logger.info("Lets move some $$ around!");
+
+         final Link transferLink = new Link("http://localhost:8080/transfer{?fromId,toId,amount}");
+
+         final int threads = Runtime.getRuntime().availableProcessors();
+
+         final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(threads);
+
+         Deque<Future<?>> futures = new ArrayDeque<>();
+
+         for (int i = 0; i < threads; i++) {
+             Future<?> future = executorService.submit(() -> {
+                 for (int j = 0; j < 100; j++) {
+                     int fromId = 1 + (int) Math.round(Math.random() * 3);
+                     int toId = fromId % 4 + 1;
+
+                     BigDecimal amount = new BigDecimal("10.00");
+
+                     Map<String, Object> form = new HashMap<>();
+                     form.put("fromId", fromId);
+                     form.put("toId", toId);
+                     form.put("amount", amount);
+
+                     String uri = transferLink.expand(form).getHref();
+
+                     try {
+                         new RestTemplate().exchange(uri, HttpMethod.POST, new HttpEntity<>(null), String.class);
+                     } catch (HttpClientErrorException.BadRequest e) {
+                         logger.warn(e.getResponseBodyAsString());
+                     }
+                 }
+             });
+             futures.add(future);
+         }
+
+         while (!futures.isEmpty()) {
+             try {
+                 futures.pop().get();
+                 logger.info("Worker finished - {} remaining", futures.size());
+             } catch (InterruptedException e) {
+                 Thread.currentThread().interrupt();
+             } catch (ExecutionException e) {
+                 logger.warn("Worker failed", e.getCause());
+             }
+         }
+
+         logger.info("All client workers finished but server keeps running. Have a nice day!");
+
+         executorService.shutdownNow();
+     }
+ }
+
+
+
+   The annotations listed at the top of the JdbcApplication class definition
+   declare some important configuration properties for the entire
+   application:
+
+     * @EnableHypermediaSupport enables hypermedia support for resource
+       representation in the application. Currently, the only hypermedia
+       format supported by Spring is HAL, and so the type =
+       EnableHypermediaSupport.HypermediaType.HAL. For details, see
+       Hypermedia representation.
+     * @EnableJdbcRepositories enables the creation of Spring repositories
+       for data access using Spring Data JDBC. For details, see Spring
+       repositories.
+     * @EnableAspectJAutoProxy enables the use of @AspectJ annotations for
+       declaring aspects. For details, see Transaction management.
+     * @EnableTransactionManagement enables declarative transaction
+       management in the application. For details, see Transaction
+       management.
+
+       Note that the @EnableTransactionManagement annotation is passed an
+       order parameter, which indicates the ordering of advice evaluation
+       when a common join point is reached. For details, see Ordering advice.
+
+     * @SpringBootApplication is a standard configuration annotation used by
+       Spring Boot applications. For details, see Using the
+       @SpringBootApplication on the Spring Boot documentation site.
+
+  Schema management
+
+   To create and initialize the database schema, the application uses
+   Liquibase.
+
+    Liquibase changelogs
+
+   Liquibase uses changelog files to manage database schema changes.
+   Changelog files include a list of instructions, known as changesets, that
+   are executed against the database in a specified order.
+
+   resources/db/changelog-master.xml defines the changelog for this
+   application:
+
+   copy
+
+ <?xml version="1.0" encoding="UTF-8"?>
+ <databaseChangeLog
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+          http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+     <!-- Note: Context names match Spring profile names -->
+
+     <changeSet id="1" author="root" context="crdb">
+         <validCheckSum>ANY</validCheckSum>
+         <sqlFile path="db/create.sql"/>
+     </changeSet>
+
+     <changeSet id="2" author="root" context="crdb">
+         <insert tableName="account">
+             <column name="id">1</column>
+             <column name="name">Alice</column>
+             <column name="balance" valueNumeric="500.00"/>
+             <column name="type">asset</column>
+         </insert>
+         <insert tableName="account">
+             <column name="id">2</column>
+             <column name="name">Bob</column>
+             <column name="balance" valueNumeric="500.00"/>
+             <column name="type">expense</column>
+         </insert>
+         <insert tableName="account">
+             <column name="id">3</column>
+             <column name="name">Bobby Tables</column>
+             <column name="balance" valueNumeric="500.00"/>
+             <column name="type">asset</column>
+         </insert>
+         <insert tableName="account">
+             <column name="id">4</column>
+             <column name="name">Doris</column>
+             <column name="balance" valueNumeric="500.00"/>
+             <column name="type">expense</column>
+         </insert>
+     </changeSet>
+ </databaseChangeLog>
+
+   The first changeset uses the sqlFile tag, which tells Liquibase that an
+   external .sql file contains some SQL statements to execute. The file
+   specified by the changeset, resources/db/create.sql, creates the account
+   table:
+
+   copy
+
+ create table account
+ (
+     id      int            not null primary key default unique_rowid(),
+     balance numeric(19, 2) not null,
+     name    varchar(128)   not null,
+     type    varchar(25)    not null
+ );
+
+
+   The second changeset in the changelog uses the Liquibase XML syntax to
+   specify a series of sequential INSERT statements that initialize the
+   account table with some values.
+
+   When the application is started, all of the queries specified by the
+   changesets are executed in the order specified by their changeset tag's id
+   value. At application startup, Liquibase also creates a table called
+   databasechangelog in the database where it performs changes. This table's
+   rows log all completed changesets.
+
+   To see the completed changesets after starting the application, open a new
+   terminal, start the built-in SQL shell, and query the databasechangelog
+   table:
+
+   copy
+
+ $ cockroach sql --certs-dir=certs
+
+   copy
+
+ $ cockroach sql --insecure
+
+   copy
+
+ > SELECT * FROM roach_data.databasechangelog;
+
+   id | author |             filename              |           dateexecuted           | orderexecuted | exectype |               md5sum               |                                              description                                               | comments | tag  | liquibase | contexts | labels | deployment_id
+ -----+--------+-----------------------------------+----------------------------------+---------------+----------+------------------------------------+--------------------------------------------------------------------------------------------------------+----------+------+-----------+----------+--------+----------------
+   1  | root   | classpath:db/changelog-master.xml | 2020-06-17 14:57:01.431506+00:00 |             1 | EXECUTED | 8:939a1a8c47676119a94d0173802d207e | sqlFile                                                                                                |          | NULL | 3.8.9     | crdb     | NULL   | 2420221402
+   2  | root   | classpath:db/changelog-master.xml | 2020-06-17 14:57:01.470847+00:00 |             2 | EXECUTED | 8:c2945f2a445cf60b4b203e1a91d14a89 | insert tableName=account; insert tableName=account; insert tableName=account; insert tableName=account |          | NULL | 3.8.9     | crdb     | NULL   | 2420221402
+ (2 rows)
+
+   Note:
+
+   Liquibase does not retry transactions automatically. If a changeset fails
+   at startup, you might need to restart the application manually to complete
+   the changeset.
+
+    Liquibase configuration
+
+   Typically, Liquibase properties are defined in a separate
+   liquibase.properties file. In this application, the Spring properties
+   file, application.yml, includes properties that enable and configure
+   Liquibase:
+
+ ...
+  liquibase:
+    change-log: classpath:db/changelog-master.xml
+    default-schema:
+    drop-first: false
+    contexts: crdb
+    enabled: true
+ ...
+
+   The contexts property specifies a single Liquibase context (crdb). In
+   order for a changeset to run, its context attribute must match a context
+   set by this property. The context value is crdb in both of the changeset
+   definitions in changelog-master.xml, so both changesets run at application
+   startup.
+
+   For simplicity, application.yml only specifies properties for a single
+   Spring profile, with a single set of Liquibase properties. If you want the
+   changelog to include changesets that only run in specific environments
+   (e.g., for debugging and development), you can create a new Spring profile
+   in a separate properties file (e.g. application-dev.yml), and specify a
+   different set of Liquibase properties for that profile. The profile set by
+   the application configuration will automatically use the properties in
+   that profile's properties file. For information about setting profiles,
+   see the Spring documentation website.
+
+  Domain entities
+
+   Account.java defines the domain entity for the accounts table. This class
+   is used throughout the application to represent a row of data in the
+   accounts table.
+
+   Here are the contents of Account.java:
+
+   copy
+
+ package io.roach.data.jdbc;
+
+ import java.math.BigDecimal;
+
+ import org.springframework.data.annotation.Id;
+
+ /**
+  * Domain entity mapped to the account table.
+  */
+ public class Account {
+     @Id
+     private Long id;
+
+     private String name;
+
+     private AccountType type;
+
+     private BigDecimal balance;
+
+     public Long getId() {
+         return id;
+     }
+
+     public String getName() {
+         return name;
+     }
+
+     public AccountType getType() {
+         return type;
+     }
+
+     public BigDecimal getBalance() {
+         return balance;
+     }
+ }
+
+
+  Hypermedia representation
+
+   To represent database objects as HAL+JSON for the REST API, the
+   application extends the Spring HATEOAS module's RepresentationModel class
+   with AccountModel. Like the Account class, its attributes represent a row
+   of data in the accounts table.
+
+   The contents of AccountModel.java:
+
+   copy
+
+ package io.roach.data.jdbc;
+
+ import java.math.BigDecimal;
+
+ import org.springframework.hateoas.RepresentationModel;
+ import org.springframework.hateoas.server.core.Relation;
+
+ /**
+  * Account resource represented in HAL+JSON via REST API.
+  */
+ @Relation(value = "account", collectionRelation = "accounts")
+ public class AccountModel extends RepresentationModel<AccountModel> {
+     private String name;
+
+     private AccountType type;
+
+     private BigDecimal balance;
+
+     public String getName() {
+         return name;
+     }
+
+     public void setName(String name) {
+         this.name = name;
+     }
+
+     public AccountType getType() {
+         return type;
+     }
+
+     public void setType(AccountType type) {
+         this.type = type;
+     }
+
+     public BigDecimal getBalance() {
+         return balance;
+     }
+
+     public void setBalance(BigDecimal balance) {
+         this.balance = balance;
+     }
+ }
+
+
+   We don't go into much detail about hypermedia representation in this
+   tutorial. For more information, see the Spring HATEOAS Reference
+   Documentation.
+
+  Spring repositories
+
+   To abstract the database layer, Spring applications use the Repository
+   interface, or some subinterface of Repository. This interface maps to a
+   database object, like a table, and its methods map to queries against that
+   object, like a SELECT or an INSERT statement against a table.
+
+   AccountRepository.java defines the main repository for the accounts table:
+
+   copy
+
+ package io.roach.data.jdbc;
+
+ import java.math.BigDecimal;
+
+
+ import org.springframework.data.domain.Page;
+ import org.springframework.data.jdbc.repository.query.Modifying;
+ import org.springframework.data.jdbc.repository.query.Query;
+ import org.springframework.data.repository.PagingAndSortingRepository;
+ import org.springframework.data.repository.query.Param;
+ import org.springframework.stereotype.Repository;
+ import org.springframework.transaction.annotation.Transactional;
+
+ import static org.springframework.transaction.annotation.Propagation.MANDATORY;
+
+ /**
+  * The main account repository, notice there's no implementation needed since its auto-proxied by
+  * spring-data.
+  */
+ @Repository
+ @Transactional(propagation = MANDATORY)
+ public interface AccountRepository extends PagingAndSortingRepository<Account, Long> {
+
+     @Query("SELECT * FROM account LIMIT :pageSize OFFSET :offset")
+     Page<Account> findAll(@Param("pageSize") int pageSize, @Param("offset") long offset);
+
+     @Query("SELECT count(id) FROM account")
+     long countAll();
+
+     @Query(value = "SELECT balance FROM account WHERE id=:id")
+     BigDecimal getBalance(@Param("id") Long id);
+
+     @Modifying
+     @Query("UPDATE account SET balance = balance + :balance WHERE id=:id")
+     void updateBalance(@Param("id") Long id, @Param("balance") BigDecimal balance);
+ }
+
+
+   AccountRepository extends a subinterface of Repository that is provided by
+   Spring for generic CRUD operations called CrudRepository. To support
+   pagination queries, repositories in other Spring Data modules, like those
+   in Spring Data JPA, usually extend a subinterface of CrudRepository,
+   called PagingAndSortingRepository, that includes pagination and sorting
+   methods. At the time this sample application was created, Spring Data JDBC
+   did not support pagination. As a result, AccountRepository extends a
+   custom repository, called PagedAccountRepository, to provide basic
+   LIMIT/OFFSET pagination on queries against the accounts table. The
+   AccountRepository methods use the @Query annotation strategy to define
+   queries manually, as strings.
+
+   Note that, in addition to having the @Repository annotation, the
+   AccountRepository interface has a @Transactional annotation. When
+   transaction management is enabled in an application (i.e., with
+   @EnableTransactionManagement), Spring automatically wraps all objects with
+   the @Transactional annotation in a proxy that handles calls to the object.
+   For more information, see Understanding the Spring Framework’s Declarative
+   Transaction Implementation on Spring's documentation website.
+
+   @Transactional takes a number of parameters, including a propagation
+   parameter that determines the transaction propagation behavior around an
+   object (i.e., at what point in the stack a transaction starts and ends).
+   This sample application follows the entity-control-boundary (ECB) pattern.
+   As such, the REST service boundaries should determine where a transaction
+   starts and ends rather than the query methods defined in the data access
+   layer. To follow the ECB design pattern, propagation=MANDATORY for
+   AccountRepository, which means that a transaction must already exist in
+   order to call the AccountRepository query methods. In contrast, the
+   @Transactional annotations on the Rest controller entities in the web
+   layer have propagation=REQUIRES_NEW, meaning that a new transaction must
+   be created for each REST request.
+
+   The aspects declared in TransactionHintsAspect.java and
+   RetryableTransactionAspect.java further control how
+   @Transactional-annotated components are handled. For more details on
+   control flow and transaction management in the application, see
+   Transaction management.
+
+  REST controller
+
+   There are several endpoints exposed by the application's web layer, some
+   of which monitor the health of the application, and some that map to
+   queries executed against the connected database. All of the endpoints
+   served by the application are handled by the AccountController class,
+   which is defined in AccountController.java:
+
+   copy
+
+ package io.roach.data.jdbc;
+
+ import java.math.BigDecimal;
+
+ import org.springframework.beans.factory.annotation.Autowired;
+ import org.springframework.dao.DataRetrievalFailureException;
+ import org.springframework.data.domain.PageRequest;
+ import org.springframework.data.domain.Pageable;
+ import org.springframework.data.domain.Sort;
+ import org.springframework.data.web.PageableDefault;
+ import org.springframework.data.web.PagedResourcesAssembler;
+ import org.springframework.hateoas.IanaLinkRelations;
+ import org.springframework.hateoas.Link;
+ import org.springframework.hateoas.PagedModel;
+ import org.springframework.hateoas.RepresentationModel;
+ import org.springframework.hateoas.server.RepresentationModelAssembler;
+ import org.springframework.http.HttpEntity;
+ import org.springframework.http.HttpStatus;
+ import org.springframework.http.ResponseEntity;
+ import org.springframework.transaction.annotation.Transactional;
+ import org.springframework.web.bind.annotation.*;
+ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+ import static org.springframework.transaction.annotation.Propagation.REQUIRES_NEW;
+
+ /**
+  * Main remoting and transaction boundary in the form of a REST controller. The discipline
+  * when following the entity-control-boundary (ECB) pattern is that only service boundaries
+  * are allowed to start and end transactions. A service boundary can be a controller, business
+  * service facade or service activator (JMS/Kafka listener).
+  * <p>
+  * This is enforced by the REQUIRES_NEW propagation attribute of @Transactional annotated
+  * controller methods. Between the web container's HTTP listener and the transaction proxy,
+  * there's yet another transparent proxy in the form of a retry loop advice with exponential
+  * backoff. It takes care of retrying transactions that are aborted by transient SQL errors,
+  * rather than having these propagate all the way over the wire to the client / user agent.
+  *
+  * @see RetryableTransactionAspect
+  */
+ @RestController
+ public class AccountController {
+     @Autowired
+     private AccountRepository accountRepository;
+
+     @Autowired
+     private PagedResourcesAssembler<Account> pagedResourcesAssembler;
+
+     /**
+      * Provides the service index resource representation which is only links
+      * for clients to follow.
+      */
+     @GetMapping
+     public ResponseEntity<RepresentationModel> index() {
+         RepresentationModel index = new RepresentationModel();
+
+         // Type-safe way to generate URLs bound to controller methods
+         index.add(linkTo(methodOn(AccountController.class)
+                 .listAccounts(PageRequest.of(0, 5)))
+                 .withRel("accounts")); // Lets skip curies and affordances for now
+
+         // This rel essentially informs the client that a POST to its href with
+         // form parameters will transfer funds between referenced accounts.
+         // (its only a demo)
+         index.add(linkTo(AccountController.class)
+                 .slash("transfer{?fromId,toId,amount}")
+                 .withRel("transfer"));
+
+         // Spring boot actuators for observability / monitoring
+         index.add(new Link(
+                 ServletUriComponentsBuilder
+                         .fromCurrentContextPath()
+                         .pathSegment("actuator")
+                         .buildAndExpand()
+                         .toUriString()
+         ).withRel("actuator"));
+
+         return new ResponseEntity<>(index, HttpStatus.OK);
+     }
+
+     /**
+      * Provides a paged representation of accounts (sort order omitted).
+      */
+     @GetMapping("/account")
+     @Transactional(propagation = REQUIRES_NEW)
+     public HttpEntity<PagedModel<AccountModel>> listAccounts(
+             @PageableDefault(size = 5, direction = Sort.Direction.ASC) Pageable page) {
+         return ResponseEntity
+                 .ok(pagedResourcesAssembler.toModel(accountRepository.findAll(page), accountModelAssembler()));
+     }
+
+     /**
+      * Provides a point lookup of a given account.
+      */
+     @GetMapping(value = "/account/{id}")
+     @Transactional(propagation = REQUIRES_NEW, readOnly = true) // Notice its marked read-only
+     public HttpEntity<AccountModel> getAccount(@PathVariable("id") Long accountId) {
+         return new ResponseEntity<>(accountModelAssembler().toModel(
+                 accountRepository.findById(accountId)
+                         .orElseThrow(() -> new DataRetrievalFailureException("No such account: " + accountId))),
+                 HttpStatus.OK);
+     }
+
+     /**
+      * Main funds transfer method.
+      */
+     @PostMapping(value = "/transfer")
+     @Transactional(propagation = REQUIRES_NEW)
+     public HttpEntity<BigDecimal> transfer(
+             @RequestParam("fromId") Long fromId,
+             @RequestParam("toId") Long toId,
+             @RequestParam("amount") BigDecimal amount
+     ) {
+         if (amount.compareTo(BigDecimal.ZERO) < 0) {
+             throw new IllegalArgumentException("Negative amount");
+         }
+         if (fromId.equals(toId)) {
+             throw new IllegalArgumentException("From and to accounts must be different");
+         }
+
+         BigDecimal fromBalance = accountRepository.getBalance(fromId).add(amount.negate());
+         // Application level invariant check.
+         // Could be enhanced or replaced with a CHECK constraint like:
+         // ALTER TABLE account ADD CONSTRAINT check_account_positive_balance CHECK (balance >= 0)
+         if (fromBalance.compareTo(BigDecimal.ZERO) < 0) {
+             throw new NegativeBalanceException("Insufficient funds " + amount + " for account " + fromId);
+         }
+
+         accountRepository.updateBalance(fromId, amount.negate());
+         accountRepository.updateBalance(toId, amount);
+
+         return ResponseEntity.ok().build();
+     }
+
+     private RepresentationModelAssembler<Account, AccountModel> accountModelAssembler() {
+         return (entity) -> {
+             AccountModel model = new AccountModel();
+             model.setName(entity.getName());
+             model.setType(entity.getType());
+             model.setBalance(entity.getBalance());
+             model.add(linkTo(methodOn(AccountController.class)
+                     .getAccount(entity.getId())
+             ).withRel(IanaLinkRelations.SELF));
+             return model;
+         };
+     }
+ }
+
+
+   Annotated with @RestController, AccountController defines the primary web
+   controller component of the application. The AccountController methods
+   define the endpoints, routes, and business logic of REST services for
+   account querying and money transferring. Its attributes include an
+   instantiation of AccountRepository, called accountRepository, that
+   establishes an interface to the accounts table through the data access
+   layer.
+
+   As mentioned in the Spring repositories section, the application's
+   transaction boundaries follow the entity-control-boundary (ECB) pattern,
+   meaning that the web service boundaries of the application determine where
+   a transaction starts and ends. To follow the ECB pattern, the
+   @Transactional annotation on each of the HTTP entities (listAccounts(),
+   getAccount(), and transfer()) has propagation=REQUIRES_NEW. This ensures
+   that each time a REST request is made to an endpoint, a new transaction
+   context is created. For details on how aspects handle control flow and
+   transaction management in the application, see Transaction management.
+
+  Transaction management
+
+   When transaction management is enabled in an application, Spring
+   automatically wraps all objects annotated with @Transactional in a proxy
+   that handles calls to the object. By default, this proxy starts and closes
+   transactions according to the configured transaction management behavior
+   (e.g., the propagation level).
+
+   Using @AspectJ annotations, this sample application extends the default
+   transaction proxy behavior with two other explicitly-defined aspects:
+   TransactionHintsAspect and RetryableTransactionAspect. Methods of these
+   aspects are declared as advice to be executed around method calls
+   annotated with @Transactional.
+
+   For more information about transaction management in the app, see the
+   following sections below:
+
+     * Ordering advice
+     * Transaction attributes
+     * Transaction retries
+
+    Ordering advice
+
+   To determine the order of evaluation when multiple transaction advisors
+   match the same pointcut (in this case, around @Transactional method
+   calls), this application explicitly declares an order of precedence for
+   calling advice.
+
+   At the top level of the application, in the main JdbcApplication.java
+   file, the @EnableTransactionManagement annotation is passed an order
+   parameter. This parameter sets the order on the primary transaction
+   advisor to one level of precedence above the lowest level,
+   Ordered.LOWEST_PRECEDENCE. This means that the advisor with the lowest
+   level of precedence is evaluated after the primary transaction advisor
+   (i.e., within the context of an open transaction).
+
+   For the two explicitly-defined aspects, TransactionHintsAspect and
+   RetryableTransactionAspect, the @Order annotation is used. Like the order
+   parameter on the @EnableTransactionManagement annotation, @Order takes a
+   value that indicates the precedence of advice. The advisor with the lowest
+   level of precedence is declared in TransactionHintsAspect, the aspect that
+   defines the transaction attributes. RetryableTransactionAspect, the aspect
+   that defines the transaction retry logic, defines the advisor with the
+   highest level of precedence.
+
+   For more details about advice ordering, see Advice Ordering on the Spring
+   documentation site.
+
+    Transaction attributes
+
+   The TransactionHintsAspect class, declared as an aspect with the @Aspect
+   annotation, declares an advice method that defines the attributes of a
+   transaction. The @Order annotation is passed the lowest level of
+   precedence, Ordered.LOWEST_PRECEDENCE, indicating that this advisor must
+   run after the main transaction advisor, within the context of a
+   transaction. Here are the contents of TransactionHintsAspect.java:
+
+   copy
+
+ package io.roach.data.jdbc;
+
+ import org.aspectj.lang.ProceedingJoinPoint;
+ import org.aspectj.lang.annotation.Around;
+ import org.aspectj.lang.annotation.Aspect;
+ import org.aspectj.lang.annotation.Pointcut;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+ import org.springframework.beans.factory.annotation.Autowired;
+ import org.springframework.core.Ordered;
+ import org.springframework.core.annotation.Order;
+ import org.springframework.jdbc.core.JdbcTemplate;
+ import org.springframework.stereotype.Component;
+ import org.springframework.transaction.TransactionDefinition;
+ import org.springframework.transaction.annotation.Transactional;
+ import org.springframework.transaction.support.TransactionSynchronizationManager;
+ import org.springframework.util.Assert;
+
+ /**
+  * Aspect with an around advice that intercepts and sets transaction attributes.
+  * <p>
+  * This advice needs to runs in a transactional context, which is after the underlying
+  * transaction advisor.
+  */
+ @Component
+ @Aspect
+ // After TX advisor
+ @Order(Ordered.LOWEST_PRECEDENCE)
+ public class TransactionHintsAspect {
+     protected final Logger logger = LoggerFactory.getLogger(getClass());
+
+     @Autowired
+     private JdbcTemplate jdbcTemplate;
+
+     private String applicationName = "roach-data";
+
+     @Pointcut("execution(* io.roach..*(..)) && @annotation(transactional)")
+     public void anyTransactionBoundaryOperation(Transactional transactional) {
+     }
+
+     @Around(value = "anyTransactionBoundaryOperation(transactional)",
+             argNames = "pjp,transactional")
+     public Object setTransactionAttributes(ProceedingJoinPoint pjp, Transactional transactional)
+             throws Throwable {
+         Assert.isTrue(TransactionSynchronizationManager.isActualTransactionActive(), "TX not active");
+
+         // https://www.cockroachlabs.com/docs/v19.2/set-vars.html
+         jdbcTemplate.update("SET application_name=?", applicationName);
+
+         if (transactional.timeout() != TransactionDefinition.TIMEOUT_DEFAULT) {
+             logger.info("Setting statement time {} for {}", transactional.timeout(),
+                     pjp.getSignature().toShortString());
+             jdbcTemplate.update("SET statement_timeout=?", transactional.timeout() * 1000);
+         }
+
+         if (transactional.readOnly()) {
+             logger.info("Setting transaction read only for {}", pjp.getSignature().toShortString());
+             jdbcTemplate.execute("SET transaction_read_only=true");
+         }
+
+         return pjp.proceed();
+     }
+ }
+
+
+   The anyTransactionBoundaryOperation method is declared as a pointcut with
+   the @Pointcut annotation. In Spring, pointcut declarations must include an
+   expression to determine where join points occur in the application control
+   flow. To help define these expressions, Spring supports a set of
+   designators. The application uses two of them here: execution, which
+   matches method execution joint points (i.e., defines a joint point when a
+   specific method is executed, in this case, any method in the io.roach.
+   namespace), and @annotation, which limits the matches to methods with a
+   specific annotation, in this case @Transactional.
+
+   setTransactionAttributes sets the transaction attributes in the form of
+   advice. Spring supports several different annotations to declare advice.
+   The @Around annotation allows an advice method to work before and after
+   the anyTransactionBoundaryOperation(transactional) join point. It also
+   allows the advice method to call the next matching advisor with the
+   ProceedingJoinPoint.proceed(); method.
+
+   On verifying that the transaction is active (using
+   TransactionSynchronizationManager.isActualTransactionActive()), the advice
+   sets some session variables using methods of the JdbcTemplate object
+   declared at the top of the TransactionHintsAspect class definition. These
+   session variables (application_name, statement_timeout, and
+   transaction_read_only) set the application name for the query to
+   "roach-data", the time allowed for the statement to execute before timing
+   out to 1000 milliseconds (i.e., 1 second), and the transaction access mode
+   as either READ ONLY or READ WRITE.
+
+    Transaction retries
+
+   Transactions may require retries if they experience deadlock or
+   transaction contention that cannot be resolved without allowing
+   serialization anomalies. To handle transactions that are aborted due to
+   transient serialization errors, we highly recommend writing client-side
+   transaction retry logic into applications written on CockroachDB.
+
+   In this application, transaction retry logic is written into the methods
+   of the RetryableTransactionAspect class. This class is declared an aspect
+   with the @Aspect annotation. The @Order annotation on this aspect class is
+   passed Ordered.LOWEST_PRECEDENCE-2, a level of precedence above the
+   primary transaction advisor. This indicates that the transaction retry
+   advisor must run outside the context of a transaction. Here are the
+   contents of RetryableTransactionAspect.java:
+
+   copy
+
+ package io.roach.data.jdbc;
+
+ import java.lang.reflect.UndeclaredThrowableException;
+ import java.util.concurrent.atomic.AtomicLong;
+
+ import org.aspectj.lang.ProceedingJoinPoint;
+ import org.aspectj.lang.annotation.Around;
+ import org.aspectj.lang.annotation.Aspect;
+ import org.aspectj.lang.annotation.Pointcut;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+ import org.springframework.core.Ordered;
+ import org.springframework.core.annotation.Order;
+ import org.springframework.dao.ConcurrencyFailureException;
+ import org.springframework.dao.TransientDataAccessException;
+ import org.springframework.stereotype.Component;
+ import org.springframework.transaction.TransactionSystemException;
+ import org.springframework.transaction.annotation.Transactional;
+ import org.springframework.transaction.support.TransactionSynchronizationManager;
+ import org.springframework.util.Assert;
+
+ /**
+  * Aspect with an around advice that intercepts and retries transient concurrency exceptions.
+  * Methods matching the pointcut expression (annotated with @Transactional) are retried a number
+  * of times with exponential backoff.
+  * <p>
+  * This advice needs to runs in a non-transactional context, which is before the underlying
+  * transaction advisor (@Order ensures that).
+  */
+ @Component
+ @Aspect
+ // Before TX advisor
+ @Order(Ordered.LOWEST_PRECEDENCE - 2)
+ public class RetryableTransactionAspect {
+     protected final Logger logger = LoggerFactory.getLogger(getClass());
+
+     @Pointcut("execution(* io.roach..*(..)) && @annotation(transactional)")
+     public void anyTransactionBoundaryOperation(Transactional transactional) {
+     }
+
+     @Around(value = "anyTransactionBoundaryOperation(transactional)",
+             argNames = "pjp,transactional")
+     public Object retryableOperation(ProceedingJoinPoint pjp, Transactional transactional)
+             throws Throwable {
+         final int totalRetries = 30;
+         int numAttempts = 0;
+         AtomicLong backoffMillis = new AtomicLong(150);
+
+         Assert.isTrue(!TransactionSynchronizationManager.isActualTransactionActive(), "TX active");
+
+         do {
+             try {
+                 numAttempts++;
+                 return pjp.proceed();
+             } catch (TransientDataAccessException | TransactionSystemException ex) {
+                 handleTransientException(ex, numAttempts, totalRetries, pjp, backoffMillis);
+             } catch (UndeclaredThrowableException ex) {
+                 Throwable t = ex.getUndeclaredThrowable();
+                 if (t instanceof TransientDataAccessException) {
+                     handleTransientException(t, numAttempts, totalRetries, pjp, backoffMillis);
+                 } else {
+                     throw ex;
+                 }
+             }
+         } while (numAttempts < totalRetries);
+
+         throw new ConcurrencyFailureException("Too many transient errors (" + numAttempts + ") for method ["
+                 + pjp.getSignature().toLongString() + "]. Giving up!");
+     }
+
+     private void handleTransientException(Throwable ex, int numAttempts, int totalAttempts,
+                                           ProceedingJoinPoint pjp, AtomicLong backoffMillis) {
+         if (logger.isWarnEnabled()) {
+             logger.warn("Transient data access exception (" + numAttempts + " of max " + totalAttempts + ") "
+                     + "detected (retry in " + backoffMillis + " ms) "
+                     + "in method '" + pjp.getSignature().getDeclaringTypeName() + "." + pjp.getSignature().getName()
+                     + "': " + ex.getMessage());
+         }
+         if (backoffMillis.get() >= 0) {
+             try {
+                 Thread.sleep(backoffMillis.get());
+             } catch (InterruptedException e) {
+                 Thread.currentThread().interrupt();
+             }
+             backoffMillis.set(Math.min((long) (backoffMillis.get() * 1.5), 1500));
+         }
+     }
+ }
+
+
+   The anyTransactionBoundaryOperation pointcut definition is identical to
+   the one declared in TransactionHintsAspect. The execution designator
+   matches all methods in the io.roach. namespace, and the @annotation
+   designator limits the matches to methods with the @Transactional
+   annotation.
+
+   retryableOperation handles the application retry logic in the form of
+   advice. The @Around annotation allows the advice method to work before and
+   after an anyTransactionBoundaryOperation(transactional) join point. It
+   also allows the advice method to call the next matching advisor.
+
+   retryableOperation first verifies that there is no active transaction. It
+   then increments the retry count and attempts to proceed to the next advice
+   method with the ProceedingJoinPoint.proceed() method. If the underlying
+   methods (i.e., the primary transaction advisor's methods and the annotated
+   query methods) succeed, the transaction has been successfully committed to
+   the database. The results are then returned and the application flow
+   continues. If a failure in the underlying layers occurs due to a transient
+   error (TransientDataAccessException or TransactionSystemException), then
+   the transaction is retried. The time between each retry grows with each
+   retry until the maximum number of retries is reached.
+
+See also
+
+   Spring documentation:
+
+     * Spring Boot website
+     * Spring Framework Overview
+     * Spring Core documentation
+     * Data Access with JDBC
+     * Spring Web MVC
+
+   CockroachDB documentation:
+
+     * Learn CockroachDB SQL
+     * Client Connection Parameters
+     * CockroachDB Developer Guide
+     * Hello World Example Apps
+     * Transactions
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

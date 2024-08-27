@@ -1,0 +1,622 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                               CREATE CHANGEFEED
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+   Note:
+
+   CREATE CHANGEFEED is an enterprise-only feature. For the core version, see
+   EXPERIMENTAL CHANGEFEED FOR.
+
+   The CREATE CHANGEFEED statement creates a new enterprise changefeed, which
+   targets an allowlist of tables, called "watched rows". Every change to a
+   watched row is emitted as a record in a configurable format (JSON or Avro)
+   to a configurable sink (Kafka or a cloud storage sink). You can create,
+   pause, resume, or cancel an enterprise changefeed.
+
+   For more information, see Change Data Capture.
+
+Required privileges
+
+   Changefeeds can only be created by superusers, i.e., members of the admin
+   role. The admin role exists by default with root as the member.
+
+Synopsis
+
+   CREATE CHANGEFEED FOR TABLE table_name , INTO sink WITH option = value ,
+
+Parameters
+
+   Parameter      Description                                                 
+                  The name of the table (or tables in a comma separated list) 
+                  to create a changefeed for.                                 
+                                                                              
+   table_name     Note: Changefeeds do not share internal buffers, so each    
+                  running changefeed will increase total memory usage. To     
+                  watch multiple tables, we recommend creating a changefeed   
+                  with a comma-separated list of tables.                      
+                  The location of the configurable sink. The scheme of the    
+   sink           URI indicates the type. For more information, see Sink URI  
+                  below.                                                      
+   option / value For a list of available options and their values, see       
+                  Options below.                                              
+
+  Sink URI
+
+   The sink URI follows the basic format of:
+
+ '[scheme]://[host]:[port]?[query_parameters]'
+
+   URI Component    Description                                        
+   scheme           The type of sink: kafka or any cloud storage sink. 
+   host             The sink's hostname or IP address.                 
+   port             The sink's port.                                   
+   query_parameters The sink's query parameters.                       
+
+    Kafka
+
+   Example of a Kafka sink URI:
+
+ 'kafka://broker.address.com:9092?topic_prefix=bar_&tls_enabled=true&ca_cert=LS0tLS1CRUdJTiBDRVJUSUZ&sasl_enabled=true&sasl_user=petee&sasl_password=bones'
+
+    Cloud storage sink
+
+   Use a cloud storage sink to deliver changefeed data to OLAP or big data
+   systems without requiring transport via Kafka.
+
+   Note:
+
+   Currently, cloud storage sinks only work with JSON and emits
+   newline-delimited JSON files.
+
+   Any of the cloud storages below can be used as a sink:
+
+   Note:
+
+   The scheme for a cloud storage sink should be prepended with
+   experimental-.
+
+ [scheme]://[host]/[path]?[parameters]
+
+   Location        Scheme    Host         Parameters                          
+                                          AUTH ^1 (optional; can be implicit  
+   Amazon          s3        Bucket name  or specified), AWS_ACCESS_KEY_ID,   
+                                          AWS_SECRET_ACCESS_KEY,              
+                                          AWS_SESSION_TOKEN                   
+                             N/A (see     AZURE_ACCOUNT_KEY,                  
+   Azure           azure     Example file AZURE_ACCOUNT_NAME                  
+                             URLs         
+                                          AUTH (optional; can be default,     
+   Google Cloud ^2 gs        Bucket name  implicit, or specified),            
+                                          CREDENTIALS                         
+   HTTP ^3         http      Remote host  N/A                                 
+                             nodeID or                                        
+   NFS/Local ^4    nodelocal self ^5 (see N/A
+                             Example file 
+                             URLs)        
+                                          AWS_ACCESS_KEY_ID,                  
+   S3-compatible   s3        Bucket name  AWS_SECRET_ACCESS_KEY,              
+   services ^6                            AWS_SESSION_TOKEN, AWS_REGION ^7    
+                                          (optional), AWS_ENDPOINT            
+
+   Note:
+
+   The location parameters often contain special characters that need to be
+   URI-encoded. Use Javascript's encodeURIComponent function or Go language's
+   url.QueryEscape function to URI-encode the parameters. Other languages
+   provide similar functions to URI-encode special characters.
+
+   Note:
+
+   If your environment requires an HTTP or HTTPS proxy server for outgoing
+   connections, you can set the standard HTTP_PROXY and HTTPS_PROXY
+   environment variables when starting CockroachDB.
+
+   If you cannot run a full proxy, you can disable external HTTP(S) access
+   (as well as custom HTTP(S) endpoints) when performing bulk operations
+   (e.g., BACKUP, RESTORE, etc.) by using the --external-io-disable-http
+   flag. You can also disable the use of implicit credentials when accessing
+   external cloud storage services for various bulk operations by using the
+   --external-io-disable-implicit-credentials flag.
+
+     * ^1 If the AUTH parameter is not provided, AWS connections default to
+       specified and the access keys must be provided in the URI parameters.
+       If the AUTH parameter is implicit, the access keys can be ommitted and
+       the credentials will be loaded from the environment.
+
+     * ^2 If the AUTH parameter is not specified, the
+       cloudstorage.gs.default.key cluster setting will be used if it is
+       non-empty, otherwise the implicit behavior is used. If the AUTH
+       parameter is implicit, all GCS connections use Google's default
+       authentication strategy. If the AUTH parameter is default, the
+       cloudstorage.gs.default.key cluster setting must be set to the
+       contents of a service account file which will be used during
+       authentication. If the AUTH parameter is specified, GCS connections
+       are authenticated on a per-statement basis, which allows the JSON key
+       object to be sent in the CREDENTIALS parameter. The JSON key object
+       should be base64-encoded (using the standard encoding in RFC 4648).
+
+     * ^3 You can create your own HTTP server with Caddy or nginx. A custom
+       root CA can be appended to the system's default CAs by setting the
+       cloudstorage.http.custom_ca cluster setting, which will be used when
+       verifying certificates from HTTPS URLs.
+
+     * ^4 The file system backup location on the NFS drive is relative to the
+       path specified by the --external-io-dir flag set while starting the
+       node. If the flag is set to disabled, then imports from local
+       directories and NFS drives are disabled.
+
+     * ^5 Using a nodeID is required and the data files will be in the extern
+       directory of the specified node. In most cases (including single-node
+       clusters), using nodelocal://1/<path> is sufficient. Use self if you
+       do not want to specify a nodeID, and the individual data files will be
+       in the extern directories of arbitrary nodes; however, to work
+       correctly, each node must have the --external-io-dir flag point to the
+       same NFS mount or other network-backed, shared storage.
+
+     * ^6 A custom root CA can be appended to the system's default CAs by
+       setting the cloudstorage.http.custom_ca cluster setting, which will be
+       used when verifying certificates from an S3-compatible service.
+
+     * ^7 The AWS_REGION parameter is optional since it is not a required
+       parameter for most S3-compatible services. Specify the parameter only
+       if your S3-compatible service requires it.
+
+    Example file URLs
+
+Location  Example                                                                    
+Amazon S3 s3://acme-co/employees.sql?AWS_ACCESS_KEY_ID=123&AWS_SECRET_ACCESS_KEY=456 
+Azure     azure://employees.sql?AZURE_ACCOUNT_KEY=123&AZURE_ACCOUNT_NAME=acme-co     
+Google    gs://acme-co/employees.sql                                                 
+Cloud     
+HTTP      http://localhost:8080/employees.sql                                        
+NFS/Local nodelocal://1/path/employees,                                              
+          nodelocal://self/nfsmount/backups/employees ^5                             
+
+    Query parameters
+
+   Query parameters include:
+
+   Parameter        Sink Type Description                                     
+                              Type: STRING                                    
+                                                                              
+                    Kafka,    Adds a prefix to all topic names.               
+   topic_prefix     cloud                                                     
+                              For example, CREATE CHANGEFEED FOR TABLE foo    
+                              INTO 'kafka://...?topic_prefix=bar_' would emit 
+                              rows under the topic bar_foo instead of foo.    
+                              Type: BOOL                                      
+                                                                              
+   tls_enabled=true Kafka     If true, enable Transport Layer Security (TLS)  
+                              on the connection to Kafka. This can be used    
+                              with a ca_cert (see below).                     
+                              Type: STRING                                    
+                                                                              
+   ca_cert          Kafka     The base64-encoded ca_cert file.                
+                                                                              
+                              Note: To encode your ca.cert, run base64 -w 0   
+                              ca.cert.                                        
+                              Type: STRING                                    
+   client_cert      Kafka                                                     
+                              The base64-encoded Privacy Enhanced Mail (PEM)  
+                              certificate. This is used with client_key.      
+                              Type: STRING                                    
+   client_key       Kafka                                                     
+                              The base64-encoded private key for the PEM      
+                              certificate. This is used with client_cert.     
+                              Type: BOOL                                      
+                                                                              
+   sasl_enabled     Kafka     If true, use SASL/PLAIN to authenticate. This   
+                              requires a sasl_user and sasl_password (see     
+                              below).                                         
+                              Type: STRING                                    
+   sasl_user        Kafka                                                     
+                              Your SASL username.                             
+                              Type: STRING                                    
+   sasl_password    Kafka                                                     
+                              Your SASL password.                             
+                              Type: STRING                                    
+                                                                              
+                              The file will be flushed (i.e., written to the  
+   file_size        cloud     sink) when it exceeds the specified file size.  
+                              This can be used with the WITH resolved option, 
+                              which flushes on a specified cadence.           
+                                                                              
+                              Default: 16MB                                   
+
+  Options
+
+Option                        Value             Description                             
+                                                Include updated timestamps with each    
+                                                row.                                    
+                                                                                        
+                                                If a cursor is provided, the "updated"  
+                                                timestamps will match the MVCC          
+                                                timestamps of the emitted rows, and     
+                                                there is no initial scan. If a cursor   
+                                                is not provided, the changefeed will    
+updated                       N/A               perform an initial scan (as of the time 
+                                                the changefeed was created), and the    
+                                                "updated" timestamp for each change     
+                                                record emitted in the initial scan will 
+                                                be the timestamp of the initial scan.   
+                                                Similarly, when a backfill is performed 
+                                                for a schema change, the "updated"      
+                                                timestamp is set to the first timestamp 
+                                                for when the new schema is valid.       
+                                                Periodically emit resolved timestamps   
+                                                to the changefeed. Optionally, set a    
+                                                minimum duration between emitting       
+resolved                      INTERVAL          resolved timestamps. If unspecified,    
+                                                all resolved timestamps are emitted.    
+                                                                                        
+                                                Example: resolved='10s'                 
+                                                Use key_only to emit only the key and   
+                              key_only /        no value, which is faster if you only   
+envelope                      wrapped           want to know when the key changes.      
+                                                                                        
+                                                Default: envelope=wrapped               
+                                                Emit any changes after the given        
+                                                timestamp, but does not output the      
+                                                current state of the table first. If    
+                                                cursor is not specified, the changefeed 
+                                                starts by doing an initial scan of all  
+                                                the watched rows and emits the current  
+                                                value, then moves to emitting any       
+                                                changes that happen after the scan.     
+                                                                                        
+                                                When starting a changefeed at a         
+                                                specific cursor, the cursor cannot be   
+                                                before the configured garbage           
+cursor                        Timestamp         collection window (see gc.ttlseconds)   
+                                                for the table you're trying to follow;  
+                                                otherwise, the changefeed will error.   
+                                                With default garbage collection         
+                                                settings, this means you cannot create  
+                                                a changefeed that starts more than 25   
+                                                hours in the past.                      
+                                                                                        
+                                                cursor can be used to start a new       
+                                                changefeed where a previous changefeed  
+                                                ended.                                  
+                                                                                        
+                                                Example:                                
+                                                CURSOR='1536242855577149065.0000000000' 
+                                                Format of the emitted record.           
+                                                Currently, support for Avro is limited  
+                              json /            and experimental. For mappings of       
+format                        experimental_avro CockroachDB types to Avro types, see    
+                                                the table below.                        
+                                                                                        
+                                                Default: format=json.                   
+confluent_schema_registry     Schema Registry   The Schema Registry address is required 
+                              address           to use experimental_avro.               
+                                                Make the primary key of a deleted row   
+                                                recoverable in sinks where each message 
+                                                has a value but not a key (most have a  
+key_in_value                  N/A               key and value in each message).         
+                                                key_in_value is automatically used for  
+                                                these sinks (currently only cloud       
+                                                storage sinks).                         
+                                                Publish a before field with each        
+diff                          N/A               message, which includes the value of    
+                                                the row before the update was applied.  
+                                                Compress changefeed data files written  
+compression                   gzip              to a cloud storage sink. Currently,     
+                                                only Gzip is supported for compression. 
+                                                When a changefeed is paused, ensure     
+                                                that the data needed to resume the      
+                                                changefeed is not garbage collected.    
+protect_data_from_gc_on_pause N/A                                                       
+                                                Note: If you use this option,           
+                                                changefeeds left paused can prevent     
+                                                garbage collection for long periods of  
+                                                time.                                   
+                                                The type of schema change event that    
+                                                triggers the behavior specified by the  
+                                                schema_change_policy option:            
+                                                  * default: Include all ADD COLUMN     
+                                                    events for columns that have a      
+schema_change_events          default /             non-NULL DEFAULT value or are       
+                              column_changes        computed, and all DROP COLUMN       
+                                                    events.                             
+                                                  * column_changes: Include all all     
+                                                    schema change events that add or    
+                                                    remove any column.                  
+                                                Default: schema_change_events=default   
+                                                The behavior to take when an event      
+                                                specified by the schema_change_events   
+                                                option occurs:                          
+                                                  * backfill: When schema changes with  
+                                                    column backfill are finished,       
+                                                    output all watched rows using the   
+schema_change_policy          backfill / skip /     new schema.                         
+                              stop                * skip: Perform no logical backfills. 
+                                                  * stop: Wait for all data preceding   
+                                                    the schema change to be resolved    
+                                                    before exiting with an error        
+                                                    indicating the timestamp at which   
+                                                    the schema change occurred.         
+                                                Default: schema_change_policy=backfill  
+                                                Control whether or not an initial scan  
+                                                will occur at the start time of a       
+                                                changefeed. initial_scan and            
+                                                no_initial_scan cannot be used          
+                                                simultaneously. If neither initial_scan 
+                                                nor no_initial_scan is specified, an    
+                                                initial scan will occur if there is no  
+initial_scan /                                  cursor, and will not occur if there is  
+no_initial_scan               N/A               one. This preserves the behavior from   
+                                                previous releases.                      
+                                                                                        
+                                                Default: initial_scan                   
+                                                If used in conjunction with cursor, an  
+                                                initial scan will be performed at the   
+                                                cursor timestamp. If no cursor is       
+                                                specified, the initial scan is          
+                                                performed at now().                     
+
+   Note:
+
+   Using the format=experimental_avro, envelope=key_only, and updated options
+   together is rejected. envelope=key_only prevents any rows with updated
+   fields from being emitted, which makes the updated option meaningless.
+
+    Avro limitations
+
+   Currently, support for Avro is limited and experimental. Below is a list
+   of unsupported SQL types and values for Avro changefeeds:
+
+     * Decimals must have precision specified.
+     * Decimals with NaN or infinite values cannot be written in Avro.
+
+       Note:
+
+       To avoid NaN or infinite values, add a CHECK constraint to prevent
+       these values from being inserted into decimal columns.
+
+     * TIME, DATE, INTERVAL, UUID, INET, ARRAY, JSONB, BIT, and collated
+       STRING are not supported in Avro yet.
+
+    Avro types
+
+   Below is a mapping of CockroachDB types to Avro types:
+
+   CockroachDB Type Avro Type Avro Logical Type 
+   INT              LONG      
+   BOOL             BOOLEAN   
+   FLOAT            DOUBLE    
+   STRING           STRING    
+   DATE             INT       DATE              
+   TIME             LONG      TIME-MICROS       
+   TIMESTAMP        LONG      TIME-MICROS       
+   TIMESTAMPTZ      LONG      TIME-MICROS       
+   DECIMAL          BYTES     DECIMAL           
+   UUID             STRING    
+   INET             STRING    
+   JSONB            STRING    
+
+Responses
+
+   The messages (i.e., keys and values) emitted to a Kafka topic are specific
+   to the envelope. The default format is wrapped, and the output messages
+   are composed of the following:
+
+     * Key: An array always composed of the row's PRIMARY KEY field(s) (e.g.,
+       [1] for JSON or {"id":{"long":1}} for Avro).
+     * Value:
+          * One of three possible top-level fields:
+               * after, which contains the state of the row after the update
+                 (or null' for DELETEs).
+               * updated, which contains the updated timestamp.
+               * resolved, which is emitted for records representing resolved
+                 timestamps. These records do not include an "after" value
+                 since they only function as checkpoints.
+          * For INSERT and UPDATE, the current state of the row inserted or
+            updated.
+          * For DELETE, null.
+
+   For example:
+
+Statement   Response                                                              
+INSERT INTO JSON: [1] {"after": {"id": 1, "name": "Petee"}} Avro:                 
+office_dogs {"id":{"long":1}}                                                     
+VALUES (1,  {"after":{"office_dogs":{"id":{"long":1},"name":{"string":"Petee"}}}} 
+'Petee');   
+DELETE FROM                                                                       
+office_dogs JSON: [1] {"after": null} Avro: {"id":{"long":1}} {"after":null}
+WHERE name  
+= 'Petee'   
+
+Examples
+
+  Create a changefeed connected to Kafka
+
+   copy
+
+ > CREATE CHANGEFEED FOR TABLE name, name2, name3
+   INTO 'kafka://host:port'
+   WITH updated, resolved;
+
+ +--------------------+
+ |       job_id       |
+ +--------------------+
+ | 360645287206223873 |
+ +--------------------+
+ (1 row)
+
+   For more information on how to create a changefeed connected to Kafka, see
+   Change Data Capture.
+
+  Create a changefeed connected to Kafka using Avro
+
+   copy
+
+ > CREATE CHANGEFEED FOR TABLE name, name2, name3
+   INTO 'kafka://host:port'
+   WITH format = experimental_avro, confluent_schema_registry = <schema_registry_address>;
+
+ +--------------------+
+ |       job_id       |
+ +--------------------+
+ | 360645287206223873 |
+ +--------------------+
+ (1 row)
+
+   For more information on how to create a changefeed that emits an Avro
+   record, see Change Data Capture.
+
+  Create a changefeed connected to a cloud storage sink
+
+   Warning:
+
+   This is an experimental feature. The interface and output are subject to
+   change.
+
+   There is an open correctness issue with changefeeds connected to cloud
+   storage sinks where new row information will display with a lower
+   timestamp than what has already been emitted, which violates our ordering
+   guarantees.
+
+   copy
+
+ > CREATE CHANGEFEED FOR TABLE name, name2, name3
+   INTO 'experimental-scheme://host?parameters'
+   WITH updated, resolved;
+
+ +--------------------+
+ |       job_id       |
+ +--------------------+
+ | 360645287206223873 |
+ +--------------------+
+ (1 row)
+
+   For more information on how to create a changefeed connected to a cloud
+   storage sink, see Change Data Capture.
+
+  Manage a changefeed
+
+   Use the following SQL statements to pause, resume, and cancel a
+   changefeed.
+
+   Note:
+
+   Changefeed-specific SQL statements (e.g., CANCEL CHANGEFEED) will be added
+   in the future.
+
+    Pause a changefeed
+
+   copy
+
+ > PAUSE JOB job_id;
+
+   For more information, see PAUSE JOB.
+
+    Resume a paused changefeed
+
+   copy
+
+ > RESUME JOB job_id;
+
+   For more information, see RESUME JOB.
+
+    Cancel a changefeed
+
+   copy
+
+ > CANCEL JOB job_id;
+
+   For more information, see CANCEL JOB.
+
+  Start a new changefeed where another ended
+
+   Find the high-water timestamp for the ended changefeed:
+
+   copy
+
+ > SELECT * FROM crdb_internal.jobs WHERE job_id = <job_id>;
+
+         job_id       |  job_type  | ... |      high_water_timestamp      | error | coordinator_id
+ +--------------------+------------+ ... +--------------------------------+-------+----------------+
+   383870400694353921 | CHANGEFEED | ... | 1537279405671006870.0000000000 |       |              1
+ (1 row)
+
+   Use the high_water_timestamp to start the new changefeed:
+
+   copy
+
+ > CREATE CHANGEFEED FOR TABLE name, name2, name3
+   INTO 'kafka//host:port'
+   WITH cursor = '<high_water_timestamp>';
+
+   Note that because the cursor is provided, the initial scan is not
+   performed.
+
+See also
+
+     * Change Data Capture
+     * Other SQL Statements
+     * Changefeed Dashboard
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

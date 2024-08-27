@@ -1,0 +1,173 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                              SET CLUSTER SETTING
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The SET CLUSTER SETTING statement modifies a cluster-wide setting.
+
+   Warning:
+   Many cluster settings are intended for tuning CockroachDB internals.
+   Before changing these settings, we strongly encourage you to discuss your
+   goals with CockroachDB; otherwise, you use them at your own risk.
+
+Required privileges
+
+   Only members of the admin role can modify cluster settings. By default,
+   the root user belongs to the admin role.
+
+Synopsis
+
+   SET CLUSTER SETTING var_name = TO var_value DEFAULT
+   Note:
+   The SET CLUSTER SETTING statement is unrelated to the other SET
+   TRANSACTION and SET (session variable) statements.
+
+Parameters
+
+   Parameter Description                                                 
+   var_name  The name of the cluster setting (case-insensitive).         
+   var_value The value for the cluster setting.                          
+             Reset the cluster setting to its default value.             
+   DEFAULT                                                               
+             The RESET CLUSTER SETTING resets a cluster setting as well. 
+
+Examples
+
+  Change the default distributed execution parameter
+
+   To configure a cluster so that new sessions automatically try to run
+   queries in a distributed fashion:
+
+   copy
+
+ > SET CLUSTER SETTING sql.defaults.distsql = 1;
+
+   To disable distributed execution for all new sessions:
+
+   copy
+
+ > SET CLUSTER SETTING sql.defaults.distsql = 0;
+
+  Disable automatic diagnostic reporting
+
+   To opt out of automatic diagnostic reporting of usage data to Cockroach
+   Labs:
+
+   copy
+
+ > SET CLUSTER SETTING diagnostics.reporting.enabled = false;
+
+   copy
+
+ > SHOW CLUSTER SETTING diagnostics.reporting.enabled;
+
+ +-------------------------------+
+ | diagnostics.reporting.enabled |
+ +-------------------------------+
+ | false                         |
+ +-------------------------------+
+ (1 row)
+
+  Reset a setting to its default value
+
+   Tip:
+   You can use RESET CLUSTER SETTING to reset a cluster setting as well.
+   copy
+
+ > SET CLUSTER SETTING sql.metrics.statement_details.enabled = false;
+
+   copy
+
+ > SHOW CLUSTER SETTING sql.metrics.statement_details.enabled;
+
+ +---------------------------------------+
+ | sql.metrics.statement_details.enabled |
+ +---------------------------------------+
+ | false                                 |
+ +---------------------------------------+
+ (1 row)
+
+   copy
+
+ > SET CLUSTER SETTING sql.metrics.statement_details.enabled = DEFAULT;
+
+   copy
+
+ > SHOW CLUSTER SETTING sql.metrics.statement_details.enabled;
+
+ +---------------------------------------+
+ | sql.metrics.statement_details.enabled |
+ +---------------------------------------+
+ | true                                  |
+ +---------------------------------------+
+ (1 row)
+
+See also
+
+     * SET (session variable)
+     * SHOW CLUSTER SETTING
+     * Cluster settings
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

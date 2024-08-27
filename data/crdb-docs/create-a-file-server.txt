@@ -1,0 +1,206 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                  Create a File Server for Imports and Backups
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   If you need a location to store files for the IMPORT process or
+   CockroachDB enterprise backups, but do not have access to (or simply
+   cannot use) cloud storage providers, you can run a local file server. You
+   can then use this file server by leveraging support for our HTTP Export
+   Storage API.
+
+   This is especially useful for:
+
+     * Implementing a compatibility layer in front of custom or proprietary
+       storage providers for which CockroachDB does not yet have built-in
+       support
+     * Using on-premises storage
+
+HTTP export storage API
+
+   CockroachDB tasks that require reading or writing external files (such as
+   IMPORT and BACKUP) can use the HTTP Export Storage API by prefacing the
+   address with http, e.g., http://fileserver/mnt/cockroach-exports.
+
+   This API uses the GET, PUT and DELETE methods. This behaves like you would
+   expect typical HTTP requests to work. After a PUT request to some path, a
+   subsequent GET request should return the content sent in the PUT request
+   body, at least until a DELETE request is received for that path.
+
+Examples
+
+   You can use any file server software that supports GET, PUT and DELETE
+   methods, but we've included code samples for common ones:
+
+     * Using PHP with IMPORT
+     * Using Python with IMPORT
+     * Using Ruby with IMPORT
+     * Using Caddy as a file server
+     * Using nginx as a file server
+   Note:
+   We do not recommend using any machines running cockroach as file servers.
+   Using machines that are running cockroach as file servers could negatively
+   impact performance if I/O operations exceed capacity.
+
+  Using PHP with IMPORT
+
+   The PHP language has an HTTP server built in. You can serve local files
+   using the commands below. For more information about how to import these
+   locally served files, see the documentation for the IMPORT statement.
+
+   copy
+
+ $ cd /path/to/data
+ $ php -S 127.0.0.1:3000 # files available at e.g., 'http://localhost:3000/data.sql'
+
+  Using Python with IMPORT
+
+   The Python language has an HTTP server included in the standard library.
+   You can serve local files using the commands below. For more information
+   about how to import these locally served files, see the documentation for
+   the IMPORT statement.
+
+   copy
+
+ $ cd /path/to/data
+ $ python -m SimpleHTTPServer 3000 # files available at e.g., 'http://localhost:3000/data.sql'
+
+   If you use Python 3, try:
+
+   copy
+
+ $ cd /path/to/data
+ $ python -m http.server 3000
+
+  Using Ruby with IMPORT
+
+   The Ruby language has an HTTP server included in the standard library. You
+   can serve local files using the commands below. For more information about
+   how to import these locally served files, see the documentation for the
+   IMPORT statement.
+
+   copy
+
+ $ cd /path/to/data
+ $ ruby -run -ehttpd . -p3000 # files available at e.g., 'http://localhost:3000/data.sql'
+
+  Using Caddy as a file server
+
+    1. Download the Caddy web server. Before downloading, in the Customize
+       your build step, open the list of Plugins and make sure to check the
+       http.upload option.
+
+    2. Copy the caddy binary to the directory containing the files you want
+       to serve, and run it with an upload directive, either in the command
+       line or via Caddyfile.
+
+     * Command line example (with no TLS):
+       copy
+
+ $ caddy -root /mnt/cockroach-exports "upload / {" 'to "/mnt/cockroach-exports"' 'yes_without_tls' "}"
+
+     * Caddyfile example (using a key and cert):
+       copy
+
+ tls key cert
+ root "/mnt/cockroach-exports"
+ upload / {
+   to "/mnt/cockroach-exports"
+ }
+
+   For more information about Caddy, see its documentation.
+
+  Using nginx as a file server
+
+    1. Install nginx with the webdav module (often included in -full or
+       similarly named packages in various distributions).
+
+    2. In the nginx.conf file, add a dav_methods PUT DELETE directive. For
+       example:
+
+       copy
+
+ events {
+     worker_connections  1024;
+ }
+ http {
+   server {
+     listen 20150;
+     location / {
+       dav_methods  PUT DELETE;
+       root /mnt/cockroach-exports;
+       sendfile           on;
+       sendfile_max_chunk 1m;
+     }
+   }
+ }
+
+See also
+
+     * IMPORT
+     * BACKUP (Enterprise only)
+     * RESTORE (Enterprise only)
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

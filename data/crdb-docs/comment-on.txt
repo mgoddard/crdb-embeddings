@@ -1,0 +1,242 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                   COMMENT ON
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The COMMENT ON statement associates comments to databases, tables,
+   columns, or indexes.
+
+Required privileges
+
+   The user must have the CREATE privilege on the object they are commenting
+   on.
+
+Synopsis
+
+   COMMENT ON DATABASE database_name TABLE table_name COLUMN column_name
+   INDEX table_index_name IS comment_text
+
+Parameters
+
+   Parameter        Description                                             
+   database_name    The name of the database you are commenting on.         
+   table_name       The name of the table you are commenting on.            
+   column_name      The name of the column you are commenting on.           
+   table_index_name The name of the index you are commenting on.            
+   comment_text     The comment (STRING) you are associating to the object. 
+
+Examples
+
+  Setup
+
+   The following examples use MovR, a fictional vehicle-sharing application,
+   to demonstrate CockroachDB SQL statements. For more information about the
+   MovR example application and dataset, see MovR: A Global Vehicle-sharing
+   App.
+
+   To follow along, run cockroach demo to start a temporary, in-memory
+   cluster with the movr dataset preloaded:
+
+   copy
+
+ $ cockroach demo
+
+  Add a comment to a database
+
+   To add a comment to a database:
+
+   copy
+
+ > COMMENT ON DATABASE movr IS 'This database contains information about users, vehicles, and rides.';
+
+   To view database comments, use SHOW DATABASES:
+
+   copy
+
+ > SHOW DATABASES WITH COMMENT;
+
+   database_name |                              comment
+ +---------------+-------------------------------------------------------------------+
+   defaultdb     | NULL
+   movr          | This database contains information about users, vehicles, and rides.
+   postgres      | NULL
+   system        | NULL
+ (4 rows)
+
+  Add a comment to a table
+
+   To add a comment to a table:
+
+   copy
+
+ > COMMENT ON TABLE vehicles IS 'This table contains information about vehicles registered with MovR.';
+
+   To view table comments, use SHOW TABLES:
+
+   copy
+
+ > SHOW TABLES FROM movr WITH COMMENT;
+
+           table_name         |                               comment
+ +----------------------------+----------------------------------------------------------------------+
+   users                      |
+   vehicles                   | This table contains information about vehicles registered with MovR.
+   rides                      |
+   vehicle_location_histories |
+   promo_codes                |
+   user_promo_codes           |
+ (6 rows)
+
+   You can also view comments on a table with SHOW CREATE:
+
+   copy
+
+ > SHOW CREATE TABLE vehicles;
+
+   table_name |                                          create_statement
+ -------------+------------------------------------------------------------------------------------------------------
+   vehicles   | CREATE TABLE vehicles (
+              |     id UUID NOT NULL,
+              |     city VARCHAR NOT NULL,
+              |     type VARCHAR NULL,
+              |     owner_id UUID NULL,
+              |     creation_time TIMESTAMP NULL,
+              |     status VARCHAR NULL,
+              |     current_location VARCHAR NULL,
+              |     ext JSONB NULL,
+              |     CONSTRAINT "primary" PRIMARY KEY (city ASC, id ASC),
+              |     CONSTRAINT fk_city_ref_users FOREIGN KEY (city, owner_id) REFERENCES users(city, id),
+              |     INDEX vehicles_auto_index_fk_city_ref_users (city ASC, owner_id ASC),
+              |     FAMILY "primary" (id, city, type, owner_id, creation_time, status, current_location, ext)
+              | );
+              | COMMENT ON TABLE vehicles IS 'This table contains information about vehicles registered with MovR.'
+ (1 row)
+
+  Add a comment to a column
+
+   To add a comment to a column:
+
+   copy
+
+ > COMMENT ON COLUMN users.credit_card IS 'This column contains user payment information.';
+
+   To view column comments, use SHOW COLUMNS:
+
+   copy
+
+ > SHOW COLUMNS FROM users WITH COMMENT;
+
+   column_name | data_type | is_nullable | column_default | generation_expression |  indices  | is_hidden |                    comment
+ +-------------+-----------+-------------+----------------+-----------------------+-----------+-----------+------------------------------------------------+
+   id          | UUID      |    false    | NULL           |                       | {primary} |   false   | NULL
+   city        | VARCHAR   |    false    | NULL           |                       | {primary} |   false   | NULL
+   name        | VARCHAR   |    true     | NULL           |                       | {}        |   false   | NULL
+   address     | VARCHAR   |    true     | NULL           |                       | {}        |   false   | NULL
+   credit_card | VARCHAR   |    true     | NULL           |                       | {}        |   false   | This column contains user payment information.
+ (5 rows)
+
+  Add a comment to an index
+
+   Suppose we create an index on the name column of the users table:
+
+   copy
+
+ > CREATE INDEX ON users(name);
+
+   To add a comment to the index:
+
+   copy
+
+ > COMMENT ON INDEX users_name_idx IS 'This index improves performance on queries that filter by name.';
+
+   To view column comments, use SHOW INDEXES ... WITH COMMENT:
+
+   copy
+
+ > SHOW INDEXES FROM users WITH COMMENT;
+
+   table_name |   index_name   | non_unique | seq_in_index | column_name | direction | storing | implicit |                             comment
+ -------------+----------------+------------+--------------+-------------+-----------+---------+----------+------------------------------------------------------------------
+   users      | primary        |   false    |            1 | city        | ASC       |  false  |  false   | NULL
+   users      | primary        |   false    |            2 | id          | ASC       |  false  |  false   | NULL
+   users      | users_name_idx |    true    |            1 | name        | ASC       |  false  |  false   | This index improves performance on queries that filter by name.
+   users      | users_name_idx |    true    |            2 | city        | ASC       |  false  |   true   | This index improves performance on queries that filter by name.
+   users      | users_name_idx |    true    |            3 | id          | ASC       |  false  |   true   | This index improves performance on queries that filter by name.
+   users      | primary        |   false    |            1 | city        | ASC       |  false  |  false   | NULL
+   users      | primary        |   false    |            2 | id          | ASC       |  false  |  false   | NULL
+ ...
+ (15 rows)
+
+See also
+
+     * CREATE DATABASE
+     * CREATE TABLE
+     * ADD COLUMN
+     * CREATE INDEX
+     * SHOW TABLES
+     * Other SQL Statements
+     * dBeaver
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

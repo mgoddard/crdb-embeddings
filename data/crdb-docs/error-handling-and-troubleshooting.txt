@@ -1,0 +1,216 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                       Error Handling and Troubleshooting
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   This page has instructions for handling errors and troubleshooting
+   problems that may arise during application development.
+
+Troubleshooting query problems
+
+   If you are not satisfied with your SQL query performance, follow the
+   instructions in Make Queries Fast to be sure you are avoiding common
+   performance problems like full table scans, missing indexes, etc.
+
+   If you have already optimized your SQL queries as described in Make
+   Queries Fast and are still having issues such as:
+
+     * Hanging or "stuck" queries
+     * Queries that are slow some of the time (but not always)
+     * Low throughput of queries
+
+   Take a look at Troubleshoot SQL Behavior.
+
+   Note:
+
+   If you aren't sure whether SQL query performance needs to be improved on
+   your cluster, see Identify slow queries.
+
+Transaction retry errors
+
+   Messages with the Postgres error code 40001 indicate that a transaction
+   failed because it conflicted with another concurrent or recent transaction
+   accessing the same data. The transaction needs to be retried by the
+   client.
+
+   If your language's client driver or ORM implements transaction retry logic
+   internally (e.g., if you are using Python and SQLAlchemy with the
+   CockroachDB dialect), then you don't need to handle this logic from your
+   application.
+
+   If your driver or ORM does not implement this logic, then you will need to
+   implement a retry loop in your application.
+
+   The Python-like pseudocode below shows how to implement an
+   application-level retry loop; it does not require your driver or ORM to
+   implement advanced retry handling logic, so it can be used from any
+   programming language or environment. In particular, your retry loop must:
+
+     * Raise an error if the max_retries limit is reached
+     * Retry on 40001 error codes
+     * COMMIT at the end of the try block
+     * Implement exponential backoff logic as shown below for best
+       performance
+
+ while true:
+     n++
+     if n == max_retries:
+         throw Error("did not succeed within N retries")
+     try:
+         # add logic here to run all your statements
+         conn.exec('COMMIT')
+     catch error:
+         if error.code != "40001":
+             throw error
+         else:
+             # This is a retry error, so we roll back the current transaction
+             # and sleep for a bit before retrying. The sleep time increases
+             # for each failed transaction.  Adapted from
+             # https://colintemple.com/2017/03/java-exponential-backoff/
+             conn.exec('ROLLBACK');
+             sleep_ms = int(((2**n) * 100) + rand( 100 - 1 ) + 1)
+             sleep(sleep_ms) # Assumes your sleep() takes milliseconds
+
+   Note:
+
+   If a consistently high percentage of your transactions are resulting in
+   transaction retry errors, then you may need to evaluate your schema design
+   and data access patterns to find and remove sources of contention. For
+   more information, see Understanding and Avoiding Transaction Contention.
+
+   For more information about transaction retry errors, see Transaction
+   retries.
+
+Unsupported SQL features
+
+   CockroachDB has support for most SQL features.
+
+   Additionally, CockroachDB supports the PostgreSQL wire protocol and the
+   majority of its syntax. This means that existing applications can often be
+   migrated to CockroachDB without changing application code.
+
+   However, you may encounter features of SQL or the Postgres dialect that
+   are not supported by CockroachDB. For example, the following Postgres
+   features are not supported:
+
+     * Stored procedures and functions
+     * Triggers
+     * Events
+     * User-defined functions
+     * FULLTEXT functions and indexes
+     * GEOSPATIAL functions and indexes
+     * Drop primary key
+     * XML Functions
+     * Column-level privileges
+     * XA syntax
+
+   For more information about the differences between CockroachDB and
+   Postgres feature support, see PostgreSQL Compatibility.
+
+   For more information about the SQL standard features supported by
+   CockroachDB, see SQL Feature Support
+
+Troubleshooting cluster problems
+
+   As a developer, you will mostly be working with the CockroachDB SQL API.
+
+   However, you may need to access the underlying cluster to troubleshoot
+   issues where the root cause is not your SQL, but something happening at
+   the cluster level. Symptoms of cluster-level issues can include:
+
+     * Cannot join a node to an existing cluster
+     * Networking, client connection, or authentication issues
+     * Clock sync, replication, or node liveness issues
+     * Capacity planning, storage, or memory issues
+     * Node decommissioning failures
+
+   For more information about how to troubleshoot cluster-level issues, see
+   Troubleshoot Cluster Setup.
+
+See also
+
+   Reference information related to this page:
+
+     * Troubleshoot Query Behavior
+     * Troubleshoot Cluster Setup
+     * Common errors
+     * Transactions
+     * Transaction retries
+     * Understanding and Avoiding Transaction Contention
+     * SQL Layer
+
+   Other common tasks:
+
+     * Connect to the Database
+     * Insert Data
+     * Query Data
+     * Update Data
+     * Delete Data
+     * Run Multi-Statement Transactions
+     * Identify slow queries
+     * Make Queries Fast
+     * Hello World Example apps
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

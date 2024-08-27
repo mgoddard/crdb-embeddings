@@ -1,0 +1,183 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                 RENAME COLUMN
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The RENAME COLUMN statement changes the name of a column in a table.
+
+   Note:
+
+   It is not possible to rename a column referenced by a view. For more
+   details, see View Dependencies.
+
+   Tip:
+
+   This command can be combined with other ALTER TABLE commands in a single
+   statement. For a list of commands that can be combined, see ALTER TABLE.
+   For a demonstration, see Add and rename columns atomically.
+
+Synopsis
+
+   ALTER TABLE IF EXISTS table_name RENAME COLUMN current_name TO name
+
+Required privileges
+
+   The user must have the CREATE privilege on the table.
+
+Parameters
+
+   Parameter    Description                                                   
+   IF EXISTS    Rename the column only if a table of table_name exists; if    
+                one does not exist, do not return an error.                   
+   table_name   The name of the table with the column you want to use.        
+   current_name The current name of the column.                               
+   name         The name you want to use for the column, which must be unique 
+                to its table and follow these identifier rules.               
+
+Viewing schema changes
+
+   This schema change statement is registered as a job. You can view
+   long-running jobs with SHOW JOBS.
+
+Examples
+
+  Rename a column
+
+   copy
+
+ > CREATE TABLE users (
+     id INT PRIMARY KEY,
+     first_name STRING,
+     family_name STRING
+   );
+
+   copy
+
+ > ALTER TABLE users RENAME COLUMN family_name TO last_name;
+
+   table_name |                 create_statement
+ +------------+--------------------------------------------------+
+   users      | CREATE TABLE users (
+              |     id INT8 NOT NULL,
+              |     first_name STRING NULL,
+              |     last_name STRING NULL,
+              |     CONSTRAINT "primary" PRIMARY KEY (id ASC),
+              |     FAMILY "primary" (id, first_name, last_name)
+              | )
+ (1 row)
+
+  Add and rename columns atomically
+
+   Some subcommands can be used in combination in a single ALTER TABLE
+   statement. For example, let's say you create a users table with 2 columns,
+   an id column for the primary key and a name column for each user's last
+   name:
+
+   copy
+
+ > CREATE TABLE users (
+     id INT PRIMARY KEY,
+     name STRING
+   );
+
+   Then you decide you want distinct columns for each user's first name, last
+   name, and full name, so you execute a single ALTER TABLE statement
+   renaming name to last_name, adding first_name, and adding a computed
+   column called name that concatenates first_name and last_name:
+
+   copy
+
+ > ALTER TABLE users
+     RENAME COLUMN name TO last_name,
+     ADD COLUMN first_name STRING,
+     ADD COLUMN name STRING
+       AS (CONCAT(first_name, ' ', last_name)) STORED;
+
+   copy
+
+ > SHOW CREATE TABLE users;
+
+   table_name |                           create_statement
+ +------------+----------------------------------------------------------------------+
+   users      | CREATE TABLE users (
+              |     id INT8 NOT NULL,
+              |     last_name STRING NULL,
+              |     first_name STRING NULL,
+              |     name STRING NULL AS (concat(first_name, ' ', last_name)) STORED,
+              |     CONSTRAINT "primary" PRIMARY KEY (id ASC),
+              |     FAMILY "primary" (id, last_name, first_name, name)
+              | )
+ (1 row)
+
+See also
+
+     * ALTER TABLE
+     * ADD CONSTRAINT
+     * RENAME DATABASE
+     * RENAME TABLE
+     * RENAME CONSTRAINT
+     * SHOW JOBS
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices

@@ -1,0 +1,290 @@
+   Link: canonical
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+   Cockroach Labs
+   Products
+   Products CockroachDB CockroachCloud Compare Products Pricing
+   Capabilities SQL Scale Resilience Geo-Partitioning Cloud Native
+   Customers
+   Learn
+   Docs University
+   Resources
+   Guides Videos & Webinars Partners Forum
+   Blog Get CockroachDB Contact Us
+
+                                  SHOW CREATE
+
+   Contribute 
+     * Edit This Page
+     * Report Doc Issue
+     * Suggest New Content
+
+   The SHOW CREATE statement shows the CREATE statement for an existing
+   table, view, or sequence.
+
+Required privileges
+
+   The user must have any privilege on the target table, view, or sequence.
+
+Synopsis
+
+   SHOW CREATE object_name
+
+Parameters
+
+   Parameter   Description                                                    
+   object_name The name of the table, view, or sequence for which to show the 
+               CREATE statement.                                              
+
+Response
+
+   Field            Description                                            
+   table_name       The name of the table, view, or sequence.              
+   create_statement The CREATE statement for the table, view, or sequence. 
+
+Example
+
+  Setup
+
+   The following examples use MovR, a fictional vehicle-sharing application,
+   to demonstrate CockroachDB SQL statements. For more information about the
+   MovR example application and dataset, see MovR: A Global Vehicle-sharing
+   App.
+
+   To follow along, run cockroach demo to start a temporary, in-memory
+   cluster with the movr dataset preloaded:
+
+   copy
+
+ $ cockroach demo
+
+  Show the CREATE TABLE statement for a table
+
+   copy
+
+ > CREATE TABLE drivers (
+     id UUID NOT NULL,
+     city STRING NOT NULL,
+     name STRING,
+     dl STRING UNIQUE,
+     address STRING,
+     CONSTRAINT "primary" PRIMARY KEY (city ASC, id ASC)
+ );
+
+   copy
+
+ > SHOW CREATE TABLE drivers;
+
+   table_name |                     create_statement
+ +------------+----------------------------------------------------------+
+   drivers    | CREATE TABLE drivers (
+              |     id UUID NOT NULL,
+              |     city STRING NOT NULL,
+              |     name STRING NULL,
+              |     dl STRING NULL,
+              |     address STRING NULL,
+              |     CONSTRAINT "primary" PRIMARY KEY (city ASC, id ASC),
+              |     UNIQUE INDEX drivers_dl_key (dl ASC),
+              |     FAMILY "primary" (id, city, name, dl, address)
+              | )
+ (1 row)
+
+   To return just the create_statement value:
+
+   copy
+
+ > SELECT create_statement FROM [SHOW CREATE TABLE drivers];
+
+                       create_statement
+ ------------------------------------------------------------
+   CREATE TABLE drivers (
+       id UUID NOT NULL,
+       city STRING NOT NULL,
+       name STRING NULL,
+       dl STRING NULL,
+       address STRING NULL,
+       CONSTRAINT "primary" PRIMARY KEY (city ASC, id ASC),
+       UNIQUE INDEX drivers_dl_key (dl ASC),
+       FAMILY "primary" (id, city, name, dl, address)
+   )
+ (1 row)
+
+   Note:
+
+   SHOW CREATE TABLE also lists any partitions and zone configurations
+   defined on primary and secondary indexes of a table. If partitions are
+   defined, but no zones are configured, the SHOW CREATE TABLE output
+   includes a warning.
+
+  Show the CREATE VIEW statement for a view
+
+   copy
+
+ > CREATE VIEW user_view (city, name) AS SELECT city, name FROM users;
+
+   copy
+
+ > SHOW CREATE user_view;
+
+   table_name |                                create_statement
+ +------------+--------------------------------------------------------------------------------+
+   user_view  | CREATE VIEW user_view (city, name) AS SELECT city, name FROM movr.public.users
+ (1 row)
+
+   To return just the create_statement value:
+
+   copy
+
+ > SELECT create_statement FROM [SHOW CREATE VIEW user_view];
+
+                                  create_statement
+ ----------------------------------------------------------------------------------
+   CREATE VIEW user_view (city, name) AS SELECT city, name FROM movr.public.users
+ (1 row)
+
+  Show just a view's SELECT statement
+
+   To get just a view's SELECT statement, you can query the views table in
+   the built-in information_schema database and filter on the view name:
+
+   copy
+
+ > SELECT view_definition
+   FROM information_schema.views
+   WHERE table_name = 'user_view';
+
+               view_definition
+ +------------------------------------------+
+   SELECT city, name FROM movr.public.users
+ (1 row)
+
+  Show the CREATE SEQUENCE statement for a sequence
+
+   copy
+
+ > CREATE SEQUENCE desc_customer_list START -1 INCREMENT -2;
+
+   copy
+
+ > SHOW CREATE desc_customer_list;
+
+       table_name     |                                          create_statement
+ +--------------------+----------------------------------------------------------------------------------------------------+
+   desc_customer_list | CREATE SEQUENCE desc_customer_list MINVALUE -9223372036854775808 MAXVALUE -1 INCREMENT -2 START -1
+ (1 row)
+
+   To return just the create_statement value:
+
+   copy
+
+ > SELECT create_statement FROM [SHOW CREATE desc_customer_list];
+
+                                            create_statement
+ ------------------------------------------------------------------------------------------------------
+   CREATE SEQUENCE desc_customer_list MINVALUE -9223372036854775808 MAXVALUE -1 INCREMENT -2 START -1
+ (1 row)
+
+  Show the CREATE TABLE statement for a table with a comment
+
+   If you add a comment on a table, SHOW CREATE TABLE will display the
+   comment.
+
+   copy
+
+ > COMMENT ON TABLE users IS 'This table contains information about users.';
+
+   copy
+
+ > SHOW CREATE TABLE users;
+
+   table_name |                             create_statement
+ -------------+---------------------------------------------------------------------------
+   users      | CREATE TABLE users (
+              |     id UUID NOT NULL,
+              |     city VARCHAR NOT NULL,
+              |     name VARCHAR NULL,
+              |     address VARCHAR NULL,
+              |     credit_card VARCHAR NULL,
+              |     CONSTRAINT "primary" PRIMARY KEY (city ASC, id ASC),
+              |     FAMILY "primary" (id, city, name, address, credit_card)
+              | );
+              | COMMENT ON TABLE users IS 'This table contains information about users.'
+ (1 row)
+
+   To return just the create_statement value:
+
+   copy
+
+ > SELECT create_statement FROM [SHOW CREATE TABLE users];
+
+                               create_statement
+ ----------------------------------------------------------------------------
+   CREATE TABLE users (
+       id UUID NOT NULL,
+       city VARCHAR NOT NULL,
+       name VARCHAR NULL,
+       address VARCHAR NULL,
+       credit_card VARCHAR NULL,
+       CONSTRAINT "primary" PRIMARY KEY (city ASC, id ASC),
+       FAMILY "primary" (id, city, name, address, credit_card)
+   );
+   COMMENT ON TABLE users IS 'This table contains information about users.'
+ (1 row)
+
+   For more information, see COMMENT ON.
+
+See also
+
+     * CREATE TABLE
+     * CREATE VIEW
+     * CREATE TABLE
+     * Information Schema
+     * Other SQL Statements
+
+   Was this page helpful?
+
+   Yes No
+     * Product
+          * CockroachDB
+          * CockroachCloud
+          * Compare
+          * Pricing
+          * What's New
+          * Get CockroachDB
+          * Sign In
+     * Resources
+          * Guides
+          * Videos & Webinars
+          * Architecture Overview
+          * FAQ
+          * Security
+     * Learn
+          * Docs
+          * University
+     * Support Channels
+          * Forum
+          * Slack
+          * Support Portal
+          * Contact Us
+     * Company
+          * About
+          * Blog
+          * Careers
+          * Customers
+          * Events
+          * News
+          * Privacy
+   © 2020 Cockroach Labs
+   Thank you for downloading CockroachDB
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
+   Keep up-to-date with CockroachDB software releases and usage best
+   practices
