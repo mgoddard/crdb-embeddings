@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import requests
 import sys, os, re
@@ -14,22 +14,23 @@ if len(sys.argv) < 2:
 
 def read_file(in_file):
   rv = ""
-  with open(in_file, mode="rt") as f:
+  with open(in_file, mode="rb") as f:
     try:
-      for line in f:
-        rv += line
-    except UnicodeDecodeError:
+      rv = f.read().decode(errors="replace")
+    except UnicodeDecodeError as e:
+      print(e)
       rv = None
   return rv
 
 for doc_uri in sys.argv[1:]:
   t0 = time.time()
+  print("Input file: {}".format(doc_uri))
   doc_text = read_file(doc_uri)
   if doc_text is None:
+    print("FAILED to extract text: {}".format(doc_uri))
     continue
   doc_uri = re.sub(r"^[\./]+", '', doc_uri)
-  #print("URI: {}\nTEXT: {}".format(doc_uri, doc_text))
   req = requests.post(url, json = { "uri": doc_uri, "text": doc_text })
   et = time.time() - t0
-  print("{}: {} (t = {:.3f} ms)".format(doc_uri, "SUCCESS" if req.status_code == 200 else "FAILED: " + req.content.decode("utf-8"), et*1000))
+  print("{} (t = {:.3f} ms)".format("SUCCESS" if req.status_code == 200 else "FAILED: " + req.content.decode("utf-8"), et*1000))
 
