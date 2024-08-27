@@ -1,0 +1,10 @@
+Last month, a global IT outage made international headlines, with news reports carrying images of travellers stranded at airports as staff were met with the so-called “blue screen of death”.
+
+The outage was caused by an update from security software provider CrowdStrike to enterprise services provided by Microsoft. While CrowdStrike rapidly issued a fix, millions of machines affected by the outage had to be rebooted manually to continue functioning. 
+
+Banks and financial services firms were hit by the July 19 outage in various ways. Beyond its immediate impact, the episode also provided a lens through which to scrutinise the structures set up by major banks to ensure IT resilience. 
+
+While banks in the EU are gearing up for the Digital Operational Resilience Act, UK lenders have been working under a regime introduced by the supervisory authorities — the Prudential Regulation Authority, the Financial Conduct Authority and the Bank of England — since March 2022. UK regulators have also been consulting on their proposed new critical third-party regime, which looks at the impact of third-party suppliers, with final rules and expectations expected towards the end of 2024. 
+
+Spurred on by the digital acceleration experienced by the wider banking industry since the start of the Covid-19 pandemic, global regulators — from the US to Singapore to the global Basel Committee — have also turned their attention towards financial institutions’ increasing dependence on technology, and the consequences of an outage or cyber attack on the ecosystem.
+
