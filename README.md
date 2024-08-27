@@ -288,4 +288,5 @@ Restart the app
 * https://huggingface.co/distilbert/distilbert-base-uncased
 * https://mccormickml.com/2019/05/14/BERT-word-embeddings-tutorial/
 * https://github.com/qdrant/fastembed
+* https://github.com/pgvector/pgvector-python?tab=readme-ov-file#psycopg-2
 
