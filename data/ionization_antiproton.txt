@@ -1,0 +1,17 @@
+Threshold ionization of hydrogen by antiproton impact , James M Feagin, Michael J Goddard
+
+1 min. readView original
+Purpose-led Publishing is a coalition of three not-for-profit publishers in the field of physical sciences: AIP Publishing, the American Physical Society and IOP Publishing.
+
+Together, as publishers that will always put purpose above profit, we have defined a set of industry standards that underpin high-quality, ethical scholarly communications.
+
+We are proudly declaring that science is our only shareholder.
+
+James M Feagin1 and Michael J Goddard1
+Published under licence by IOP Publishing Ltd
+Journal of Physics B: Atomic, Molecular and Optical Physics, Volume 30, Number 3 Citation James M Feagin and Michael J Goddard 1997 J. Phys. B: At. Mol. Opt. Phys. 30 693 DOI 10.1088/0953-4075/30/3/022
+
+0953-4075/30/3/693
+
+Abstract
+Antiproton impact ionization near threshold is analysed from the point of view of an unstable dynamical equilibrium in the slow three-body break-up configuration. The instability is shown to be displaced from the Coulomb saddle - the centre of charge of the antiproton and the electron - and hence with the proton on the line between the negative pair but about six times closer to the antiproton than to the electron. The Wannier threshold law is derived, and possible negative-ion probes of these underlying Coulomb instabilities considered.
