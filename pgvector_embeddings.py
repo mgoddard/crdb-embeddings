@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+# Debug memory leak
+#import gc
+#gc.set_debug(gc.DEBUG_LEAK)
+
 import re, sys, os, time, random, io
 import logging
 import psycopg2
@@ -18,7 +22,6 @@ import base64
 from functools import lru_cache
 import uuid
 import os.path
-import queue
 import pickle
 import requests
 from fastembed import TextEmbedding
@@ -93,10 +96,7 @@ def connect(dbapi_connection, connection_record):
   cur.close()
 
 t0 = time.time()
-embed_model_q = queue.Queue()
-for i in range(0, n_threads):
-  embedding_model = TextEmbedding()
-  embed_model_q.put(embedding_model)
+embed_model = TextEmbedding()
 et = time.time() - t0
 logging.info("TextEmbedding model ready: {} s".format(et))
 
@@ -239,10 +239,7 @@ def retry(f, args):
 
 # Return cluster ID value for embedding using "read" or "write" model
 def get_cluster_id(rw, embed):
-  embed_padded = embed
-  for i in range(0, KMEANS_DIM - len(embed)):
-    embed_padded.append(0.0)
-  return int(kmeans_model[rw].predict([embed_padded])[0])
+  return int(kmeans_model[rw].predict([embed])[0])
 
 def index_text(uri, text):
   te_rows = []
@@ -254,11 +251,8 @@ def index_text(uri, text):
     if (len(s) >= min_sentence_len):
       s_list.append(s)
   t0 = time.time()
-  global embed_model_q
-  embed_model = embed_model_q.get()
   embed_list = list(embed_model.embed(s_list))
   embed_list = [x.tolist() for x in embed_list]
-  embed_model_q.put(embed_model)
   et = time.time() - t0
   logging.info("Time to generate embeddings(): {} ms".format(et * 1000))
   for i in range(0, len(s_list)):
@@ -458,11 +452,8 @@ def build_model(s):
 def search(terms, limit):
   q = ' '.join(terms)
   rv = []
-  global embed_model_q
-  embed_model = embed_model_q.get()
   embed_list = list(embed_model.embed([q]))
-  embed_list = [x.tolist() for x in embed_list]
-  embed_model_q.put(embed_model)
+  embed_list = [x.tolist() for x in embed_list] # Source of memory leak?
   embed = embed_list[0]
   cluster_id = get_cluster_id("read", embed)
   logging.info("Query string: '{}'".format(q))
