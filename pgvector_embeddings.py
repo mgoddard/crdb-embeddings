@@ -26,6 +26,36 @@ import pickle
 import requests
 from fastembed import TextEmbedding
 
+# Attempt to deal with SQLAlchemy / Psycopg failing to deal with Numpy types
+# May also need this: https://github.com/pgvector/pgvector-python
+from pgvector.psycopg2 import register_vector
+
+"""
+from psycopg2.extensions import register_adapter, AsIs
+
+def addapt_numpy_float64(numpy_float64):
+    return AsIs(numpy_float64)
+
+def addapt_numpy_int64(numpy_int64):
+    return AsIs(numpy_int64)
+
+def addapt_numpy_float32(numpy_float32):
+    return AsIs(numpy_float32)
+
+def addapt_numpy_int32(numpy_int32):
+    return AsIs(numpy_int32)
+
+def addapt_numpy_array(numpy_array):
+    return AsIs(tuple(numpy_array))
+
+register_adapter(np.float64, addapt_numpy_float64)
+register_adapter(np.int64, addapt_numpy_int64)
+register_adapter(np.float32, addapt_numpy_float32)
+register_adapter(np.int32, addapt_numpy_int32)
+register_adapter(np.ndarray, addapt_numpy_array)
+"""
+# End of that adapter
+
 BLOCK_SIZE = 64 * (1 << 10) # Used when striping the model across > 1 row in blob_store
 CHARSET = "utf-8"
 kmeans_model = { "read": None, "write": None }
@@ -90,6 +120,7 @@ engine = create_engine(db_url, pool_size=20, pool_pre_ping=True, connect_args = 
 
 @event.listens_for(engine, "connect")
 def connect(dbapi_connection, connection_record):
+  register_vector(dbapi_connection)
   cur = dbapi_connection.cursor()
   cur.execute("SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL READ COMMITTED;")
   cur.execute("SET plan_cache_mode = auto;")
@@ -453,12 +484,18 @@ def search(terms, limit):
   q = ' '.join(terms)
   rv = []
   embed_list = list(embed_model.embed([q]))
-  embed_list = [x.tolist() for x in embed_list] # Source of memory leak?
+  #embed_list = [x.tolist() for x in embed_list] # Source of memory leak?
   embed = embed_list[0]
-  cluster_id = get_cluster_id("read", embed)
+  cluster_id = get_cluster_id("read", embed) # This works fine with the ndarray type
   logging.info("Query string: '{}'".format(q))
   logging.info("Cluster ID: {}".format(cluster_id))
   t0 = time.time()
+  """
+  
+  sqlalchemy.exc.ProgrammingError: (psycopg2.ProgrammingError) can't adapt type 'numpy.ndarray'
+  sqlalchemy.exc.ProgrammingError: (psycopg2.ProgrammingError) can't adapt type 'numpy.float32'
+
+  """
   stmt = text(gen_sql()).bindparams(q_embed=embed, cluster_id=cluster_id, limit=limit)
   with engine.connect() as conn:
     conn.execute(text("SET TRANSACTION AS OF SYSTEM TIME '-10s';"))
