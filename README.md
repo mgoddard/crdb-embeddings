@@ -182,6 +182,11 @@ Fetching 5 files: 100%|███████████████████
 
 ## Index some documents
 
+**Note:** This process is time consuming and would benefit from being parallelized.
+The app itself is multi-threaded, and CockroachDB scales very nicely, so altering
+`./index_doc.py` so it can submit multiple indexing requests in parallel is all that
+has to be done.
+
 ```
 $ . ./env.sh
 $ time ./index_doc.py ./data/*.txt
