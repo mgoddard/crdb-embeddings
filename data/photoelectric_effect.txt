@@ -1,0 +1,16 @@
+In 1887, Heinrich Hertz observed that when light with sufficient frequency hits a metallic surface, the surface emits cathode rays.[1]: I:362  Ten years later, J. J. Thomson showed that the many reports of cathode rays were actually "corpuscles" and they quickly came to be called electrons. In 1902, Philipp Lenard discovered that the maximum possible energy of an ejected electron is unrelated to its intensity.[12] This observation is at odds with classical electromagnetism, which predicts that the electron's energy should be proportional to the intensity of the incident radiation.[13]: 24 
+
+Albert Einstein c. 1905
+In 1905, Albert Einstein suggested that even though continuous models of light worked extremely well for time-averaged optical phenomena, for instantaneous transitions the energy in light may occur a finite number of energy quanta.[14] From the introduction section of his March 1905 quantum paper "On a heuristic viewpoint concerning the emission and transformation of light", Einstein states:
+
+According to the assumption to be contemplated here, when a light ray is spreading from a point, the energy is not distributed continuously over ever-increasing spaces, but consists of a finite number of "energy quanta" that are localized in points in space, move without dividing, and can be absorbed or generated only as a whole.
+
+This statement has been called the most revolutionary sentence written by a physicist of the twentieth century.[15] The energy of a single quantum of light of frequency f 
+
+Einstein assumed a light quanta transfers all of its energy to a single electron imparting at most an energy hf to the electron. Therefore, only the light frequency determines the maximum energy that can be imparted to the electron; the intensity of the photoemission is proportional to the light beam intensity.[14]
+
+Einstein argued that it takes a certain amount of energy, called the work function and denoted by φ, to remove an electron from the metal.[16] This amount of energy is different for each metal. If the energy of the light quanta is less than the work function, then it does not carry sufficient energy to remove the electron from the metal. The threshold frequency, f0, is the frequency of a light quanta whose energy is equal to the work function:
+
+If f is greater than f0, the energy hf is enough to remove an electron. The ejected electron has a kinetic energy, Ek, which is, at most, equal to the light energy minus the energy needed to dislodge the electron from the metal:
+
+Einstein's description of light as being composed of energy quanta extended Planck's notion of quantized energy, which is that a single quanta of a given frequency, f, delivers an invariant amount of energy, hf. In nature, single quanta are rarely encountered. The Sun and emission sources available in the 19th century emit vast amount of energy every second. The Planck constant, h, is so tiny that the amount of energy in each quanta, hf is very very small. Light we see includes many trillions of such quanta.
