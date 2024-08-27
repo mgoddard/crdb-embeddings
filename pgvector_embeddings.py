@@ -280,7 +280,10 @@ def index_text(uri, text):
     n_chunk += 1
   t0 = time.time()
   with engine.begin() as conn: # Same TXN for both table INSERTs
-    conn.execute(insert(text_embed_table), te_rows)
+    try:
+      conn.execute(insert(text_embed_table), te_rows)
+    except sqlalchemy.exc.IntegrityError as e:
+      return e.orig.diag.message_detail
     if not skip_kmeans:
       conn.execute(insert(cluster_assign_table), ca_rows)
     conn.commit()
@@ -293,7 +296,7 @@ def index_file(in_file):
     for line in f:
       text += line
   in_file = re.sub(r"\./", '', in_file) # Trim leading '/'
-  retry(index_text, (in_file, text))
+  return retry(index_text, (in_file, text))
 
 # Clean any special chars out of text
 def clean_text(text):
@@ -502,12 +505,15 @@ def do_search(q_base_64, limit):
 
 @app.route("/index", methods=["POST"])
 def do_index():
+  rv = Response("OK", status=200, mimetype="text/plain")
   #log_txn_isolation_level()
   data = request.get_json(force=True)
-  retry(index_text, (data["uri"], data["text"]))
+  msg = retry(index_text, (data["uri"], data["text"]))
+  if msg is not None:
+    rv = Response(msg, status=400, mimetype="text/plain")
   # Note the extra arguments here which translate the \uxxxx escape codes
   #print("Data: " + json.dumps(data, ensure_ascii=False).encode("utf8").decode())
-  return Response("OK", status=200, mimetype="text/plain")
+  return rv
 
 @app.route("/health", methods=["GET"])
 def health():

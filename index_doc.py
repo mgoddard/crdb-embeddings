@@ -31,5 +31,5 @@ for doc_uri in sys.argv[1:]:
   #print("URI: {}\nTEXT: {}".format(doc_uri, doc_text))
   req = requests.post(url, json = { "uri": doc_uri, "text": doc_text })
   et = time.time() - t0
-  print("{}: {} (t = {:.3f} ms)".format(doc_uri, "SUCCESS" if req.status_code == 200 else "FAILED", et*1000))
+  print("{}: {} (t = {:.3f} ms)".format(doc_uri, "SUCCESS" if req.status_code == 200 else "FAILED: " + req.content.decode("utf-8"), et*1000))
 
