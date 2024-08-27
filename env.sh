@@ -7,15 +7,14 @@ export DB_URL="postgres://test_role:123abc@127.0.0.1:26257/defaultdb?sslmode=req
 
 export LOG_LEVEL=INFO
 export N_THREADS=10
-export CACHE_SIZE=1024
 export MIN_SENTENCE_LEN=8
-export N_CLUSTERS=500
+export N_CLUSTERS=1000
 export TRAIN_FRACTION=1.0
 export MODEL_FILE=/tmp/model.pkl
 export MODEL_FILE_URL="https://storage.googleapis.com/crl-goddard-text/model_Fastembed_500.pkl"
-export BATCH_SIZE=1024
+export BATCH_SIZE=768
 export KMEANS_VERBOSE=1
-export KMEANS_MAX_ITER=100
+export KMEANS_MAX_ITER=250
 export SKIP_KMEANS=False
 export SECRET="TextWithNoSpecialChars"
 export BLOB_STORE_KEEP_N_ROWS=3
