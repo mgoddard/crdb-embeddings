@@ -70,6 +70,8 @@ spec:
             value: "3"
           - name: SKIP_KMEANS
             value: "False"
+          - name: TOKENIZERS_PARALLELISM
+            value: "false"
         ports:
         - containerPort: 18080
         readinessProbe:

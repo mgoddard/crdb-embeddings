@@ -22,17 +22,27 @@ using the deployment defined [here](./k8s/crdb-embeddings.yaml).
 ## DB setup
 
 * Install a CockroachDB instance, using version 24.2+
+* Apply a CockroachDB Enterprise license
 * Create a user account for the app
 * GRANT this user/role access to the DB being used
 * The app creates all the required tables and indexes
 
 ## Configure environment variables
 
+The **simplest way to get started** is to run the Docker image. To do that, edit the
+`./docker_run_image.sh` file, adjusting the lines near the top as necessary:
+```
+# EDIT THESE TO SUIT YOUR DEPLOYMENT
+crdb_certs="$HOME/certs"
+export DB_URL="postgres://test_role:123abc@host.docker.internal:26257/defaultdb?sslmode=require&sslrootcert=$crdb_certs/ca.crt"
+port=1999 # You point your client at this port on localhost, so 'export FLASK_PORT=1999' in env.sh
+```
+You can then skip down to [Start the Flask server Docker image](#Start-the-Flask-server-Docker-image).
+
 If deploying locally or on a VM, edit the `./env.sh` file; if deploying in K8s, these
 variables are defined in the deployment YAML file (`./k8s/crdb-embeddings.yaml`).
 Here is a detailed explanation of the various environment variables used by the app
 and related scripts (search, index, ...):
-
 
 Host name and port used by the app (a Python Flask REST service):
 ```
@@ -138,46 +148,59 @@ The number of results retrieved and displayed as JSON by the client:
 export MAX_RESULTS=5
 ```
 
-## Start the Flask server process
+## Start the Flask server Docker image
 
 ```
-[05:43:35 crdb-embeddings]$ . ./env.sh
-[05:43:41 crdb-embeddings]$ ./pgvector_embeddings.py
-kmeans_max_iter: 25 (set via 'export KMEANS_MAX_ITER=25')
+[13:22:56 crdb-embeddings]$ ./docker_run_image.sh
+1.26: Pulling from mgoddard/crdb-embeddings-arm
+Digest: sha256:a83a9d8cd33342eba584ffa08a72660ad4595171ee8e4dfa78bf9a899de2315e
+Status: Image is up to date for mgoddard/crdb-embeddings-arm:1.26
+docker.io/mgoddard/crdb-embeddings-arm:1.26
+Collecting psycopg2-binary
+  Downloading psycopg2_binary-2.9.9-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl (2.9 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.9/2.9 MB 16.6 MB/s eta 0:00:00
+[... Many more such lines removed here for brevity ...]
+Building wheels for collected packages: PyStemmer
+  Building wheel for PyStemmer (setup.py): started
+  Building wheel for PyStemmer (setup.py): finished with status 'done'
+  Created wheel for PyStemmer: filename=PyStemmer-2.2.0.1-cp38-cp38-linux_aarch64.whl size=612716 sha256=9b9eb0b5d11052fff130237e588c074cef726edcd7dcc246301a43d28a6478fe
+  Stored in directory: /tmp/pip-ephem-wheel-cache-aj__ssz4/wheels/78/04/32/a81f10f01775fcadba622dbcf8305f8053ab1db21b20a25fc4
+Successfully built PyStemmer
+Installing collected packages: snowballstemmer, PyStemmer, mpmath, mmh3, flatbuffers, zipp, waitress, urllib3, typing-extensions, tqdm, threadpoolctl, sympy, pyyaml, psycopg2-binary, protobuf, pillow, packaging, numpy, MarkupSafe, loguru, joblib, itsdangerous, idna, humanfriendly, greenlet, fsspec, filelock, click, charset-normalizer, certifi, Werkzeug, SQLAlchemy, scipy, requests, psycopg2-pool, pgvector, onnx, Jinja2, importlib-metadata, coloredlogs, sqlalchemy-cockroachdb, scikit-learn, onnxruntime, huggingface-hub, Flask, tokenizers, fastembed
+Successfully installed Flask-2.1.0 Jinja2-3.1.4 MarkupSafe-2.1.5 PyStemmer-2.2.0.1 SQLAlchemy-2.0.25 Werkzeug-2.2.2 certifi-2024.7.4 charset-normalizer-3.3.2 click-8.1.7 coloredlogs-15.0.1 fastembed-0.3.6 filelock-3.15.4 flatbuffers-24.3.25 fsspec-2024.6.1 greenlet-3.0.3 huggingface-hub-0.24.6 humanfriendly-10.0 idna-3.8 importlib-metadata-8.4.0 itsdangerous-2.2.0 joblib-1.4.2 loguru-0.7.2 mmh3-4.1.0 mpmath-1.3.0 numpy-1.24.4 onnx-1.16.2 onnxruntime-1.19.0 packaging-24.1 pgvector-0.3.2 pillow-10.4.0 protobuf-5.27.4 psycopg2-binary-2.9.9 psycopg2-pool-1.2 pyyaml-6.0.2 requests-2.32.3 scikit-learn-1.3.2 scipy-1.10.1 snowballstemmer-2.2.0 sqlalchemy-cockroachdb-2.0.1 sympy-1.13.2 threadpoolctl-3.5.0 tokenizers-0.20.0 tqdm-4.66.5 typing-extensions-4.12.2 urllib3-2.2.2 waitress-3.0.0 zipp-3.20.1
+kmeans_max_iter: 250 (set via 'export KMEANS_MAX_ITER=25')
 kmeans_verbose: 1 (set via 'export KMEANS_VERBOSE=1')
 skip_kmeans: False (set via 'export SKIP_KMEANS=False')
-batch_size: 512 (set via 'export BATCH_SIZE=512')
-n_clusters : 100 (set via 'export N_CLUSTERS=50')
-train_fraction: 0.75 (set via 'export TRAIN_FRACTION=0.10')
+batch_size: 768 (set via 'export BATCH_SIZE=512')
+n_clusters : 1000 (set via 'export N_CLUSTERS=50')
+train_fraction: 0.5 (set via 'export TRAIN_FRACTION=0.10')
 model_file: /tmp/model.pkl (set via 'export MODEL_FILE=./model.pkl')
-model_url: https://storage.googleapis.com/crl-goddard-text/model_Fastembed_55k.pkl (set via 'export MODEL_FILE_URL=https://somewhere.com/path/model.pkl')
+model_url: https://storage.googleapis.com/crl-goddard-text/model_Fastembed_1k.pkl (set via 'export MODEL_FILE_URL=https://somewhere.com/path/model.pkl')
 min_sentence_len: 8 (set via 'export MIN_SENTENCE_LEN=12')
-cache_size: 1024 (set via 'export CACHE_SIZE=1024')
 n_threads: 10 (set via 'export N_THREADS=10')
 max_retries: 3 (set via 'export MAX_RETRIES=3')
 shared secret: TextWithNoSpecialChars
 blob_store_keep_n_rows: 3
 Log level: INFO (export LOG_LEVEL=[DEBUG|INFO|WARN|ERROR] to change this)
-Fetching 5 files: 100%|██████████████████████████████████████████████████████████████████████████| 5/5 [00:00<00:00, 106454.42it/s]
-Fetching 5 files: 100%|███████████████████████████████████████████████████████████████████████████| 5/5 [00:00<00:00, 31823.25it/s]
-Fetching 5 files: 100%|██████████████████████████████████████████████████████████████████████████| 5/5 [00:00<00:00, 116508.44it/s]
-Fetching 5 files: 100%|███████████████████████████████████████████████████████████████████████████| 5/5 [00:00<00:00, 26749.39it/s]
-Fetching 5 files: 100%|██████████████████████████████████████████████████████████████████████████| 5/5 [00:00<00:00, 102300.10it/s]
-Fetching 5 files: 100%|███████████████████████████████████████████████████████████████████████████| 5/5 [00:00<00:00, 57456.22it/s]
-Fetching 5 files: 100%|███████████████████████████████████████████████████████████████████████████| 5/5 [00:00<00:00, 22310.13it/s]
-Fetching 5 files: 100%|███████████████████████████████████████████████████████████████████████████| 5/5 [00:00<00:00, 75709.46it/s]
-Fetching 5 files: 100%|███████████████████████████████████████████████████████████████████████████| 5/5 [00:00<00:00, 35484.81it/s]
-Fetching 5 files: 100%|██████████████████████████████████████████████████████████████████████████| 5/5 [00:00<00:00, 192399.27it/s]
-[08/26/2024 05:43:50 AM MainThread] TextEmbedding model ready: 1.7020652294158936 s
-[08/26/2024 05:43:50 AM MainThread] Checking whether text_embed table exists
-[08/26/2024 05:43:51 AM MainThread] text_embed table already exists
-/opt/homebrew/lib/python3.12/site-packages/sqlalchemy_cockroachdb/base.py:226: SAWarning: Did not recognize type 'vector' of column 'embedding'
+Fetching 5 files: 100%|██████████| 5/5 [00:03<00:00,  1.48it/s]
+[08/28/2024 05:27:56 PM MainThread] TextEmbedding model ready: 4.718861103057861 s
+[08/28/2024 05:27:56 PM MainThread] Checking whether text_embed table exists
+[08/28/2024 05:27:57 PM MainThread] text_embed table already exists
+/usr/local/lib/python3.8/site-packages/sqlalchemy_cockroachdb/base.py:226: SAWarning: Did not recognize type 'vector' of column 'embedding'
   warn(f"Did not recognize type '{type_name}' of column '{name}'")
-[08/26/2024 05:43:51 AM MainThread] Fetching model from the DB ...
-[08/26/2024 05:43:51 AM MainThread] OK
-[08/26/2024 05:43:51 AM MainThread] K-means model loaded
-[08/26/2024 05:43:51 AM MainThread] You may need to update K-means cluster assignments by making a GET request to the /cluster_assign/TextWithNoSpecialChars endpoint.
-[08/26/2024 05:43:51 AM MainThread] Serving on http://0.0.0.0:1972
+[08/28/2024 05:27:57 PM MainThread] Fetching model from the DB ...
+/usr/local/lib/python3.8/site-packages/sklearn/base.py:348: InconsistentVersionWarning: Trying to unpickle estimator KMeans from version 1.5.1 when using version 1.3.2. This might lead to breaking code or invalid results. Use at your own risk. For more info please refer to:
+https://scikit-learn.org/stable/model_persistence.html#security-maintainability-limitations
+  warnings.warn(
+[08/28/2024 05:27:58 PM MainThread] OK
+[08/28/2024 05:27:58 PM MainThread] K-means model loaded
+[08/28/2024 05:27:58 PM MainThread] You may need to update K-means cluster assignments by making a GET request to the /cluster_assign/TextWithNoSpecialChars endpoint.
+[08/28/2024 05:27:58 PM MainThread] Serving on http://0.0.0.0:18080
+
+huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
+To disable this warning, you can either:
+	- Avoid using `tokenizers` before the fork if possible
+	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
 ```
 
 ## Index some documents
@@ -257,7 +280,7 @@ This takes a while (the `TRAIN_FRACTION` value affects the time).
 
 ## Refresh the cluster ID to row assignments
 
-This also takes a while, but is necessary after the model is rebuilt.
+This also takes a while, but is **necessary after the model is rebuilt**.
 If the search results don't make sense, it's likely you need to run this.
 
 ```
@@ -289,4 +312,5 @@ Restart the app
 * https://mccormickml.com/2019/05/14/BERT-word-embeddings-tutorial/
 * https://github.com/qdrant/fastembed
 * https://github.com/pgvector/pgvector-python?tab=readme-ov-file#psycopg-2
+* [Example CockroachDB query plan](./test/plan.txt) for these semantic searches
 
