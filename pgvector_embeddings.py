@@ -418,7 +418,7 @@ def build_model(s):
     rs = conn.execute(stmt)
     if rs is not None:
       for row in rs:
-        sampled_vecs.append([float(x) for x in row[0][1:-1].split(',')]) # Convert strings to float
+        sampled_vecs.append(row[0])
   et = time.time() - t0
   logging.info("SQL query time: {} ms".format(et * 1000))
   kmeans = KMeans(

@@ -20,7 +20,7 @@ spec:
   selector:
     matchLabels:
       app: crdb-embeddings
-  replicas: 1
+  replicas: 3
   template:
     metadata:
       labels:
@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
       - name: crdb-embeddings
-        image: mgoddard/crdb-embeddings-x86:1.25
+        image: mgoddard/crdb-embeddings-x86:1.26
         imagePullPolicy: Always
         resources:
           requests:
