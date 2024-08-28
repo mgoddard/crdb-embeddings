@@ -89,7 +89,6 @@ engine = create_engine(db_url, pool_size=20, pool_pre_ping=True, connect_args = 
 def connect(dbapi_connection, connection_record):
   register_vector(dbapi_connection)
   cur = dbapi_connection.cursor()
-  cur.execute("SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL READ COMMITTED;")
   cur.execute("SET plan_cache_mode = auto;")
   cur.close()
 
@@ -345,7 +344,6 @@ def refresh_cluster_assignments(s):
     if rs is not None:
       for row in rs:
         (uri, chunk_num, embed) = row
-        embed = [float(x) for x in embed[1:-1].split(',')]
         cluster_id = get_cluster_id("write", embed)
         row_map = {
           "uri": uri
