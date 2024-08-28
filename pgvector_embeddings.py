@@ -397,6 +397,28 @@ def store_model_in_db(mdl):
   with engine.begin() as conn:
     conn.execute(insert(blob_table), rows)
 
+@app.route("/sample/<int:n_rows>")
+def sample_data(n_rows):
+  logging.info("Getting {} sample rows ...".format(n_rows))
+  sql = """
+  SELECT chunk
+  FROM text_embed
+  ORDER BY RANDOM()
+  LIMIT :limit;
+  """
+  t0 = time.time()
+  stmt = text(sql).bindparams(limit=n_rows)
+  sample = []
+  with engine.connect() as conn:
+    conn.execute(text("SET TRANSACTION AS OF SYSTEM TIME '-10s';"))
+    rs = conn.execute(stmt)
+    if rs is not None:
+      for row in rs:
+        sample.append(row[0])
+  et = time.time() - t0
+  logging.info("SQL query time: {} ms".format(et * 1000))
+  return Response(json.dumps(sample), status=200, mimetype="application/json")
+
 @app.route("/build_model/<s>")
 def build_model(s):
   global kmeans_model
