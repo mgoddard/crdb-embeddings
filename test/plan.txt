@@ -1,0 +1,66 @@
+planning time: 1ms
+execution time: 16ms
+distribution: local
+vectorized: true
+plan type: generic, reused
+rows decoded from KV: 116 (95 KiB, 3 gRPC calls)
+cumulative time spent in KV: 13ms
+maximum memory usage: 270 KiB
+network usage: 0 B (0 messages)
+regions: us-east4
+used follower read
+sql cpu time: 2ms
+client time: 7µs
+isolation level: serializable
+priority: normal
+quality of service: regular
+historical: AS OF SYSTEM TIME 2024-08-28 13:45:07.354429
+
+• top-k
+│ sql nodes: n3
+│ regions: us-east4
+│ actual row count: 5
+│ estimated max memory allocated: 10 KiB
+│ estimated max sql temp disk usage: 0 B
+│ sql cpu time: 51µs
+│ estimated row count: 0
+│ order: -sim
+│ k: 5
+│
+└── • render
+    │
+    └── • lookup join
+        │ sql nodes: n3
+        │ kv nodes: n3
+        │ regions: us-east4
+        │ used follower read
+        │ actual row count: 58
+        │ KV time: 11ms
+        │ KV contention time: 0µs
+        │ KV rows decoded: 58
+        │ KV bytes read: 92 KiB
+        │ KV gRPC calls: 2
+        │ estimated max memory allocated: 215 KiB
+        │ sql cpu time: 2ms
+        │ estimated row count: 0
+        │ table: text_embed@text_embed_pkey
+        │ equality: (uri, chunk_num) = (uri, chunk_num)
+        │ equality cols are key
+        │
+        └── • scan
+              sql nodes: n3
+              kv nodes: n3
+              regions: us-east4
+              used follower read
+              actual row count: 58
+              KV time: 2ms
+              KV contention time: 0µs
+              KV rows decoded: 58
+              KV bytes read: 3.8 KiB
+              KV gRPC calls: 1
+              estimated max memory allocated: 20 KiB
+              sql cpu time: 57µs
+              estimated row count: 92 (0.05% of the table; stats collected 5 hours ago; using stats forecast for 5 hours ago)
+              table: cluster_assign@cluster_assign_temp_3d044bf652194f4a8947741092a19ab1_cluster_id_idx
+              spans: [/623 - /623]
+
