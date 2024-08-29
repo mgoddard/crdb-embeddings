@@ -1,0 +1,7 @@
+In mathematics, a confluent hypergeometric function is a solution of a confluent hypergeometric equation, which is a degenerate form of a hypergeometric differential equation where two of the three regular singularities merge into an irregular singularity. The term confluent refers to the merging of singular points of families of differential equations; confluere is Latin for "to flow together". There are several common standard forms of confluent hypergeometric functions:
+
+Kummer's (confluent hypergeometric) function M(a, b, z), introduced by Kummer (1837), is a solution to Kummer's differential equation. This is also known as the confluent hypergeometric function of the first kind. There is a different and unrelated Kummer's function bearing the same name.
+Tricomi's (confluent hypergeometric) function U(a, b, z) introduced by Francesco Tricomi (1947), sometimes denoted by Ψ(a; b; z), is another solution to Kummer's equation. This is also known as the confluent hypergeometric function of the second kind.
+Whittaker functions (for Edmund Taylor Whittaker) are solutions to Whittaker's equation.
+Coulomb wave functions are solutions to the Coulomb wave equation.
+The Kummer functions, Whittaker functions, and Coulomb wave functions are essentially the same, and differ from each other only by elementary functions and change of variables.
