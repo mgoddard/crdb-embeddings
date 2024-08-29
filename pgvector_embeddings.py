@@ -22,6 +22,7 @@ import pickle
 import requests
 from fastembed import TextEmbedding
 from pgvector.psycopg2 import register_vector
+import queue
 
 BLOCK_SIZE = 64 * (1 << 10) # Used when striping the model across > 1 row in blob_store
 CHARSET = "utf-8"
@@ -92,8 +93,12 @@ def connect(dbapi_connection, connection_record):
   cur.execute("SET plan_cache_mode = auto;")
   cur.close()
 
+# Set up a queue to support one model per thread
 t0 = time.time()
-embed_model = TextEmbedding()
+embed_model_q = queue.Queue()
+for i in range(0, n_threads + 1):
+  embed_model = TextEmbedding()
+  embed_model_q.put(embed_model)
 et = time.time() - t0
 logging.info("TextEmbedding model ready: {} s".format(et))
 
@@ -248,7 +253,9 @@ def index_text(uri, text):
     if (len(s) >= min_sentence_len):
       s_list.append(s)
   t0 = time.time()
+  embed_model = embed_model_q.get()
   embed_list = list(embed_model.embed(s_list))
+  embed_model_q.put(embed_model)
   et = time.time() - t0
   logging.info("Time to generate embeddings(): {} ms".format(et * 1000))
   for i in range(0, len(s_list)):
@@ -446,10 +453,11 @@ def build_model(s):
   kmeans = KMeans(
     n_clusters=n_clusters,
     random_state=137,
-    init="random",
+    init="k-means++",
     n_init=10,
     max_iter=kmeans_max_iter,
-    verbose=kmeans_verbose
+    verbose=kmeans_verbose,
+    algorithm="elkan"
   )
   logging.info("Starting model build ...")
   t0 = time.time()
@@ -469,7 +477,9 @@ def build_model(s):
 def search(terms, limit):
   q = ' '.join(terms)
   rv = []
+  embed_model = embed_model_q.get()
   embed_list = list(embed_model.embed([q]))
+  embed_model_q.put(embed_model)
   #embed_list = [x.tolist() for x in embed_list] # Source of memory leak?
   embed = embed_list[0]
   cluster_id = get_cluster_id("read", embed) # This works fine with the ndarray type
