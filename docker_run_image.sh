@@ -16,21 +16,23 @@ export FLASK_HOST=localhost
 export LOG_LEVEL=INFO
 export N_THREADS=10
 export MIN_SENTENCE_LEN=12
-export N_CLUSTERS=1024
-export TRAIN_FRACTION=0.5
+export N_CLUSTERS=1536
+export TRAIN_FRACTION=0.9
 export MODEL_FILE=/tmp/model.pkl
-export MODEL_FILE_URL="https://storage.googleapis.com/crl-goddard-text/model_Fastembed_1k.pkl"
+export MODEL_FILE_URL="https://storage.googleapis.com/crl-goddard-text/model_Fastembed_1536.pkl"
 export BATCH_SIZE=1024
 export KMEANS_VERBOSE=2
 export KMEANS_MAX_ITER=100
-export SKIP_KMEANS=False
+export SKIP_KMEANS=false
 export SECRET="TextWithNoSpecialChars"
 export BLOB_STORE_KEEP_N_ROWS=3
 export TOKENIZERS_PARALLELISM=false
 
 docker pull $img:$tag
 
-docker run -e DB_URL -e FLASK_PORT -e FLASK_HOST -e LOG_LEVEL -e N_THREADS -e MIN_SENTENCE_LEN \
+docker run --entrypoint /bin/bash \
+  -e DB_URL -e FLASK_PORT -e FLASK_HOST -e LOG_LEVEL -e N_THREADS -e MIN_SENTENCE_LEN \
   -e N_CLUSTERS -e TRAIN_FRACTION -e MODEL_FILE -e MODEL_FILE_URL -e BATCH_SIZE -e KMEANS_VERBOSE \
-  -e KMEANS_MAX_ITER -e SKIP_KMEANS -e SECRET -e BLOB_STORE_KEEP_N_ROWS --publish $port:$FLASK_PORT $img
+  -e KMEANS_MAX_ITER -e SKIP_KMEANS -e SECRET -e BLOB_STORE_KEEP_N_ROWS --publish $port:$FLASK_PORT $img \
+  -c 'sleep 3600'
 
