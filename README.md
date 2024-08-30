@@ -311,6 +311,7 @@ Restart the app
 * https://huggingface.co/distilbert/distilbert-base-uncased
 * https://mccormickml.com/2019/05/14/BERT-word-embeddings-tutorial/
 * https://github.com/qdrant/fastembed
+* [Model supported by Fastembed](https://qdrant.github.io/fastembed/examples/Supported_Models/#supported-text-embedding-models)
 * https://github.com/pgvector/pgvector-python?tab=readme-ov-file#psycopg-2
 * [Example CockroachDB query plan](./test/plan.txt) for these semantic searches
 
