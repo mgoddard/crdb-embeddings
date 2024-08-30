@@ -383,19 +383,21 @@ def cluster_assign(s):
 
 # Store the model to the DB
 def store_model_in_db(mdl):
-  rows = []
   orig_io = io.BytesIO(pickle.dumps(mdl))
   chunk = orig_io.read(BLOCK_SIZE)
-  while chunk:
-    row_map = {
-      "path": model_file
-      , "n_row": len(rows)
-      , "blob": chunk
-    }
-    rows.append(row_map)
-    chunk = orig_io.read(BLOCK_SIZE)
+  n_row = 0
+  row_map = {}
   with engine.begin() as conn:
-    conn.execute(insert(blob_table), rows)
+    while chunk:
+      row_map = {
+        "path": model_file
+        , "n_row": n_row
+        , "blob": chunk
+      }
+      n_row += 1
+      conn.execute(insert(blob_table), [row_map])
+      chunk = orig_io.read(BLOCK_SIZE)
+    conn.commit()
 
 @app.route("/sample/<int:n_rows>")
 def sample_data(n_rows):
