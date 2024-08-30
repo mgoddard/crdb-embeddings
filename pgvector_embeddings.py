@@ -471,7 +471,6 @@ def search(terms, limit):
   q = ' '.join(terms)
   rv = []
   embed_list = list(embed_model.embed([q]))
-  #embed_list = [x.tolist() for x in embed_list] # Source of memory leak?
   embed = embed_list[0]
   cluster_id = get_cluster_id("read", embed) # This works fine with the ndarray type
   logging.info("Query string: '{}'".format(q))
