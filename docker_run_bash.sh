@@ -30,8 +30,9 @@ export TOKENIZERS_PARALLELISM=false
 
 docker pull $img:$tag
 
-docker run \
+docker run --entrypoint /bin/bash \
   -e DB_URL -e FLASK_PORT -e FLASK_HOST -e LOG_LEVEL -e N_THREADS -e MIN_SENTENCE_LEN \
   -e N_CLUSTERS -e TRAIN_FRACTION -e MODEL_FILE -e MODEL_FILE_URL -e BATCH_SIZE -e KMEANS_VERBOSE \
-  -e KMEANS_MAX_ITER -e SKIP_KMEANS -e SECRET -e BLOB_STORE_KEEP_N_ROWS --publish $port:$FLASK_PORT $img:$tag
+  -e KMEANS_MAX_ITER -e SKIP_KMEANS -e SECRET -e BLOB_STORE_KEEP_N_ROWS --publish $port:$FLASK_PORT $img \
+  -c 'sleep 3600'
 
