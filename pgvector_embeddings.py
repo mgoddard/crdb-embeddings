@@ -360,9 +360,15 @@ def refresh_cluster_assignments(s):
   stmt = text(select_sql)
   with engine.connect() as conn:
     conn.execute(text("SET TRANSACTION AS OF SYSTEM TIME '-10s';"))
-    rs = conn.execute(stmt)
     ins_list = []
-    if rs is not None:
+    with conn.execution_options(stream_results=True, max_row_buffer=batch_size).execute(stmt) as rs:
+      """
+      [09/04/2024 12:44:28 PM waitress-2] Error closing cursor
+      Traceback (most recent call last):
+      File "/opt/homebrew/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 2204, in _safe_close_cursor
+      cursor.close()
+      psycopg2.errors.ReadOnlySqlTransaction: cannot execute CLOSE in a read-only transaction
+      """
       for row in rs:
         (uri, chunk_num, embed) = row
         cluster_id = get_cluster_id("write", embed)
