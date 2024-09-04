@@ -464,8 +464,7 @@ def build_model(s):
   sampled_vecs = []
   with engine.connect() as conn:
     conn.execute(text("SET TRANSACTION AS OF SYSTEM TIME '-10s';"))
-    rs = conn.execute(stmt)
-    if rs is not None:
+    with conn.execution_options(stream_results=True, max_row_buffer=batch_size).execute(stmt) as rs:
       for row in rs:
         sampled_vecs.append(row[0])
   et = time.time() - t0
