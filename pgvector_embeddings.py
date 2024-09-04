@@ -268,7 +268,7 @@ def index_text(uri, text):
     embed_list = list(embed_model.embed(s_list)) # Memory leaks here
   except RuntimeException as e:
     logging.warning(e)
-    return Response(e.message, status=500, mimetype="text/plain")
+    return Response(str(e), status=500, mimetype="text/plain")
   et = time.time() - t0
   logging.info("Time to generate embeddings(): {} ms".format(et * 1000))
   for i in range(0, len(s_list)):
