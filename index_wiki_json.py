@@ -40,7 +40,12 @@ for json_file in sys.argv[1:]:
         uri = BASE_URL + '/' + uri
         print("URI: {}".format(uri))
         txt = re.sub(r'(==+)[^=]+\1', '', obj["text"])
-        req = requests.post(url, json = { "uri": uri, "text": txt })
+        http_code = 500
+        n_retry = 0
+        while http_code == 500 and n_retry < 2:
+          req = requests.post(url, json = { "uri": uri, "text": txt })
+          http_code = req.status_code
+          n_retry += 1
         et = time.time() - t0
         print("URI: {} {} (t = {:.3f} ms)".format(uri, "SUCCESS" if req.status_code == 200 else "FAILED: " + req.content.decode("utf-8"), et*1000))
 
