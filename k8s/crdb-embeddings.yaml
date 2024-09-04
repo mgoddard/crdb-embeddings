@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
       - name: crdb-embeddings
-        image: mgoddard/crdb-embeddings-x86:1.29
+        image: mgoddard/crdb-embeddings-x86:1.38
         imagePullPolicy: Always
         resources:
           requests:
@@ -72,6 +72,8 @@ spec:
             value: "false"
           - name: TOKENIZERS_PARALLELISM
             value: "false"
+          - name: MEMORY_LIMIT_MB
+            value: "4096"
         ports:
         - containerPort: 18080
         readinessProbe:
