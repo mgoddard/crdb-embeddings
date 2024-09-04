@@ -22,6 +22,10 @@ import pickle
 import requests
 from fastembed import TextEmbedding
 from pgvector.psycopg2 import register_vector
+import resource, platform
+
+# Attempt to catch onnxruntime exceptions
+from onnxruntime.capi.onnxruntime_pybind11_state import RuntimeException
 
 BLOCK_SIZE = 64 * (1 << 10) # Used when striping the model across > 1 row in blob_store
 CHARSET = "utf-8"
@@ -29,6 +33,18 @@ kmeans_model = { "read": None, "write": None }
 
 #KMEANS_DIM = 768 # Bert
 KMEANS_DIM = 384 # Fastembed
+
+print() # Clear previous messages
+
+# Set a memory limit (if running on Linux)
+if platform.system() == "Linux":
+  mem_limit_mb = int(os.environ.get("MEMORY_LIMIT_MB", "4096"))
+  print("mem_limit_mb: {} (set via 'export MEMORY_LIMIT_MB=4096')".format(mem_limit_mb))
+  rsrc = resource.RLIMIT_DATA
+  mem_limit_bytes = mem_limit_mb * (1 << 20)
+  resource.setrlimit(rsrc, (mem_limit_bytes, mem_limit_bytes))
+else:
+  print("Not on Linux; not setting a memory limit")
 
 kmeans_max_iter = int(os.environ.get("KMEANS_MAX_ITER", "100"))
 print("kmeans_max_iter: {} (set via 'export KMEANS_MAX_ITER=25')".format(kmeans_max_iter))
@@ -248,7 +264,11 @@ def index_text(uri, text):
     if (len(s) >= min_sentence_len):
       s_list.append(s)
   t0 = time.time()
-  embed_list = list(embed_model.embed(s_list))
+  try:
+    embed_list = list(embed_model.embed(s_list)) # Memory leaks here
+  except RuntimeException as e:
+    logging.warning(e)
+    return Response(e, status=500, mimetype="text/plain")
   et = time.time() - t0
   logging.info("Time to generate embeddings(): {} ms".format(et * 1000))
   for i in range(0, len(s_list)):
@@ -273,12 +293,13 @@ def index_text(uri, text):
     try:
       conn.execute(insert(text_embed_table), te_rows)
     except sqlalchemy.exc.IntegrityError as e:
-      return e.orig.diag.message_detail
+      return Response(e.orig.diag.message_detail, status=400, mimetype="text/plain")
     if not skip_kmeans:
       conn.execute(insert(cluster_assign_table), ca_rows)
     conn.commit()
   et = time.time() - t0
   logging.info("DB INSERT time: {} ms".format(et * 1000))
+  return Response("OK", status=200, mimetype="text/plain")
 
 def index_file(in_file):
   text = ""
@@ -513,15 +534,9 @@ def do_search(q_base_64, limit):
 
 @app.route("/index", methods=["POST"])
 def do_index():
-  rv = Response("OK", status=200, mimetype="text/plain")
   #log_txn_isolation_level()
   data = request.get_json(force=True)
-  msg = retry(index_text, (data["uri"], data["text"]))
-  if msg is not None:
-    rv = Response(msg, status=400, mimetype="text/plain")
-  # Note the extra arguments here which translate the \uxxxx escape codes
-  #print("Data: " + json.dumps(data, ensure_ascii=False).encode("utf8").decode())
-  return rv
+  return retry(index_text, (data["uri"], data["text"]))
 
 @app.route("/health", methods=["GET"])
 def health():
