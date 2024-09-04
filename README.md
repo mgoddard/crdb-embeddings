@@ -315,4 +315,5 @@ Restart the app
 * https://github.com/pgvector/pgvector-python?tab=readme-ov-file#psycopg-2
 * [Example CockroachDB query plan](./test/plan.txt) for these semantic searches
 * [JSON Wikipedia dump from 2020](https://www.kaggle.com/datasets/ltcmdrdata/plain-text-wikipedia-202011)
+* https://docs.sqlalchemy.org/en/20/core/connections.html#streaming-with-a-dynamically-growing-buffer-using-stream-results
 
