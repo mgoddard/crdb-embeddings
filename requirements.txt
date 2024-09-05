@@ -8,5 +8,4 @@ sqlalchemy-cockroachdb==2.0.1
 scikit-learn
 fastembed
 pgvector
-wtpsplit
-torch
+nltk

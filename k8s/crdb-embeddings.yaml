@@ -28,15 +28,15 @@ spec:
     spec:
       containers:
       - name: crdb-embeddings
-        image: mgoddard/crdb-embeddings-x86:1.39
+        image: mgoddard/crdb-embeddings-x86:1.41
         imagePullPolicy: Always
         resources:
           requests:
             cpu: "3"
-            memory: "12Gi"
+            memory: "8Gi"
           limits:
             cpu: "3"
-            memory: "12Gi"
+            memory: "8Gi"
         env:
           - name: DB_URL
             value: "postgres://embeduser:embedpasswd@cockroachdb-public:26257/defaultdb"

@@ -27,7 +27,7 @@ export SECRET="TextWithNoSpecialChars"
 export BLOB_STORE_KEEP_N_ROWS=3
 export TOKENIZERS_PARALLELISM=false
 export MAX_CHUNKS=256
-export MEMORY_LIMIT_MB=4096
+export MEMORY_LIMIT_MB=6144
 
 export SKIP_KMEANS=false
 
