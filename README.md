@@ -108,9 +108,9 @@ export MODEL_FILE_URL="https://storage.googleapis.com/crl-goddard-text/model_Fas
 ```
 There are a few more uploaded, built from increasingly larger data sets, where the numeric
 value before the `.pkl` suffix is the `N_CLUSTERS` value used:
-[1000](https://storage.googleapis.com/crl-goddard-text/model_Fastembed_1k.pkl)
-[1536](https://storage.googleapis.com/crl-goddard-text/model_Fastembed_1536.pkl)
-[3840](https://storage.googleapis.com/crl-goddard-text/model_Fastembed_3840.pkl)
+* [1000](https://storage.googleapis.com/crl-goddard-text/model_Fastembed_1k.pkl)
+* [1536](https://storage.googleapis.com/crl-goddard-text/model_Fastembed_1536.pkl)
+* [3840](https://storage.googleapis.com/crl-goddard-text/model_Fastembed_3840.pkl)
 
 This applies during the process of assigning a cluster ID value to each of the rows.
 The value of 1024 shown here yielded the best data insert rate:
