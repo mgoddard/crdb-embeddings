@@ -16,8 +16,8 @@ export FLASK_HOST=localhost
 export LOG_LEVEL=INFO
 export N_THREADS=10
 export MIN_SENTENCE_LEN=8
-export N_CLUSTERS=2304
-export TRAIN_FRACTION=0.15
+export N_CLUSTERS=3840
+export TRAIN_FRACTION=0.10
 export MODEL_FILE=/tmp/model.pkl
 export MODEL_FILE_URL="https://storage.googleapis.com/crl-goddard-text/model_Fastembed_1536.pkl"
 export BATCH_SIZE=1024
@@ -26,7 +26,9 @@ export KMEANS_MAX_ITER=100
 export SECRET="TextWithNoSpecialChars"
 export BLOB_STORE_KEEP_N_ROWS=3
 export TOKENIZERS_PARALLELISM=false
+export MAX_CHUNKS=256
 export MEMORY_LIMIT_MB=4096
+
 export SKIP_KMEANS=false
 
 docker pull $img:$tag

@@ -46,6 +46,9 @@ if platform.system() == "Linux":
 else:
   print("Not on Linux; not setting a memory limit")
 
+max_chunks = int(os.environ.get("MAX_CHUNKS", "256"))
+print("max_chunks: {} (set via 'export MAX_CHUNKS=128')".format(max_chunks))
+
 kmeans_max_iter = int(os.environ.get("KMEANS_MAX_ITER", "100"))
 print("kmeans_max_iter: {} (set via 'export KMEANS_MAX_ITER=25')".format(kmeans_max_iter))
 
@@ -263,6 +266,8 @@ def index_text(uri, text):
     s = s.strip()
     if (len(s) >= min_sentence_len):
       s_list.append(s)
+    if len(s_list) > max_chunks:
+      break
   t0 = time.time()
   try:
     embed_list = list(embed_model.embed(s_list)) # Memory leaks here
