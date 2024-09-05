@@ -316,4 +316,5 @@ Restart the app
 * [Example CockroachDB query plan](./test/plan.txt) for these semantic searches
 * [JSON Wikipedia dump from 2020](https://www.kaggle.com/datasets/ltcmdrdata/plain-text-wikipedia-202011)
 * https://docs.sqlalchemy.org/en/20/core/connections.html#streaming-with-a-dynamically-growing-buffer-using-stream-results
+* [Better text segmentation](https://github.com/segment-any-text/wtpsplit)
 

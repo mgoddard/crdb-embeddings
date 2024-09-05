@@ -23,6 +23,8 @@ import requests
 from fastembed import TextEmbedding
 from pgvector.psycopg2 import register_vector
 import resource, platform
+from wtpsplit import SaT
+import torch
 
 # Attempt to catch onnxruntime exceptions
 from onnxruntime.capi.onnxruntime_pybind11_state import RuntimeException
@@ -115,6 +117,11 @@ t0 = time.time()
 embed_model = TextEmbedding()
 et = time.time() - t0
 logging.info("TextEmbedding model ready: {} s".format(et))
+
+t0 = time.time()
+sat = SaT("sat-3l-sm")
+et = time.time() - t0
+logging.info("wtpsplit segmenter ready: {} s".format(et))
 
 # Used to download a model if none exists on FS or in DB
 def download_file(url, local_fname):
@@ -262,7 +269,7 @@ def index_text(uri, text):
   ca_rows = []
   n_chunk = 0
   s_list = []
-  for s in re.split(r"\.\s+", text): # Sentence based splitting: makes sense to me.
+  for s in sat.split(text): # Using wtpsplit for sentence chunking
     s = s.strip()
     if (len(s) >= min_sentence_len):
       s_list.append(s)
