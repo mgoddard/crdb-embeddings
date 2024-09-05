@@ -26,6 +26,8 @@ using the deployment defined [here](./k8s/crdb-embeddings.yaml).
 * Create a user account for the app
 * GRANT this user/role access to the DB being used
 * The app creates all the required tables and indexes
+* Run the following to prevent failures from uploading K-Means models to the DB's
+  `blob_store` table: ```SET CLUSTER SETTING sql.conn.max_read_buffer_message_size = '64 MiB';```
 
 ## Configure environment variables
 
@@ -76,7 +78,8 @@ scanned during the cosine similarity phase.  If the number is too high, then
 matching documents may be missed entirely as their cluster ID value will not
 align with the cluster ID value that gets mapped to the query string.  For the
 small data size used in these experiments, 50k rows, a value of 500 seemed
-like the best fit:
+like the best fit.  For a larger data set, experiments showed using a value
+of about 1.3% of the number of rows was a good tradeoff:
 ```
 export N_CLUSTERS=500
 ```
@@ -84,7 +87,9 @@ export N_CLUSTERS=500
 The fraction of rows to scan when building the K-Means model.  A value of 1.0
 might make more sense for a small data set, but a smaller fraction would be
 better suited to a larger data set.  Again, there's a tradeoff here in terms
-of fidelity, with a larger fraction (theoretically) leading to a better model:
+of fidelity, with a larger fraction (theoretically) leading to a better model.
+Again, when the data set became larger, experiments showed that a fraction
+corresponding to about 35k rows in the table was a sweet spot:
 ```
 export TRAIN_FRACTION=0.75
 ```
@@ -96,16 +101,21 @@ provided below.  After that, the model is stored in the DB itself:
 export MODEL_FILE=/tmp/model.pkl
 ```
 
-See above.  This model was built according to the discussion above, and it
-should be suitable for getting started:
+This model was built according to the discussion above, and it should be
+suitable for getting started:
 ```
 export MODEL_FILE_URL="https://storage.googleapis.com/crl-goddard-text/model_Fastembed_500.pkl"
 ```
+There are a few more uploaded, built from increasingly larger data sets, where the numeric
+value before the `.pkl` suffix is the `N_CLUSTERS` value used:
+[1000](https://storage.googleapis.com/crl-goddard-text/model_Fastembed_1k.pkl)
+[1536](https://storage.googleapis.com/crl-goddard-text/model_Fastembed_1536.pkl)
+[3840](https://storage.googleapis.com/crl-goddard-text/model_Fastembed_3840.pkl)
 
 This applies during the process of assigning a cluster ID value to each of the rows.
-The value of 512 shown here yielded the best data insert rate:
+The value of 1024 shown here yielded the best data insert rate:
 ```
-export BATCH_SIZE=512
+export BATCH_SIZE=1024
 ```
 
 When building the K-Means model, the verbosity level can be adjusted.  The value
@@ -118,15 +128,6 @@ export KMEANS_VERBOSE=1
 Building a K-Means model is iterative.  This value of "100" seems to work well enough:
 ```
 export KMEANS_MAX_ITER=100
-```
-
-When starting out without a K-Means model (if not using the `MODEL_FILE_URL`, for
-example), this would be set to `True` and then the documents could be added using
-`index_doc.py` and then the model would be built as shown below.  Then, the app
-would be restarted with this value reset to `False` and the cluster assignment step
-would need to be done prior to running a search.
-```
-export SKIP_KMEANS=False
 ```
 
 This is just a string that's required as a URL parameter to the app's `/cluster_assign`
@@ -143,9 +144,43 @@ process runs.  This table is pruned to ensure it has at most this number of rows
 export BLOB_STORE_KEEP_N_ROWS=3
 ```
 
+This is rumored to prevent a warning from the HuggingFace library about forking multiple
+threads, but it ended up having no impact on that.  Still, I'll keep it for the sake
+of documentation:
+```
+export TOKENIZERS_PARALLELISM=false
+```
+
+The Fastembed TextEmbedding model relies on some C++ libraries which attempt to grab
+an unbounded amount of memory and, so far, I haven't taken the time to find a way
+to prevent this.  This setting keeps Python to a bounded amount of memory for data
+which will result in periodic memory allocation failures of the form
+```
+2024-09-05 19:56:10.642871010 [E:onnxruntime:, sequential_executor.cc:516 ExecuteKernel] Non-zero status code returned while running Attention node. Name:'Attention_0' Status Message: /onnxruntime_src/onnxruntime/core/framework/bfc_arena.cc:376 void* onnxruntime::BFCArena::AllocateRawInternal(size_t, bool, onnxruntime::Stream*, bool, onnxruntime::WaitNotificationFn) Failed to allocate memory for requested buffer of size 3221225472
+```
+This is the environment variable:
+```
+export MEMORY_LIMIT_MB=6144
+```
+
+Some texts on Wikipedia were immense, so this value is used to manage the number of sentences
+that will be indexed (each sentence becomes a _chunk_):
+```
+export MAX_CHUNKS=256
+```
+
 The number of results retrieved and displayed as JSON by the client:
 ```
 export MAX_RESULTS=5
+```
+
+When starting out without a K-Means model (if not using the `MODEL_FILE_URL`, for
+example), this would be set to `True` and then the documents could be added using
+`index_doc.py` and then the model would be built as shown below.  Then, the app
+would be restarted with this value reset to `False` and the cluster assignment step
+would need to be done prior to running a search.
+```
+export SKIP_KMEANS=False
 ```
 
 ## Start the Flask server Docker image
@@ -316,5 +351,4 @@ Restart the app
 * [Example CockroachDB query plan](./test/plan.txt) for these semantic searches
 * [JSON Wikipedia dump from 2020](https://www.kaggle.com/datasets/ltcmdrdata/plain-text-wikipedia-202011)
 * https://docs.sqlalchemy.org/en/20/core/connections.html#streaming-with-a-dynamically-growing-buffer-using-stream-results
-* [Better text segmentation](https://github.com/segment-any-text/wtpsplit)
 
