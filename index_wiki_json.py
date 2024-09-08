@@ -42,10 +42,16 @@ for json_file in sys.argv[1:]:
         txt = re.sub(r'(==+)[^=]+\1', '', obj["text"])
         http_code = 500
         n_retry = 0
-        while http_code == 500 and n_retry < 2:
-          req = requests.post(url, json = { "uri": uri, "text": txt })
-          http_code = req.status_code
+        req = None
+        while http_code == 500 and n_retry < 3:
+          try:
+            req = requests.post(url, json = { "uri": uri, "text": txt })
+            http_code = req.status_code
+            break
+          except Exception:
+            time.sleep(250/1000)
           n_retry += 1
+          print("Retrying ...")
         et = time.time() - t0
         print("URI: {} {} (t = {:.3f} ms)".format(uri, "SUCCESS" if req.status_code == 200 else "FAILED: " + req.content.decode("utf-8"), et*1000))
 

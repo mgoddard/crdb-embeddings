@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
       - name: crdb-embeddings
-        image: mgoddard/crdb-embeddings-x86:1.41
+        image: mgoddard/crdb-embeddings-x86:1.42
         imagePullPolicy: Always
         resources:
           requests:
@@ -75,7 +75,7 @@ spec:
           - name: MEMORY_LIMIT_MB
             value: "4096"
           - name: MAX_CHUNKS
-            value: "256"
+            value: "96"
         ports:
         - containerPort: 18080
         readinessProbe:

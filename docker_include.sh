@@ -1,4 +1,4 @@
-tag=1.41
+tag=1.42
 docker_id="mgoddard"
 #arch="x86"
 arch="arm"
