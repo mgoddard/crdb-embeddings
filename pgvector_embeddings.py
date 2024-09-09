@@ -371,21 +371,20 @@ def refresh_cluster_assignments(s):
   select_sql = """
   SELECT uri, chunk_num, embedding
   FROM semantic.text_embed
+  WHERE (uri, chunk_num) > (:last_uri, :last_chunk_num)
   ORDER BY 1, 2
+  LIMIT :limit;
   """
   t0 = time.time()
-  stmt = text(select_sql)
   with engine.connect() as conn:
-    conn.execute(text("SET TRANSACTION AS OF SYSTEM TIME '-10s';"))
     ins_list = []
-    with conn.execution_options(stream_results=True, max_row_buffer=batch_size).execute(stmt) as rs:
-      """
-      [09/04/2024 12:44:28 PM waitress-2] Error closing cursor
-      Traceback (most recent call last):
-      File "/opt/homebrew/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 2204, in _safe_close_cursor
-      cursor.close()
-      psycopg2.errors.ReadOnlySqlTransaction: cannot execute CLOSE in a read-only transaction
-      """
+    uri = ''
+    chunk_num = -1
+    while True:
+      stmt = text(select_sql).bindparams(last_uri=uri, last_chunk_num=chunk_num, limit=batch_size)
+      rs = conn.execute(stmt)
+      if rs is None or rs.rowcount == 0:
+        break
       for row in rs:
         (uri, chunk_num, embed) = row
         cluster_id = get_cluster_id("write", embed)
@@ -395,15 +394,10 @@ def refresh_cluster_assignments(s):
           , "cluster_id": cluster_id
         }
         ins_list.append(row_map)
-        if len(ins_list) == batch_size:
-          logging.info("Inserting batch of {} rows".format(batch_size))
-          with engine.begin() as conn_ins:
-            conn_ins.execute(insert(cluster_assign_table_new), ins_list)
-          ins_list = []
-    # Finish the INSERTs
-    if len(ins_list) > 0:
-      with engine.begin() as conn_ins:
-        conn_ins.execute(insert(cluster_assign_table_new), ins_list)
+      logging.info("Inserting batch of {} rows".format(batch_size))
+      conn.execute(insert(cluster_assign_table_new), ins_list)
+      conn.commit()
+      ins_list = []
   et = time.time() - t0
   logging.info("Cluster assign time: {} ms".format(et * 1000))
   # Swap the tables
@@ -413,7 +407,7 @@ def refresh_cluster_assignments(s):
     conn.execute(text("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;"))
     conn.execute(text("DROP VIEW semantic.te_ca_view;"))
     conn.execute(text("DROP TABLE semantic.cluster_assign;"))
-    conn.execute(text("ALTER TABLE {} RENAME TO semantic.cluster_assign;".format(temp_table_name)))
+    conn.execute(text("ALTER TABLE semantic.{} RENAME TO semantic.cluster_assign;".format(temp_table_name)))
     conn.execute(text(ddl_view))
     conn.commit()
   et = time.time() - t0
@@ -503,7 +497,7 @@ def build_model(s):
   # Store the model to the filesystem
   joblib.dump(model, model_file)
   store_model_in_db(model)
-  # Reload the in-memory copy of the model
+  # Reload the in-memory copy of the model, so any writes will use updated model
   kmeans_model["write"] = model
   prune_blob_store()
   return Response("OK", status=200, mimetype="text/plain")
@@ -595,7 +589,7 @@ def get_model_from_db():
   return rv
 
 # main()
-setup_db
+setup_db()
 db_meta = MetaData(schema="semantic")
 text_embed_table = Table("text_embed", db_meta, autoload_with=engine)
 cluster_assign_table = Table("cluster_assign", db_meta, autoload_with=engine)
