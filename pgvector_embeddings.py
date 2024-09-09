@@ -503,7 +503,7 @@ def build_model(s):
   return Response("OK", status=200, mimetype="text/plain")
 
 # Arg: search terms
-# Returns: list of {"uri": uri, "sim": sim, "token": token, "chunk": chunk}
+# Returns: list of {"uri": uri, "score": sim, "token": token, "chunk": chunk}
 def search(terms, limit):
   q = ' '.join(terms)
   rv = []
@@ -520,7 +520,7 @@ def search(terms, limit):
     if rs is not None:
       for row in rs:
         (uri, sim, chunk) = row
-        rv.append({"uri": uri, "sim": float(sim), "chunk": chunk})
+        rv.append({"uri": uri, "score": float(sim), "chunk": chunk})
   et = time.time() - t0
   logging.info("SQL query time: {} ms".format(et * 1000))
   return rv

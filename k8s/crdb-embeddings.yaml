@@ -28,15 +28,15 @@ spec:
     spec:
       containers:
       - name: crdb-embeddings
-        image: mgoddard/crdb-embeddings-x86:1.42
+        image: mgoddard/crdb-embeddings-x86:1.45
         imagePullPolicy: Always
         resources:
           requests:
             cpu: "3"
-            memory: "8Gi"
+            memory: "12Gi"
           limits:
             cpu: "3"
-            memory: "8Gi"
+            memory: "12Gi"
         env:
           - name: DB_URL
             value: "postgres://embeduser:embedpasswd@cockroachdb-public:26257/defaultdb"
@@ -53,11 +53,11 @@ spec:
           - name: N_CLUSTERS
             value: "1536"
           - name: TRAIN_FRACTION
-            value: "0.9"
+            value: "0.10"
           - name: MODEL_FILE
             value: "/tmp/model.pkl"
           - name: MODEL_FILE_URL
-            value: "https://storage.googleapis.com/crl-goddard-text/model_Fastembed_1536.pkl"
+            value: "https://storage.googleapis.com/crl-goddard-text/model_Fastembed_3840.pkl"
           - name: BATCH_SIZE
             value: "1024"
           - name: KMEANS_VERBOSE
@@ -73,7 +73,7 @@ spec:
           - name: TOKENIZERS_PARALLELISM
             value: "false"
           - name: MEMORY_LIMIT_MB
-            value: "4096"
+            value: "8192"
           - name: MAX_CHUNKS
             value: "96"
         ports:
