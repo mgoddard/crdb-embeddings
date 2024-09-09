@@ -130,8 +130,12 @@ def download_file(url, local_fname):
       for chunk in r.iter_content(chunk_size=8192): 
         f.write(chunk)
 
+ddl_schema = """
+CREATE SCHEMA IF NOT EXISTS semantic;
+"""
+
 ddl_t1 = """
-CREATE TABLE text_embed
+CREATE TABLE semantic.text_embed
 (
   uri STRING NOT NULL
   , chunk_num INT NOT NULL
@@ -142,7 +146,7 @@ CREATE TABLE text_embed
 """.format(KMEANS_DIM)
 
 ddl_t2 = """
-CREATE TABLE cluster_assign
+CREATE TABLE semantic.cluster_assign
 (
   uri STRING NOT NULL
   , chunk_num INT8 NOT NULL
@@ -152,6 +156,7 @@ CREATE TABLE cluster_assign
 );
 """
 
+# Schema is provided in the string passed into the '{}'
 ddl_t3 = """
 CREATE TABLE {}
 (
@@ -164,7 +169,7 @@ CREATE TABLE {}
 """
 
 ddl_t4 = """
-CREATE TABLE blob_store
+CREATE TABLE semantic.blob_store
 (
   path STRING NOT NULL
   , ts TIMESTAMP NOT NULL DEFAULT now()
@@ -175,17 +180,17 @@ CREATE TABLE blob_store
 """
 
 ddl_view = """
-CREATE OR REPLACE VIEW te_ca_view
+CREATE OR REPLACE VIEW semantic.te_ca_view
 AS
 (
   SELECT te.uri, te.chunk_num, te.chunk, te.embedding, c.cluster_id
-  FROM text_embed te, cluster_assign c
+  FROM semantic.text_embed te, semantic.cluster_assign c
   WHERE te.uri = c.uri AND te.chunk_num = c.chunk_num
 );
 """
 
 sql_check_exists = """
-SELECT COUNT(*) n FROM information_schema.tables WHERE table_catalog = 'defaultdb' AND table_name = 'text_embed';
+SELECT COUNT(*) n FROM [SHOW TABLES] WHERE table_name = 'text_embed';
 """
 
 text_embed_table = None # Will be set after running setup_db()
@@ -200,11 +205,11 @@ def run_ddl(ddl):
 def prune_blob_store():
   logging.info("Pruning blob_store table ...")
   sql = """
-  DELETE FROM blob_store
+  DELETE FROM semantic.blob_store
   WHERE (path, ts) IN
   (
     SELECT path, ts
-    FROM blob_store
+    FROM semantic.blob_store
     GROUP BY 1, 2
     ORDER BY 2 DESC
     OFFSET {}
@@ -224,7 +229,8 @@ def setup_db():
       n_rows = row.n
   table_exists = (n_rows == 1)
   if not table_exists:
-    logging.info("Creating text_embed tables and view ...")
+    logging.info("Creating semantic tables and view ...")
+    run_ddl(ddl_schema)
     run_ddl(ddl_t1)
     run_ddl(ddl_t2)
     run_ddl(ddl_t4)
@@ -336,7 +342,7 @@ def gen_sql():
 WITH q_embed AS
 (
   SELECT uri, chunk, embedding
-  FROM te_ca_view
+  FROM semantic.te_ca_view
   WHERE cluster_id = :cluster_id
 )
 SELECT uri, 1 - (embedding <=> (:q_embed)::VECTOR) sim, chunk
@@ -360,11 +366,11 @@ def refresh_cluster_assignments(s):
   # Temporary table to insert mappings into
   temp_table_name = "cluster_assign_temp_{}".format(uuid.uuid4().hex)
   logging.info("Inserting cluster assignments into {}".format(temp_table_name))
-  run_ddl(ddl_t3.format(temp_table_name))
-  cluster_assign_table_new = Table(temp_table_name, MetaData(), autoload_with=engine, extend_existing=True)
+  run_ddl(ddl_t3.format("semantic." + temp_table_name))
+  cluster_assign_table_new = Table(temp_table_name, db_meta, autoload_with=engine, extend_existing=True)
   select_sql = """
   SELECT uri, chunk_num, embedding
-  FROM text_embed
+  FROM semantic.text_embed
   ORDER BY 1, 2
   """
   t0 = time.time()
@@ -405,9 +411,9 @@ def refresh_cluster_assignments(s):
   logging.info("Swapping the tables for cluster_assign ...")
   with engine.connect() as conn:
     conn.execute(text("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;"))
-    conn.execute(text("DROP VIEW te_ca_view;"))
-    conn.execute(text("DROP TABLE cluster_assign;"))
-    conn.execute(text("ALTER TABLE {} RENAME TO cluster_assign;".format(temp_table_name)))
+    conn.execute(text("DROP VIEW semantic.te_ca_view;"))
+    conn.execute(text("DROP TABLE semantic.cluster_assign;"))
+    conn.execute(text("ALTER TABLE {} RENAME TO semantic.cluster_assign;".format(temp_table_name)))
     conn.execute(text(ddl_view))
     conn.commit()
   et = time.time() - t0
@@ -440,7 +446,7 @@ def sample_data(n_rows):
   logging.info("Getting {} sample rows ...".format(n_rows))
   sql = """
   SELECT chunk
-  FROM text_embed
+  FROM semantic.text_embed
   ORDER BY RANDOM()
   LIMIT :limit;
   """
@@ -467,7 +473,7 @@ def build_model(s):
   # Grab a sample of vectors
   sql = """
   SELECT embedding
-  FROM text_embed
+  FROM semantic.text_embed
   WHERE random() < :fraction
   """
   t0 = time.time()
@@ -565,12 +571,12 @@ def get_model_from_db():
   WITH u AS
   (
     SELECT path, ts
-    FROM blob_store
+    FROM semantic.blob_store
     ORDER BY ts DESC
     LIMIT 1
   )
   SELECT b.blob blob
-  FROM blob_store b, u
+  FROM semantic.blob_store b, u
   WHERE b.path = u.path AND b.ts = u.ts
   ORDER BY b.n_row ASC;
   """
@@ -589,10 +595,11 @@ def get_model_from_db():
   return rv
 
 # main()
-setup_db()
-text_embed_table = Table("text_embed", MetaData(), autoload_with=engine)
-cluster_assign_table = Table("cluster_assign", MetaData(), autoload_with=engine)
-blob_table = Table("blob_store", MetaData(), autoload_with=engine)
+setup_db
+db_meta = MetaData(schema="semantic")
+text_embed_table = Table("text_embed", db_meta, autoload_with=engine)
+cluster_assign_table = Table("cluster_assign", db_meta, autoload_with=engine)
+blob_table = Table("blob_store", db_meta, autoload_with=engine)
 
 # Load the K-means model
 if not skip_kmeans:
