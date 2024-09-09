@@ -266,38 +266,38 @@ sys	0m0.048s
 
 ```
 [16:35:11 crdb-embeddings]$ q="which amplifiers have vacuum tube triode sound"
-[16:38:08 crdb-embeddings]$ time ./search_client.sh $q
+mgoddard@crdb-embeddings:~/crdb-embeddings$ time ./search_client.sh $q
 [
   {
     "uri": "data/decware_amp.txt",
-    "sim": 0.8592629666081919,
-    "chunk": "There are 3 models of our 2 watt series of Zen Triode amplifier"
+    "score": 0.7652439003492352,
+    "chunk": "There are 3 models of our 2 watt series of Zen Triode amplifier."
   },
   {
-    "uri": "data/muse_electronics.txt",
-    "sim": 0.8521749669893637,
-    "chunk": "This balanced circuitry makes converting the amplifier to balanced inputs simply a matter of changing the RCA input connector to an XLR"
+    "uri": "https://en.wikipedia.org/wiki/Fender_Pro_Reverb",
+    "score": 0.6877914108857055,
+    "chunk": "The Pro Reverb is a 40-watt tube amplifier and has a pair of 12\" speakers; however, models later than 1976 were increased to 70 watts."
   },
   {
-    "uri": "tmp/wiki_pages/klmán_kandó.txt",
-    "sim": 0.8520580730724183,
-    "chunk": "Series motors, and why 1 phase on the supply? The series motor needs 16 1/3 Hz network"
+    "uri": "https://en.wikipedia.org/wiki/Heathkit",
+    "score": 0.6847249097712207,
+    "chunk": "Heathkit stereo preamplifier (AA-141) (1962)."
   },
   {
-    "uri": "tmp/wiki_pages/liquid_scintillation_counting.txt",
-    "sim": 0.8492422839608895,
-    "chunk": "Many counters have two photo multiplier tubes connected in a coincidence circuit"
+    "uri": "https://en.wikipedia.org/wiki/Heathkit",
+    "score": 0.6842641030471444,
+    "chunk": "Wiring of a Heathkit stereo preamplifier (AA-141) (1962)."
   },
   {
-    "uri": "tmp/wiki_pages/amphenol.txt",
-    "sim": 0.8482197822951335,
-    "chunk": "Schmitt, whose first product was a tube socket for Vacuum tube|radio tubes (valveholder bases)"
+    "uri": "https://en.wikipedia.org/wiki/Fender_Pro_Reverb",
+    "score": 0.6832191377673992,
+    "chunk": "Teagle and Sprung, authors of the definitive book on Fender amplifiers (Fender Amps: The First Fifty Years) described the Blackface Pro Reverb as the best amplifier ever produced likely due to its combination of the two twelve inch speakers, its high quality reverb and tremolo, and just the right amount of power to get either classic Blackface Fender cleans or natural tube breakup at reasonable volumes."
   }
 ]
 
-real	0m0.190s
-user	0m0.012s
-sys	0m0.014s
+real	0m0.101s
+user	0m0.008s
+sys	0m0.016s
 ```
 
 ## Rebuild the K-Means model
