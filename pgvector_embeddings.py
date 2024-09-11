@@ -241,15 +241,15 @@ def setup_db():
 
 # Retry wrapper for functions interacting with the DB
 def retry(f, args):
-  for retry in range(0, max_retries):
-    if retry > 0:
-      logging.warning("Retry number {}".format(retry))
+  for n_retry in range(0, max_retries):
+    if n_retry > 0:
+      logging.warning("Retry number {}".format(n_retry))
     try:
       return f(*args)
     except SerializationFailure as e:
       logging.warning("Error: %s", e)
       logging.warning("EXECUTE SERIALIZATION_FAILURE BRANCH")
-      sleep_s = (2**retry) * 0.1 * (random.random() + 0.5)
+      sleep_s = (2**n_retry) * 0.1 * (random.random() + 0.5)
       logging.warning("Sleeping %s s", sleep_s)
       time.sleep(sleep_s)
     except (sqlalchemy.exc.OperationalError, psycopg2.OperationalError) as e:
@@ -259,6 +259,9 @@ def retry(f, args):
       sleep_s = 0.12 + random.random() * 0.25
       logging.warning("Sleeping %s s", sleep_s)
       time.sleep(sleep_s)
+      if isinstance(args[0], sqlalchemy.engine.base.Connection):
+        logging.warning("Getting a new Connection instance ...")
+        args[0] = engine.connect()
     except psycopg2.Error as e:
       logging.warning("Error: %s", e)
       logging.warning("EXECUTE DEFAULT BRANCH")
@@ -269,7 +272,7 @@ def retry(f, args):
 def get_cluster_id(rw, embed):
   return int(kmeans_model[rw].predict([embed])[0])
 
-def index_text(uri, text):
+def index_text(conn, uri, text):
   te_rows = []
   ca_rows = []
   n_chunk = 0
@@ -306,14 +309,13 @@ def index_text(uri, text):
       ca_rows.append(row_map)
     n_chunk += 1
   t0 = time.time()
-  with engine.begin() as conn: # Same TXN for both table INSERTs
-    try:
-      conn.execute(insert(text_embed_table), te_rows)
-    except sqlalchemy.exc.IntegrityError as e:
-      return Response(e.orig.diag.message_detail, status=400, mimetype="text/plain")
-    if not skip_kmeans:
-      conn.execute(insert(cluster_assign_table), ca_rows)
-    conn.commit()
+  try:
+    conn.execute(insert(text_embed_table), te_rows)
+  except sqlalchemy.exc.IntegrityError as e:
+    return Response(e.orig.diag.message_detail, status=400, mimetype="text/plain")
+  if not skip_kmeans:
+    conn.execute(insert(cluster_assign_table), ca_rows)
+  conn.commit()
   et = time.time() - t0
   logging.info("DB INSERT time: {} ms".format(et * 1000))
   return Response("OK", status=200, mimetype="text/plain")
@@ -324,7 +326,9 @@ def index_file(in_file):
     for line in f:
       text += line
   in_file = re.sub(r"\./", '', in_file) # Trim leading '/'
-  return retry(index_text, (in_file, text))
+  with engine.connect() as conn:
+    rv = retry(index_text, (conn, data["uri"], data["text"]))
+  return rv
 
 # Clean any special chars out of text
 def clean_text(text):
@@ -504,7 +508,7 @@ def build_model(s):
 
 # Arg: search terms
 # Returns: list of {"uri": uri, "score": sim, "token": token, "chunk": chunk}
-def search(terms, limit):
+def search(conn, terms, limit):
   q = ' '.join(terms)
   rv = []
   embed_list = list(embed_model.embed([q]))
@@ -514,13 +518,11 @@ def search(terms, limit):
   logging.info("Cluster ID: {}".format(cluster_id))
   t0 = time.time()
   stmt = text(gen_sql()).bindparams(q_embed=embed, cluster_id=cluster_id, limit=limit)
-  with engine.connect() as conn:
-    conn.execute(text("SET TRANSACTION AS OF SYSTEM TIME '-10s';"))
-    rs = conn.execute(stmt)
-    if rs is not None:
-      for row in rs:
-        (uri, sim, chunk) = row
-        rv.append({"uri": uri, "score": float(sim), "chunk": chunk})
+  rs = conn.execute(stmt)
+  if rs is not None:
+    for row in rs:
+      (uri, sim, chunk) = row
+      rv.append({"uri": uri, "score": float(sim), "chunk": chunk})
   et = time.time() - t0
   logging.info("SQL query time: {} ms".format(et * 1000))
   return rv
@@ -545,14 +547,18 @@ def log_txn_isolation_level():
 def do_search(q_base_64, limit):
   q = decode(q_base_64)
   q = clean_text(q)
-  rv = retry(search, (q.split(), limit))
+  with engine.connect() as conn:
+    conn.execute(text("SET TRANSACTION AS OF SYSTEM TIME '-10s';"))
+    rv = retry(search, (conn, q.split(), limit))
   return Response(json.dumps(rv), status=200, mimetype="application/json")
 
 @app.route("/index", methods=["POST"])
 def do_index():
   #log_txn_isolation_level()
   data = request.get_json(force=True)
-  return retry(index_text, (data["uri"], data["text"]))
+  with engine.connect() as conn:
+    rv = retry(index_text, (conn, data["uri"], data["text"]))
+  return rv
 
 @app.route("/health", methods=["GET"])
 def health():
