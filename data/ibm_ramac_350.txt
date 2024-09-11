@@ -1,0 +1,11 @@
+William Goddard was a member of the San Jose, California–based engineering team that developed the 350 Disk Storage Unit, a major component of the IBM 305 RAMAC Computer.[1] The magnetic disk drive represented a technological leap forward in rapid access to mass data storage, substantially faster than the then dominant tape drive.
+
+The CPU unit, also known as the 305 Processing unit, was responsible for the write-in and read-out operations of the IBM 350. “Instructions” were provided to the unit coded as “memory addresses”. These addresses referred to specific locations on the disc in which a transducer was either commanded to write-in or read-out data.
+
+Goddard's research began in the early 1950s at IBM's Laboratory located on 99 Notre Dame Avenue in San Jose, CA.
+
+He did not see his work as particularly complex. As he puts it, “it was not high tech, or very scientific. It was more like something you’d do in your garage.”
+
+The IBM 350 Disk Storage Unit consisted of the magnetic disk memory unit with an access mechanism, the controls for the access mechanism, and a small air compressor. Assembled with covers, the 350 apparatus was 60 inches (1.5 m) long, 68 inches (1.7 m) high and 29 inches (0.74 m) deep. It was configured with 50 magnetic disks containing 50,000 sectors, each of which held 100 six-bit alphanumeric characters, for a capacity of 5 million six-bit characters.
+
+Disks rotated at 1,200 rpm, tracks were recorded at up to 100 bits per inch, and typical head-to-disk spacing was 800 microinches (20 μm). The execution of a "seek" instruction positioned a read-write head to the track that contained the desired sector and selected the sector for a later read or write operation. Seek time averaged about 600 milliseconds.
