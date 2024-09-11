@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
       - name: crdb-embeddings
-        image: mgoddard/crdb-embeddings-x86:1.45
+        image: mgoddard/crdb-embeddings-x86:1.48
         imagePullPolicy: Always
         resources:
           requests:
@@ -51,15 +51,15 @@ spec:
           - name: MIN_SENTENCE_LEN
             value: "12"
           - name: N_CLUSTERS
-            value: "1536"
+            value: "2688"
           - name: TRAIN_FRACTION
-            value: "0.10"
+            value: "0.01"
           - name: MODEL_FILE
             value: "/tmp/model.pkl"
           - name: MODEL_FILE_URL
             value: "https://storage.googleapis.com/crl-goddard-text/model_Fastembed_3840.pkl"
           - name: BATCH_SIZE
-            value: "1024"
+            value: "256"
           - name: KMEANS_VERBOSE
             value: "2"
           - name: KMEANS_MAX_ITER

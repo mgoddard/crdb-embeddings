@@ -1,5 +1,6 @@
-tag=1.45
+tag=1.48
 docker_id="mgoddard"
-arch="x86"
-#arch="arm"
+#arch="x86"
+arch="arm"
 img_name="crdb-embeddings-$arch"
+

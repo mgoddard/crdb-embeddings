@@ -8,11 +8,11 @@ export DB_URL="postgres://test_role:123abc@127.0.0.1:26257/defaultdb?sslmode=req
 export LOG_LEVEL=INFO
 export N_THREADS=10
 export MIN_SENTENCE_LEN=8
-export N_CLUSTERS=3840
-export TRAIN_FRACTION=0.10
+export N_CLUSTERS=768
+export TRAIN_FRACTION=0.90
 export MODEL_FILE=/tmp/model.pkl
 export MODEL_FILE_URL="https://storage.googleapis.com/crl-goddard-text/model_Fastembed_1536.pkl"
-export BATCH_SIZE=1024
+export BATCH_SIZE=256
 export KMEANS_VERBOSE=2
 export KMEANS_MAX_ITER=100
 export SECRET="TextWithNoSpecialChars"
