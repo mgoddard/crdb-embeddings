@@ -441,15 +441,34 @@ def store_model_in_db(mdl):
 
 @app.route("/sample/<int:n_rows>")
 def sample_data(n_rows):
+  t0 = time.time()
   logging.info("Getting {} sample rows ...".format(n_rows))
+  # Use an efficient approach to get a set of keys to select from
+  sql = """
+  SHOW STATISTICS USING JSON FOR TABLE semantic.cluster_assign;
+  """
+  stmt = text(sql)
+  js = None
+  with engine.connect() as conn:
+    conn.execute(text("SET TRANSACTION AS OF SYSTEM TIME '-10s';"))
+    rs = conn.execute(stmt)
+    if rs is not None:
+      for row in rs:
+        js = row[0]
+  keys = []
+  for v1 in js:
+    if v1["columns"] == ["uri"]:
+      for hb in v1["histo_buckets"]:
+        keys.append(hb["upper_bound"])
+  # Fetch the sample rows using a randomly chosen key from above list
+  key = random.choice(keys)
   sql = """
   SELECT chunk
   FROM semantic.text_embed
-  ORDER BY RANDOM()
+  WHERE uri > :key
   LIMIT :limit;
   """
-  t0 = time.time()
-  stmt = text(sql).bindparams(limit=n_rows)
+  stmt = text(sql).bindparams(key=key, limit=n_rows)
   sample = []
   with engine.connect() as conn:
     conn.execute(text("SET TRANSACTION AS OF SYSTEM TIME '-10s';"))
