@@ -456,6 +456,7 @@ def sample_data(n_rows):
       for row in rs:
         js = row[0]
   keys = []
+  keys.append('') # Default value if no stats exist
   for v1 in js:
     if v1["columns"] == ["uri"]:
       for hb in v1["histo_buckets"]:
