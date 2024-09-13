@@ -6,16 +6,11 @@ import psycopg2
 from psycopg2.errors import SerializationFailure
 import sqlalchemy
 from sqlalchemy import create_engine, text, event, insert, Table, MetaData
-from sqlalchemy.sql.expression import bindparam
-from sqlalchemy.dialects.postgresql import JSONB
-import numpy as np
 from sklearn.cluster import KMeans
 import joblib
-from flask import Flask, request, Response, g
-import urllib
+from flask import Flask, request, Response
 import json
 import base64
-from functools import lru_cache
 import uuid
 import os.path
 import pickle
@@ -327,7 +322,7 @@ def index_file(in_file):
       text += line
   in_file = re.sub(r"\./", '', in_file) # Trim leading '/'
   with engine.connect() as conn:
-    rv = retry(index_text, (conn, data["uri"], data["text"]))
+    rv = retry(index_text, (conn, in_file, text))
   return rv
 
 # Clean any special chars out of text
@@ -547,17 +542,6 @@ def search(conn, terms, limit):
   logging.info("SQL query time: {} ms".format(et * 1000))
   return rv
 
-# Verify transaction isolation level
-def log_txn_isolation_level():
-  txn_lvl = "Unknown"
-  stmt = text("SHOW transaction_isolation;")
-  with engine.connect() as conn:
-    rs = conn.execute(stmt)
-    cur.execute("SHOW transaction_isolation;")
-    for row in rs:
-      (txn_lvl) = row
-  logging.info("transaction_isolation: {}".format(txn_lvl))
-
 #
 # The search/query
 # EXAMPLE (with a limit of 10 results):
@@ -574,7 +558,6 @@ def do_search(q_base_64, limit):
 
 @app.route("/index", methods=["POST"])
 def do_index():
-  #log_txn_isolation_level()
   data = request.get_json(force=True)
   with engine.connect() as conn:
     rv = retry(index_text, (conn, data["uri"], data["text"]))
