@@ -276,7 +276,7 @@ def index_text(conn, uri, text):
     s = s.strip()
     if (len(s) >= min_sentence_len):
       s_list.append(s)
-    if len(s_list) > max_chunks:
+    if len(s_list) == max_chunks:
       break
   t0 = time.time()
   try:
