@@ -9,7 +9,7 @@ fi
 offset=$1
 limit=1000
 
-for url in $( tail -n +$(( offset + 1 )) ./flickr_urls.txt | head -$limit )
+for url in $( gzcat ./flickr_urls.txt.gz | tail -n +$(( offset + 1 )) | head -$limit )
 do
   time ./index_image.py $url
 done
