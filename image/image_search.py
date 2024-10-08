@@ -251,10 +251,6 @@ def retry(f, args):
 def get_cluster_id(rw, embed):
   return int(kmeans_model[rw].predict([embed])[0])
 
-def imgFileFromUrl(url):
-  img = requests.get(url).content
-  return io.BytesIO(img)
-
 # This takes a long time, so cache it just in case there are repeat searches
 @lru_cache(maxsize=1024)
 def getImageFeatures(imageUrl):
@@ -591,3 +587,4 @@ else:
 port = int(os.getenv("FLASK_PORT", 18080))
 from waitress import serve
 serve(app, host="0.0.0.0", port=port, threads=n_threads)
+
