@@ -6,6 +6,7 @@ import psycopg2
 from psycopg2.errors import SerializationFailure
 import sqlalchemy
 from sqlalchemy import create_engine, text, event, insert, Table, MetaData
+import warnings
 from sklearn.cluster import KMeans
 import joblib
 from flask import Flask, request, Response, send_file
@@ -602,7 +603,9 @@ def get_model_from_db():
 # main()
 setup_db()
 db_meta = MetaData(schema="image")
-image_embed_table = Table("image_embed", db_meta, autoload_with=engine)
+with warnings.catch_warnings():
+  warnings.simplefilter("ignore", category=sqlalchemy.exc.SAWarning)
+  image_embed_table = Table("image_embed", db_meta, autoload_with=engine)
 cluster_assign_table = Table("cluster_assign", db_meta, autoload_with=engine)
 blob_table = Table("blob_store", db_meta, autoload_with=engine)
 thumb_table = Table("thumbnail", db_meta, autoload_with=engine)
