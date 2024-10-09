@@ -531,7 +531,7 @@ def search(conn, uri, limit):
   logging.info("Query URI: '{}'".format(uri))
   rv = []
   t0 = time.time()
-  embed = getImageFeatures(uri)
+  (embed, thumb) = getImageFeatures(uri)
   et = time.time() - t0
   logging.info("  getImageFeatures(): {} ms".format(et * 1000))
   t0 = time.time()
