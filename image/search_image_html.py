@@ -39,6 +39,8 @@ html_file = "/tmp/" + re.sub(r'=+$', '', url_b64) + ".html"
 with open(html_file, "wt") as f:
   f.write(hdr)
   f.write('<table style="margin-left: auto; margin-right: auto; padding-top: 10%;">\n')
+  f.write('<tr><td colspan="{}">Top {} matches for URL <a href="{}">{}</a></td></tr>\n'.format(len(obj), len(obj), url, url))
+  f.write('<tr><td colspan="{}">&nbsp;</td></tr>\n'.format(len(obj)))
   f.write('<tr style="vertical-align: center;">\n')
   for hit in obj:
     f.write('<td><img src="{}/thumb/{}"/></td>'.format(endpoint, b64(hit["uri"])))
@@ -49,5 +51,9 @@ with open(html_file, "wt") as f:
   f.write("</tr>\n")
   f.write("</table>\n")
   f.write("</body>\n</html>\n\n")
-print("open {}".format(html_file))
+
+# The following works in a Mac, but possibly only on a Mac
+exe = "/usr/bin/open"
+args = [html_file]
+os.execvp(exe, [exe] + args)
 
