@@ -8,7 +8,7 @@ import sqlalchemy
 from sqlalchemy import create_engine, text, event, insert, Table, MetaData
 from sklearn.cluster import KMeans
 import joblib
-from flask import Flask, request, Response
+from flask import Flask, request, Response, send_file
 import json
 import base64
 import uuid
@@ -22,6 +22,8 @@ from functools import lru_cache
 # Image search
 from PIL import Image
 from fastembed import ImageEmbedding
+
+THUMBNAIL_DIM = 192, 192
 
 BLOCK_SIZE = 64 * (1 << 10) # Used when striping the model across > 1 row in blob_store
 CHARSET = "utf-8"
@@ -158,6 +160,15 @@ CREATE TABLE image.blob_store
 );
 """
 
+ddl_t5 = """
+CREATE TABLE image.thumbnail
+(
+  uri STRING NOT NULL
+  , blob BYTEA NOT NULL
+  , PRIMARY KEY (uri)
+);
+"""
+
 ddl_view = """
 CREATE OR REPLACE VIEW image.ie_ca_view
 AS
@@ -213,6 +224,7 @@ def setup_db():
     run_ddl(ddl_t1)
     run_ddl(ddl_t2)
     run_ddl(ddl_t4)
+    run_ddl(ddl_t5)
     run_ddl(ddl_view)
     logging.info("OK")
   else:
@@ -251,19 +263,23 @@ def retry(f, args):
 def get_cluster_id(rw, embed):
   return int(kmeans_model[rw].predict([embed])[0])
 
-# This takes a long time, so cache it just in case there are repeat searches
+# Returns a tuple of (embeddings, thumbnail_image)
 @lru_cache(maxsize=1024)
 def getImageFeatures(imageUrl):
-  rv = None
-  img = Image.open(requests.get(imageUrl, stream=True).raw)
-  rv = list(fe_model.embed([img]))
-  return rv[0]
+  embed = None
+  thumb = None
+  with Image.open(requests.get(imageUrl, stream=True).raw) as im:
+    thumb = im.copy()
+    thumb.thumbnail(THUMBNAIL_DIM)
+    embed = list(fe_model.embed([im]))
+  return (embed[0], thumb)
 
 def index_image(conn, uri):
   t0 = time.time()
   embed = None
+  thumb = None
   try:
-    embed = getImageFeatures(uri)
+    (embed, thumb) = getImageFeatures(uri)
   except Exception as e:
     logging.warning(e)
     return Response(str(e), status=500, mimetype="text/plain")
@@ -272,6 +288,13 @@ def index_image(conn, uri):
   ie_row_map = {
     "uri": uri
     , "embedding": embed
+  }
+  img_io = io.BytesIO()
+  thumb.save(img_io, "JPEG")
+  img_io.seek(0)
+  th_row_map = {
+    "uri": uri
+    , "blob": img_io.read()
   }
   if not skip_kmeans:
     cluster_id = get_cluster_id("write", embed)
@@ -282,6 +305,7 @@ def index_image(conn, uri):
   t0 = time.time()
   try:
     conn.execute(insert(image_embed_table), [ie_row_map])
+    conn.execute(insert(thumb_table), [th_row_map])
   except sqlalchemy.exc.IntegrityError as e:
     return Response(e.orig.diag.message_detail, status=400, mimetype="text/plain")
   if not skip_kmeans:
@@ -374,6 +398,26 @@ def refresh_cluster_assignments(s):
   logging.info("Table swap time: {} ms".format(et * 1000))
   kmeans_model["read"] = kmeans_model["write"] # Once cluster assignments are updated
   return Response("OK", status=200, mimetype="text/plain")
+
+def fetch_thumb(uri):
+  sql = """
+  SELECT blob
+  FROM image.thumbnail
+  WHERE uri = :uri
+  """
+  rv = None
+  with engine.connect() as conn:
+    rs = conn.execute(text(sql).bindparams(uri=uri))
+    for row in rs:
+      rv = row.blob
+  return rv
+
+@app.route("/thumb/<uri_base_64>")
+def thumb(uri_base_64):
+  uri = decode(uri_base_64)
+  image_data = fetch_thumb(uri)
+  image_stream = io.BytesIO(image_data)
+  return send_file(image_stream, mimetype="image/jpeg")
 
 @app.route("/cluster_assign/<s>")
 def cluster_assign(s):
@@ -561,6 +605,7 @@ db_meta = MetaData(schema="image")
 image_embed_table = Table("image_embed", db_meta, autoload_with=engine)
 cluster_assign_table = Table("cluster_assign", db_meta, autoload_with=engine)
 blob_table = Table("blob_store", db_meta, autoload_with=engine)
+thumb_table = Table("thumbnail", db_meta, autoload_with=engine)
 
 # Load the K-means model
 if not skip_kmeans:
